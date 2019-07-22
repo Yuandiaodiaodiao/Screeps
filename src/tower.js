@@ -7,21 +7,35 @@
  * mod.thing == 'a thing'; // true
  */
 
-function work(spawnnow,tower){
-    let enemy=spawnnow.room.find(FIND_HOSTILE_CREEPS)
-    if(enemy.length>0){
+function work(spawnnow, tower) {
+    let enemy = spawnnow.room.find(FIND_HOSTILE_CREEPS)
+    if (enemy.length > 0) {
         tower.attack(tower.pos.findClosestByRange(FIND_HOSTILE_CREEPS))
-    }else if(tower.pos.findInRange(FIND_STRUCTURES,5,{
-        filter: obj=> obj.hits<obj.hitsMax
-    }).length>0){
+    } else {
+        let targets = tower.room.find(FIND_STRUCTURES, {
+            filter: obj => obj.hits < obj.hitsMax
+                && obj.structureType != STRUCTURE_WALL
 
-        tower.repair(tower.pos.findClosestByRange(FIND_STRUCTURES,{
-            filter: obj=> obj.hits<obj.hitsMax
-        }))
+        })
+        if (targets.length > 0) {
+            tower.repair(targets[0])
+        } else {
+            let hurtcreeps = tower.room.find(FIND_MY_CREEPS,
+                {
+                    filter: obj =>
+                        obj.hits < obj.hitsMax
+                }
+            )
+            if (hurtcreeps.length > 0) {
+                tower.heal(hurtcreeps[0])
+            }
+
+        }
+
     }
 
 }
 
 module.exports = {
-    'work':work
+    'work': work
 };

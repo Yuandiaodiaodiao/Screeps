@@ -9,11 +9,10 @@
 function work(spawns, name) {
     let creep = Game.creeps[name]
     if (creep.memory.status == 'upgrading') {
-        creep.moveTo(spawns.room.controller)
-        creep.upgradeController(spawns.room.controller)
-        // if(creep.upgradeController(spawns.room.controller)==ERR_NOT_IN_RANGE){
-        //     creep.moveTo(spawns.room.controller);
-        // }
+        // creep.upgradeController(spawns.room.controller)
+        if(creep.upgradeController(spawns.room.controller)==ERR_NOT_IN_RANGE){
+            creep.moveTo(spawns.room.controller);
+        }
         if (creep.carry.energy == 0) {
             creep.memory.status = 'getting'
         }

@@ -21,15 +21,20 @@ function getting(spawns,creep,next_status , baseline=0){
 }
 
 function work2(spawns,name){
+    //build
     let creep=Game.creeps[name]
     if(creep.memory.status=='building'){
-        let target=creep.pos.findClosestByPath(FIND_CONSTRUCTION_SITES)
-        if(target) {
-            if(creep.build(target) == ERR_NOT_IN_RANGE) {
-                creep.moveTo(target);
+        let targets=[]
+        for(let name in Game.rooms){
+            let room=Game.rooms[name]
+            targets.push.apply(targets, room.find(FIND_CONSTRUCTION_SITES))
+        }
+        if(targets.length>0) {
+            if(creep.build(targets[targets.length-1]) == ERR_NOT_IN_RANGE) {
+                creep.moveTo(targets[targets.length-1]);
             }
         }else{
-            creep.moveTo(22,18)
+            creep.moveTo(24,17)
             creep.memory.status='repairing'
         }
 
@@ -47,7 +52,8 @@ function work2(spawns,name){
                 creep.moveTo(target);
             }
         }else{
-            creep.status='building'
+            creep.moveTo(24,17)
+            creep.memory.status='building'
         }
         if(creep.carry.energy==0){
             creep.memory.status='getting'
@@ -58,6 +64,7 @@ function work2(spawns,name){
     }
 }
 function work(spawns,name){
+    //repair
     let creep=Game.creeps[name]
     if(creep.memory.status=='building'){
         let target=creep.pos.findClosestByPath(FIND_CONSTRUCTION_SITES)

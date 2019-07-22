@@ -4,16 +4,18 @@ var carryer = require('carryer');
 var upgrader = require('upgrader');
 var builder = require('builder');
 var tower = require('tower');
+var reserver=require('reserver')
 var creepsnum = 7;
 var range = api.range;
 var spawnnow = Game.spawns['spawn1']
 var creeplist = {
-    'm': 2,//miner
-    'c': 3,//carryer
-    'u': 2,//upgrader
-    'b': 2,//builder
+    'm': 3,//miner
+    'c': 5,//carryer
+    'u': 1,//upgrader
+    'b': 1,//builder
+    'r':1,//reserver
 }
-
+var findrooms = require('tools').findrooms
 
 function renew(spawns) {
     if (spawns.spawning) return
@@ -32,27 +34,29 @@ function renew(spawns) {
 
 module.exports.loop = function () {
     spawnnow = Game.spawns["spawn1"]
+
+
     renew(spawnnow)
 
-    for (let i in Memory.structure.container.mine) {
-        Memory.creeps["c" + i].gettarget
-            = Memory.structure.container.mine[i]
-    }
+
     for (let name in Game.creeps) {
         if (name[0] == 'm') {
             miner.mine(spawnnow, name);
         } else if (name[0] == 'c') {
-            if (name[1] == '2')
+            if (name[1] >='3')
                 carryer.work2(spawnnow, name)
             else
                 carryer.work(spawnnow, name)
         } else if (name[0] == 'u') {
             upgrader.work(spawnnow, name)
         } else if (name[0] == 'b') {
-            if (name[1] == '0')
-                builder.work(spawnnow, name)
-            else
+            if (name[1] <= '1')
                 builder.work2(spawnnow, name)
+            else
+                builder.work(spawnnow, name)
+        }else if(name[0]=='r'){
+            let pos=new  RoomPosition(10, 25, 'E25N42')
+            reserver.work(spawnnow,name,pos)
         }
     }
     let towers = spawnnow.room.find(FIND_STRUCTURES,

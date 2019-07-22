@@ -6,26 +6,27 @@
  * var mod = require('miner');
  * mod.thing == 'a thing'; // true
  */
-function mine(spawns,name){
-    let creep=Game.creeps[name]
-    if(creep.memory.status=='going'){
-        let target=Game.getObjectById(creep.memory.container)
+function mine(spawns, name) {
+    let creep = Game.creeps[name]
+    if (creep.memory.status == 'going') {
+        let target = Game.getObjectById(creep.memory.container)
         creep.moveTo(target)
-        if(creep.pos==target.pos){
-            creep.memory.status='mining'
+        if (creep.pos.getRangeTo(target) == 0) {
+            creep.memory.status = 'mining'
         }
     }
-    if(creep.memory.status=='mining'){
+    if (creep.memory.status == 'mining') {
         let target = Game.getObjectById(creep.memory.target)
-        let container=Game.getObjectById(creep.memory.container)
-        if(container.hits<container.hitsMax){
+        let container = Game.getObjectById(creep.memory.container)
+        if (container.hits < container.hitsMax && creep.carry.energy > 0) {
             creep.repair(container)
-        }else{
+        } else {
             creep.harvest(target)
         }
 
     }
 }
+
 module.exports = {
-    'mine':mine
+    'mine': mine
 };
