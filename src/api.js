@@ -25,19 +25,21 @@ function spawnminer(spawnnow, id) {
     //         numb++
     //     }
     // }
-    let targetid=Memory.rooms[spawnnow.room.name].source[id]
-    let containerid=Game.getObjectById(targetid).pos.findClosestByRange(FIND_STRUCTURES, {
-                    filter: structure => structure.structureType == STRUCTURE_CONTAINER
-                }).id
+    let targetid = Memory.rooms[spawnnow.room.name].source[id]
+    console.log(targetid)
+    if (!Game.getObjectById(targetid)) return
+    let containerid = Game.getObjectById(targetid).pos.findClosestByRange(FIND_STRUCTURES, {
+        filter: structure => structure.structureType == STRUCTURE_CONTAINER
+    }).id
     spawnnow.spawnCreep(
         [WORK, WORK, WORK, WORK, WORK, WORK,
             CARRY, MOVE, MOVE, MOVE],
-        'm'+id,
+        'm' + id,
         {
             memory: {
                 status: 'going',
-                target:targetid,
-                container:containerid
+                target: targetid,
+                container: containerid
 
             }
         }
@@ -46,9 +48,9 @@ function spawnminer(spawnnow, id) {
 
 }
 
-function spawncarryer(spawnnow,id) {
+function spawncarryer(spawnnow, id) {
     spawnnow.spawnCreep(
-        [WORK,CARRY, CARRY, CARRY, CARRY,
+        [WORK, CARRY, CARRY, CARRY, CARRY,
             CARRY, CARRY, CARRY, CARRY,
             CARRY, CARRY, CARRY, CARRY
             , MOVE, MOVE,
@@ -56,10 +58,11 @@ function spawncarryer(spawnnow,id) {
             MOVE, MOVE,
             MOVE
         ],
-        'c'+id,
+        'c' + id,
         {
-            memory: {status: 'getting',
-            gettarget: Memory.creeps['m'+ id].container
+            memory: {
+                status: 'getting',
+                gettarget: Memory.creeps['m' + id].container
             }
         }
     )
@@ -67,7 +70,7 @@ function spawncarryer(spawnnow,id) {
 
 function spawnupgrader(name) {
     let body = {
-        'work': 11,
+        'work': 12,
         'carry': 2,
         'move': 2
     }
@@ -105,14 +108,23 @@ function spawn(spawnnow, types, id) {
     if (types == 'm') {
         spawnminer(spawnnow, id)
     } else if (types == 'c') {
-        spawncarryer(spawnnow , id)
+        spawncarryer(spawnnow, id)
     } else if (types == 'u') {
         spawnupgrader(types + id)
     } else if (types == 'b') {
         spawnbuilder(types + id)
     } else if (types == 'r') {
         require('reserver').born(spawnnow, id)
+    } else if (types == 'f') {
+        require('filler').born(spawnnow, id)
     }
+}
+
+function missionspawn(spawnnow, types, memory) {
+    let creepname = spawnnow.room.name + "_" + types + "_" + Game.time
+    let ans = require(types).born(spawnnow, creepname, memory)
+    if (ans == OK) console.log('borntype=' + types)
+    return ans
 }
 
 function* range(beg, end, step = 1) {
@@ -123,5 +135,6 @@ function* range(beg, end, step = 1) {
 module.exports = {
     'range': range,
     'testa': testa,
-    'spawn': spawn
+    'spawn': spawn,
+    'missionspawn': missionspawn
 };

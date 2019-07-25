@@ -6,76 +6,39 @@
  * var mod = require('carryer');
  * mod.thing == 'a thing'; // true
  */
-function work2(spawns, name) {
-    //fill
 
-    let creep = Game.creeps[name]
-    if (creep.memory.status == 'getting') {
 
-        let target = spawns.room.storage
-
-        if (target) {
-            if (creep.withdraw(target, RESOURCE_ENERGY) == ERR_NOT_IN_RANGE) {
-                creep.moveTo(target)
-            }
-        }
-        if (creep.carry.energy >= creep.carryCapacity) {
-            creep.memory.status = 'carrying';
-        }
-    }
-    if (creep.memory.status == 'carrying') {
-        let target = creep.pos.findClosestByPath(FIND_STRUCTURES, {
-            filter: (structure) => {
-                return (structure.structureType == STRUCTURE_SPAWN
-                        || structure.structureType == STRUCTURE_EXTENSION
-                        || structure.structureType == STRUCTURE_TOWER
-                    )
-                    && structure.energy < structure.energyCapacity;
-            }
-        })
-        if (target) {
-            if (creep.transfer(target, RESOURCE_ENERGY) == ERR_NOT_IN_RANGE) {
-                creep.moveTo(target)
-            }
-        } else {
-            if (creep.carry.energy >= creep.carryCapacity) {
-                creep.moveTo(22, 18)
-            } else {
-                creep.memory.status = 'getting'
-            }
-        }
-        if (creep.carry.energy == 0) {
-            creep.memory.status = 'getting';
-        }
-    }
-}
-
-function work(spawns, name) {
+function work(name) {
     let creep = Game.creeps[name]
 
     if (creep.memory.status == 'getting') {
 
         let target = Game.getObjectById(creep.memory.gettarget)
-
+        // console.log('targetid=' + target.id)
         if (target) {
             if (creep.withdraw(target, RESOURCE_ENERGY) == ERR_NOT_IN_RANGE) {
                 creep.moveTo(target)
             }
-        } else {
-
         }
-        if (creep.carry.energy >= creep.carryCapacity) {
+
+        let drops = creep.pos.findInRange(FIND_DROPPED_RESOURCES, 1)
+        if (drops.length > 0) {
+            creep.memory.status = 'dropping'
+        }
+        if (_.sum(creep.carry) >= creep.carryCapacity) {
             creep.memory.status = 'carrying';
         }
-    }
-    if (creep.memory.status == 'carrying') {
-        let target = spawns.room.storage
+    } else if (creep.memory.status == 'carrying') {
+        let target = Game.getObjectById(creep.memory.fill)
         if (target) {
+            for(const resourceType in creep.carry) {
+                creep.transfer(target, resourceType)
+            }
             if (creep.transfer(target, RESOURCE_ENERGY) == ERR_NOT_IN_RANGE) {
                 creep.moveTo(target)
-                let roads = creep.pos.findInRange(FIND_STRUCTURES, 2, {
+                let roads = creep.pos.findInRange(FIND_STRUCTURES, 1, {
                     filter: obj => obj.structureType == STRUCTURE_ROAD
-                    && obj.hits<obj.hitsMax
+                        && obj.hits < obj.hitsMax
                 })
                 if (roads.length > 0) {
                     creep.repair(roads[0])
@@ -84,15 +47,73 @@ function work(spawns, name) {
         } else {
 
         }
-        if (creep.carry.energy == 0) {
+        if (_.sum(creep.carry) == 0) {
             creep.memory.status = 'getting';
+        }
+    }
+    if (creep.memory.status == 'rubbishing') {
+        creep.memory.status = 'getting'
+        let rubbishs = creep.pos.findInRange(FIND_TOMBSTONES, 3, {
+            filter: obj => obj.store[RESOURCE_ENERGY] > 0
+        })
+        if (rubbishs.length > 0) {
+            creep.say('rub')
+            let action = creep.withdraw(rubbishs[0], RESOURCE_ENERGY)
+            if (action == ERR_NOT_IN_RANGE) {
+                creep.moveTo(rubbishs[0]);
+            } else if (action == OK) {
+                creep.memory.status = 'getting'
+            }
+        } else {
+            creep.memory.status = 'getting'
+        }
+        if (_.sum(creep.carry) >= creep.carryCapacity) {
+            creep.memory.status = 'carrying';
+        }
+
+    } else if (creep.memory.status == 'dropping') {
+        let drops = creep.pos.findInRange(FIND_DROPPED_RESOURCES, 3)
+        if (drops.length > 0) {
+            let action = creep.pickup(drops[0])
+            if (action == ERR_NOT_IN_RANGE) {
+                creep.moveTo(drops[0]);
+            } else if (action == OK) {
+                creep.memory.status = 'getting'
+            }
+        } else {
+            creep.memory.status = 'getting'
+        }
+        if (_.sum(creep.carry) >= creep.carryCapacity) {
+            creep.memory.status = 'carrying';
         }
     }
 
 
 }
 
+function born(spawnnow, creepname, memory) {
+    let body={
+        'work':1,
+        'carry':16,
+        'move':9
+    }
+    let bodyarray=require('tools').generatebody(body,spawnnow)
+    // console.log(JSON.stringify(bodyarray))
+    return spawnnow.spawnCreep(
+       bodyarray,
+        creepname,
+        {
+            memory: {
+                status: 'getting',
+                missionid: memory.gettarget,
+                gettarget: memory.gettarget,
+                fill: memory.fill
+            }
+        }
+    )
+}
+
 module.exports = {
     'work': work,
-    'work2': work2
+    'born': born
 };

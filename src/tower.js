@@ -7,8 +7,8 @@
  * mod.thing == 'a thing'; // true
  */
 
-function work(spawnnow, tower) {
-    let enemy = spawnnow.room.find(FIND_HOSTILE_CREEPS)
+function work(tower) {
+    let enemy = tower.room.find(FIND_HOSTILE_CREEPS)
     if (enemy.length > 0) {
         tower.attack(tower.pos.findClosestByRange(FIND_HOSTILE_CREEPS))
     } else {
