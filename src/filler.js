@@ -14,6 +14,7 @@ function work(name) {
     }
 
     if (creep.memory.status == 'getting') {
+
         let target = Game.getObjectById(creep.memory.missionid)
 
         if (target && target.store[RESOURCE_ENERGY] > 0) {
@@ -56,7 +57,10 @@ function work(name) {
                         || structure.structureType == STRUCTURE_EXTENSION
                     ) && structure.energy < structure.energyCapacity)
                     || (structure.structureType == STRUCTURE_TOWER &&
-                        structure.energy / structure.energyCapacity < 0.7)
+                        structure.energy / structure.energyCapacity < 0.75
+                        ||(structure.structureType==STRUCTURE_TERMINAL &&
+                            structure.store[RESOURCE_ENERGY]<1e4)
+                    )
             }
         })
         if (target) {
@@ -70,7 +74,8 @@ function work(name) {
                                 || structure.structureType == STRUCTURE_EXTENSION
                             ) && structure.energy < structure.energyCapacity)
                             || (structure.structureType == STRUCTURE_TOWER &&
-                                structure.energy / structure.energyCapacity < 0.7)) &&
+                                structure.energy / structure.energyCapacity < 0.75)
+                            ) &&
                             structure.id != target.id
                     }
                 })
@@ -90,8 +95,8 @@ function work(name) {
 
 function born(spawnnow, creepname, memory) {
     let body = {
-        'carry': 12,
-        'move': 6
+        'carry': 18,
+        'move': 9
     }
     let bodyarray = tools.generatebody(body, spawnnow)
     let ans = spawnnow.spawnCreep(

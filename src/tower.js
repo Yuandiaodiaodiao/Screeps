@@ -7,32 +7,39 @@
  * mod.thing == 'a thing'; // true
  */
 
-function work(tower) {
-    let enemy = tower.room.find(FIND_HOSTILE_CREEPS)
-    if (enemy.length > 0) {
-        tower.attack(tower.pos.findClosestByRange(FIND_HOSTILE_CREEPS))
-    } else {
-        let targets = tower.room.find(FIND_STRUCTURES, {
-            filter: obj => obj.hits < obj.hitsMax
-                && obj.structureType != STRUCTURE_WALL
-
-        })
-        if (targets.length > 0) {
-            tower.repair(targets[0])
-        } else {
-            let hurtcreeps = tower.room.find(FIND_MY_CREEPS,
-                {
-                    filter: obj =>
-                        obj.hits < obj.hitsMax
-                }
-            )
-            if (hurtcreeps.length > 0) {
-                tower.heal(hurtcreeps[0])
-            }
-
+function work(room) {
+    let target = room.find(FIND_HOSTILE_CREEPS)[0]
+    if (target) {
+        for (let id of room.memory.tower) {
+            let tower = Game.getObjectById(id)
+            tower.attack(tower.pos.findClosestByRange(FIND_HOSTILE_CREEPS))
+        }
+    } else if (target = room.find(FIND_MY_CREEPS,
+        {
+            filter: obj =>
+                obj.hits < obj.hitsMax
+        }
+    )[0]) {
+        for (let id of room.memory.tower) {
+            Game.getObjectById(id).heal(target)
         }
 
+    } else if (target = room.find(FIND_STRUCTURES, {
+        filter: obj => (obj.hits < obj.hitsMax
+            && obj.structureType != STRUCTURE_WALL)
+    }).sort((a, b) => {
+        return(a.hits-b.hits)
+    })) {
+        let num=0
+        let target1=null
+        for (let id of room.memory.tower) {
+            if(target1=target[num]){
+                Game.getObjectById(id).repair(target1)
+            }
+            num++
+        }
     }
+
 
 }
 

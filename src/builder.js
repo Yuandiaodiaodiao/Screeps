@@ -48,7 +48,7 @@ function work(name) {
     }
 
     if (creep.memory.status == 'getting') {
-        getting(room, creep, 'building', 5e4)
+        getting(room, creep, 'building', 4e4)
     }
 }
 
@@ -93,8 +93,7 @@ function work2(spawns, name) {
 }
 
 function born(spawnnow, creepname, memory) {
-    if (require('tools').findrooms(spawnnow.room, FIND_CONSTRUCTION_SITES).length == 0)
-        return -10
+
     let body={
         'work':4,
         'carry':8,
@@ -115,6 +114,5 @@ function born(spawnnow, creepname, memory) {
 
 module.exports = {
     'work': work,
-    'work2': work2,
     'born': born
 };

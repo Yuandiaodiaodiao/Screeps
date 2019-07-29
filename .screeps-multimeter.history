@@ -1,3 +1,6 @@
 Memory.creep
 Game.rooms.length
 /help
+require('main').testx
+require('main').testx='aaaaa'
+require('main').testx

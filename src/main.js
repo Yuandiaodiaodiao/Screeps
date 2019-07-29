@@ -1,25 +1,5 @@
-var miner = require('miner');
 var api = require('api');
-var carryer = require('carryer');
-var upgrader = require('upgrader');
-var builder = require('builder');
 var tower = require('tower');
-var reserver = require('reserver')
-var filler = require('filler')
-var creepsnum = 7;
-var range = api.range;
-var spawnnow = Game.spawns['spawn1']
-var creeplist = {
-    'f': 0,//filler
-    'm': 0,//miner
-    'c': 0,//carryer
-    'u': 0,//upgrader
-    'b': 0,//builder
-    'r': 0,//reserver
-
-}
-//require('api').missionspawn(Game.spawns['spawn1'], 'opener')
-var findrooms = require('tools').findrooms
 
 function clearmem() {
     for (let name in Memory.creeps) {
@@ -29,34 +9,33 @@ function clearmem() {
     }
 }
 
-function renew(spawns) {
-    if (spawns.spawning) return
-    for (let types in creeplist) {
-        for (let i of range(0, creeplist[types])) {
-            if (!Game.creeps.hasOwnProperty(types + i)) {
-                api.spawn(spawns, types, i)
-                return
-            }
-        }
-    }
-
-
-}
 
 var missions_ori = {
     filler: {},
-    carryer: {//from A transfer to B
-    },
+    centerminer: {},
+    subprotecter:{},
     miner: {//挖矿&修复附近的建筑物
     },
+    carryer: {//from A transfer to B
+    },
+    coreminer:{},
+
 
     upgrader: {},
     reserver: {},
+
     watcher: {},
     builder: {},
+    flagworker: {},
     collecter: {},
-    opener: {}
+    mineraler: {},
+    opener: {},
+    controllerattack: {},
+    healer: {},
+    attacker: {},
+    rattacker: {},
 }
+
 var role_num = {
     filler: 1,
     carryer: 1,
@@ -66,7 +45,16 @@ var role_num = {
     watcher: 1,
     builder: 1,
     collecter: 1,
-    opener: 1
+    flagworker: 1,
+    mineraler: 1,
+    opener: -1,
+    healer: -1,
+    attacker: -1,
+    rattacker: -1,
+    controllerattack: -1,
+    centerminer: 3,
+    coreminer:1,
+    subprotecter:1
 }
 
 function mission_generator(room) {
@@ -80,6 +68,16 @@ function mission_generator(room) {
     thisroom.source = []
     for (let obj of targets) {
         thisroom.source.push(obj.id)
+    }
+    //找矿
+    let minerals = room.find(FIND_MINERALS)
+    if (minerals.length > 0) {
+        thisroom.mineral = []
+        for (let obj of minerals) {
+            if (obj.pos.findInRange(FIND_STRUCTURES, 1,
+                {filter: obj => obj.structureType == STRUCTURE_EXTRACTOR}).length > 0)
+                thisroom.mineral.push(obj.id)
+        }
     }
     //找塔
     thisroom.tower = []
@@ -145,6 +143,7 @@ function mission_generator(room) {
                 missions.carryer[containerid] = {
                     gettarget: containerid,
                     fill: filltarget,
+                    type: RESOURCE_ENERGY,
                     creeps: []
                 }
             }
@@ -194,20 +193,156 @@ function mission_generator(room) {
         }
     }
     //分配builder
-    missions.builder[room.name] = {
-        creeps: [],
-        roomName: room.name
+    if (require('tools').findrooms(room, FIND_CONSTRUCTION_SITES).length > 0) {
+        missions.builder[room.name] = {
+            creeps: [],
+            roomName: room.name
+        }
     }
+
     //分配collecter
-    missions.collecter[room.name] = {
-        creeps: [],
-        roomName: room.name
+    {let link=null
+        if(room.storage){
+        link= room.storage.pos.findInRange(FIND_STRUCTURES,5,{filter:obj=>obj.structureType==STRUCTURE_LINK})[0]
+        }
+        missions.collecter[room.name] = {
+            creeps: [],
+            roomName: room.name,
+            linkid:link.id
+        }
     }
+
     //opener
     if (room.controller.level >= 5) {
         missions.opener[room.name] = {
             creeps: [],
             roomName: 'E25N43'
+        }
+    }
+    //flagworker
+    if (require('tools').findroomsfilter(room, FIND_FLAGS, {
+        filter: obj => obj.name.split('_')[0] == 'fw'
+    }).length > 0) {
+        missions.flagworker[room.name] = {
+            creeps: [],
+            roomName: room.name
+        }
+    }
+
+    //mineraler
+    for (let sourceid of thisroom.mineral) {
+        let containers = Game.getObjectById(sourceid).pos.findInRange(FIND_STRUCTURES, 3, {
+            filter: structure => structure.structureType == STRUCTURE_CONTAINER
+        })
+        if (containers.length > 0 && !Game.getObjectById(sourceid).ticksToRegeneration) {
+            //已经配置了container 允许采矿
+            missions.mineraler[sourceid] = {
+                target: sourceid,
+                container: containers[0].id,
+                creeps: []
+            }
+        }
+    }
+    //mineraler配套carryer
+    for (let sourceid in missions.mineraler) {
+        if (missions.mineraler[sourceid].container) {
+            let containerid = missions.mineraler[sourceid].container
+            let filltarget = room.terminal
+            if (filltarget && !Game.getObjectById(sourceid).ticksToRegeneration) {
+                missions.carryer[containerid] = {
+                    gettarget: containerid,
+                    fill: filltarget.id,
+                    type: Game.getObjectById(sourceid).mineralType,
+                    creeps: []
+                }
+            }
+
+        }
+    }
+    //healer
+    missions.healer[room.name] = {
+        creeps: [],
+        roomName: room.name
+    }
+    //attacker
+    missions.attacker[room.name] = {
+        creeps: [],
+        roomName: room.name
+    }
+    //rattacker
+    missions.rattacker[room.name] = {
+        creeps: [],
+        roomName: room.name
+    }
+    //controllerattack
+    missions.controllerattack[room.name] = {
+        creeps: [],
+        roomName: room.name
+    }
+    //centerminer
+    for (let posr of thisroom.ctm) {
+        missions.centerminer[posr.x + posr.y + posr.roomName] = {
+            creeps: [],
+            x: posr.x,
+            y: posr.y,
+            roomName: posr.roomName
+        }
+    }
+    //coreminer
+    for (let posr of thisroom.ctm) {
+        missions.coreminer[posr.x + posr.y + posr.roomName] = {
+            creeps: [],
+            x: posr.x,
+            y: posr.y,
+            roomName: posr.roomName
+        }
+    }
+    //centcarryer
+    //分配carryer
+    for (let posr of thisroom.ctm) {
+        try {
+            let cpos = new RoomPosition(posr.x, posr.y, posr.roomName)
+            let container = cpos.findInRange(FIND_STRUCTURES, 3, {filter: obj => obj.structureType == STRUCTURE_CONTAINER})[0]
+            if (!container) continue
+            let canfill = require('tools').findroomsfilter(room, FIND_STRUCTURES, {
+                filter: obj => obj.structureType == STRUCTURE_LINK
+            })
+            let filltarget = null
+            if (!room.storage) {
+                let spawns = room.find(FIND_MY_SPAWNS)
+                if (spawns.length == 0) continue
+                let spawn = spawns[0]
+                filltarget = spawn.pos.findClosestByRange(FIND_STRUCTURES, {
+                    filter: obj => obj.structureType == STRUCTURE_CONTAINER
+                }).id
+            } else {
+                filltarget = room.storage.id;
+                let mincost = PathFinder.search(container.pos, {pos: room.storage.pos, range: 1}).cost - 10
+                for (let obj of canfill) {
+                    let nowcost = PathFinder.search(container.pos, {pos: obj.pos, range: 1}).cost
+                    if (mincost > nowcost) {
+                        filltarget = obj.id
+                        mincost = nowcost
+                    }
+                }
+            }
+            if (filltarget) {
+                missions.carryer[container.id] = {
+                    gettarget: container.id,
+                    fill: filltarget,
+                    type: RESOURCE_ENERGY,
+                    creeps: []
+                }
+            }
+        } catch
+            (e) {
+        }
+    }
+    //subprotecter
+    if (require('tools').findroomselse(room, FIND_HOSTILE_CREEPS).length > 0) {
+        missions.subprotecter[room.name] = {
+            creeps: [],
+            roomName: room.name
         }
     }
 
@@ -247,13 +382,13 @@ function mission_spawner(room) {
             try {
                 let mission = role[missionid]
                 // console.log(roleName + '--' + missionid + ' ' + mission.creeps.length)
-                if (mission.creeps.length <=role_num[roleName]-1 ) {
+                if (mission.creeps.length <= role_num[roleName] - 1) {
                     if (api.missionspawn(spawn, roleName, mission) == OK) {
                         return
                     }
                 } else if (mission.creeps.length == role_num[roleName]) {
                     let onlycreep = Game.creeps[mission.creeps[0]]
-                    if (onlycreep.ticksToLive < 100) {
+                    if ((roleName!='centerminer'&&onlycreep.ticksToLive < 100)||((roleName=='centerminer'&&onlycreep.ticksToLive < 200))) {
                         if (api.missionspawn(spawn, roleName, mission) == OK) {
                             return
                         }
@@ -267,45 +402,74 @@ function mission_spawner(room) {
     }
 }
 
-var cpuper10 = 0;
 var everyTick = 0;
+var lasttime = 0
+var iftimer = false
+
+function timer(strs = null) {
+    let timeuse = Game.cpu.getUsed() - lasttime
+    lasttime = Game.cpu.getUsed()
+    if (iftimer && strs) console.log(strs + "  " + timeuse.toFixed(4))
+    return timeuse
+}
+
+var cpuuse = 0
 module.exports.loop = function () {
     clearmem()
-    if (everyTick % 10 == 0) {
+    if ((everyTick+1) % 50 == 0) {
         for (let roomName in Memory.rooms) {
             try {
                 mission_generator(Game.rooms[roomName])
             } catch (e) {
                 console.log(roomName + 'mission_generator error ' + e)
             }
-        }
-    }
+            if (Game.rooms[roomName].terminal && false) {
+                let order = Game.market.getAllOrders({type: ORDER_BUY, resourceType: RESOURCE_HYDROGEN}).sort(
+                    (b, a) => (a.price * 1000 - Game.market.calcTransactionCost(1000, roomName, a.roomName) * 15) -
+                        (b.price * 1000 - Game.market.calcTransactionCost(1000, roomName, b.roomName) * 15)
+                )[0]
+                if (order) {
+                    console.log(JSON.stringify(order))
+                    console.log('cost=' + (order.price * 1000 - Game.market.calcTransactionCost(1000, roomName, order.roomName) * 15))
+                }
+            }
 
+        }
+
+    }
+    timer()
     mission_detector()
+    timer('mission_detector')
 
     for (let roomName in Memory.rooms) {
         let room = Game.rooms[roomName]
         if (!room) continue
-        for (let id of room.memory.tower) {
-            try {
-                tower.work(Game.getObjectById(id))
-            } catch (e) {
-                console.log('tower error ' + e)
-            }
+        if (everyTick != 0) {
+            room.visual.text(((cpuuse / everyTick).toFixed(1)) + "cpu", 36, 22, {color: 'red', font: 0.8})
         }
+        try {
+            timer()
+            tower.work(room)
+            timer('tower')
+        } catch (e) {
+            console.log(roomName + 'tower error ' + e)
+        }
+
+        timer()
         mission_spawner(room)
+        timer('spawner' + roomName)
         if (room.memory.tower.length == 0 && room.find(FIND_HOSTILE_CREEPS).length > 0) {
             room.controller.activateSafeMode()
         }
     }
     for (let name in Game.creeps) {
-        let role = name.split('_')[1]
+        if (name.split('_') < 1) continue
         try {
+            let role = name.split('_')[1]
             // console.log('role=' + role)
-            // let timex=Game.cpu.getUsed()
-
+            timer()
             require(role).work(name)
-            // console.log('times '+name+'='+(Game.cpu.getUsed()-timex))
+            timer(name)
         } catch (e) {
             console.log('role=' + name + 'error' + e)
         }
@@ -313,10 +477,17 @@ module.exports.loop = function () {
 
 
     let link = Game.getObjectById('5d358783c08d9e7cff85ad34')
-    link.transferEnergy(Game.getObjectById('5d3578ad4e9f615e2bd44cac'))
-
+    if (link.cooldown == 0)
+        link.transferEnergy(Game.getObjectById('5d3578ad4e9f615e2bd44cac'))
+    link = Game.getObjectById('5d3b0f5655e4f473c8741a81')
+    if (link.cooldown == 0)
+        link.transferEnergy(Game.getObjectById('5d3b12c35141741e27628e4f'))
+    link = Game.getObjectById('5d3d2fc292f3f774843b2890')
+    if (link.cooldown == 0)
+        link.transferEnergy(Game.getObjectById('5d3578ad4e9f615e2bd44cac'))
 
     everyTick++
     everyTick %= 1000
-
+    if (everyTick == 0) cpuuse = 0
+    cpuuse += Game.cpu.getUsed()
 }

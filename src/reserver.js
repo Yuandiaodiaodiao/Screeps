@@ -19,7 +19,7 @@ function born(spawnnow, creepname, memory) {
         // console.log('reserver' + Game.rooms[memory.roomName] + ' ' + Game.rooms[memory.roomName].controller.reservation
         //     + bodypart)
         if (!Game.rooms[memory.roomName] || !Game.rooms[memory.roomName].controller.reservation
-            ||!Game.rooms[memory.roomName].controller.reservation.ticksToEnd
+            || !Game.rooms[memory.roomName].controller.reservation.ticksToEnd
             || Game.rooms[memory.roomName].controller.reservation.ticksToEnd <= 4000) {
 
             return spawnnow.spawnCreep(
@@ -37,7 +37,7 @@ function born(spawnnow, creepname, memory) {
             return -11
         }
     } catch (e) {
-        console.log(creepname+' born err' + e)
+        console.log(creepname + ' born err' + e)
     }
 
 

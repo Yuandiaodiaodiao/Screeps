@@ -3,7 +3,8 @@ module.exports = {
     'generatebody': generatebody,
     'deepcopy':deepcopy,
     'findroomsfilter':findroomsfilter,
-    'randomNum':randomNum
+    'randomNum':randomNum,
+    'findroomselse':findroomselse
 };
 
 function* range(beg, end, step = 1) {
@@ -11,6 +12,16 @@ function* range(beg, end, step = 1) {
         yield i;
 }
 
+function findroomselse(room, findconst) {
+    let roomset = new Set(Memory.rooms[room.name].subroom)
+    let ans = []
+    for (let name in Game.rooms) {
+        if (roomset.has(name)) {
+            ans = ans.concat(Game.rooms[name].find(findconst))
+        }
+    }
+    return ans
+}
 function findrooms(room, findconst) {
     let roomset = new Set(Memory.rooms[room.name].subroom)
     roomset.add(room.name)

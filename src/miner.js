@@ -30,7 +30,7 @@ function work(name) {
             }
         } else {
             target = Game.getObjectById(creep.memory.target)
-            if (!target) console.log(name + 'no mine')
+            // if (!target) console.log(name + 'no mine')
             creep.moveTo(target)
             if (creep.pos.getRangeTo(target) == 1) {
                 creep.memory.status = 'dropping'
@@ -43,7 +43,12 @@ function work(name) {
         if (container.hits < container.hitsMax && creep.carry.energy > 0) {
             creep.repair(container)
         } else {
-            creep.harvest(target)
+            if (target.energy > 0) {
+                let action = creep.harvest(target)
+                if (action == ERR_NOT_IN_RANGE) {
+                    creep.moveTo(target)
+                }
+            }
         }
     } else if (creep.memory.status == 'dropping') {
         let target = creep.pos.findInRange(FIND_CONSTRUCTION_SITES, 2, {
