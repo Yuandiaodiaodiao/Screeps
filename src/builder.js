@@ -12,12 +12,12 @@ function getting(room, creep, next_status, baseline = 0) {
         if (creep.withdraw(target, RESOURCE_ENERGY) == ERR_NOT_IN_RANGE) {
             creep.moveTo(target)
         }
-    }else{
-        target=creep.pos.findClosestByPath(FIND_STRUCTURES,{
-            filter:obj=>obj.structureType==STRUCTURE_CONTAINER
-            && obj.store[RESOURCE_ENERGY]>1000
+    } else {
+        target = creep.pos.findClosestByPath(FIND_STRUCTURES, {
+            filter: obj => obj.structureType == STRUCTURE_CONTAINER
+                && obj.store[RESOURCE_ENERGY] > 1000
         })
-        if(target){
+        if (target) {
             if (creep.withdraw(target, RESOURCE_ENERGY) == ERR_NOT_IN_RANGE) {
                 creep.moveTo(target)
             }
@@ -31,24 +31,32 @@ function getting(room, creep, next_status, baseline = 0) {
 function work(name) {
     //build
     let creep = Game.creeps[name]
-    let room=Game.rooms[creep.memory.missionid]
+    let room = Game.rooms[creep.memory.missionid]
     if (creep.memory.status == 'building') {
-        let targets = require('tools').findrooms(room, FIND_CONSTRUCTION_SITES)
-        if (targets.length > 0) {
-            if (creep.build(targets[targets.length - 1]) == ERR_NOT_IN_RANGE) {
-                creep.moveTo(targets[targets.length - 1]);
+        if (!creep.memory.buildtarget || !Game.getObjectById(creep.memory.buildtarget)) {
+            const target = require('tools').findrooms(room, FIND_CONSTRUCTION_SITES)[0]
+            if (target) {
+                creep.memory.buildtarget = target.id
+            } else {
+                creep.memory.status = 'sleep'
             }
         } else {
-            creep.moveTo(23, 15)
-        }
-
-        if (creep.carry.energy == 0) {
-            creep.memory.status = 'getting'
+            const target = Game.getObjectById(creep.memory.buildtarget)
+            const act = creep.build(target)
+            if (act == ERR_NOT_IN_RANGE) {
+                creep.moveTo(target, {reusePath: 10})
+            } else if (act == ERR_NOT_ENOUGH_RESOURCES) {
+                creep.memory.status = 'getting'
+            }
         }
     }
-
     if (creep.memory.status == 'getting') {
         getting(room, creep, 'building', 4e4)
+    }
+    if(creep.memory.status=='sleep'){
+        if(Game.time%10==0){
+            creep.memory.status='building'
+        }
     }
 }
 
@@ -94,12 +102,12 @@ function work2(spawns, name) {
 
 function born(spawnnow, creepname, memory) {
 
-    let body={
-        'work':4,
-        'carry':8,
-        'move':6
+    let body = {
+        'work': 16,
+        'carry': 17,
+        'move': 17
     }
-    let bodyarray=require('tools').generatebody(body,spawnnow)
+    let bodyarray = require('tools').generatebody(body, spawnnow)
     return spawnnow.spawnCreep(
         bodyarray,
         creepname,

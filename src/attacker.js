@@ -1,8 +1,8 @@
 function born(spawnnow, creepname, memory) {
-    if (spawnnow.room.name != 'E28N46') return -11
     let bodyparts = require('tools').generatebody({
-        'attack': 20,
-        'move': 20
+        'attack': 1,
+        'work':24,
+        'move': 25,
     }, spawnnow)
     // console.log(JSON.stringify(bodyparts))
     return spawnnow.spawnCreep(
@@ -12,6 +12,11 @@ function born(spawnnow, creepname, memory) {
             memory: {
                 status: 'going',
                 missionid: memory.roomName,
+                step: 0,
+                position: [
+                    [12, 4, 'E29N39'],
+                    [25, 19, 'E29N38'],
+                ]
             }
         }
     )
@@ -64,14 +69,14 @@ function work2(name) {
         }
         let target = creep.pos.findClosestByPath(FIND_HOSTILE_CREEPS)
         if (target) {
-            if(creep.attack(target)==ERR_NOT_IN_RANGE){
+            if (creep.attack(target) == ERR_NOT_IN_RANGE) {
                 creep.moveTo(target)
             }
         } else {
             target = creep.pos.findClosestByRange(FIND_STRUCTURES, {
                 filter: obj => obj.structureType == STRUCTURE_RAMPART
-                ||obj.structureType==STRUCTURE_CONTAINER
-                ||obj.structureType==STRUCTURE_WALL
+                    || obj.structureType == STRUCTURE_CONTAINER
+                    || obj.structureType == STRUCTURE_WALL
             })
             if (target) {
                 if (creep.attack(target) == ERR_NOT_IN_RANGE) {
@@ -87,7 +92,76 @@ function work2(name) {
 
 }
 
+function work3(name) {
+    //路径拆墙
+    let creep = Game.creeps[name]
+
+    if (creep.memory.status == 'going') {
+        let posm = creep.memory.position[creep.memory.step]
+        let poss = new RoomPosition(posm[0], posm[1], posm[2])
+        creep.moveTo(poss)
+        if (creep.pos.getRangeTo(poss) == 0) {
+            creep.memory.step++
+        }
+        if (creep.memory.step == creep.memory.position.length) {
+            creep.memory.status = 'mining'
+        }
+    } else {
+        let target = Game.getObjectById("5c990c8b028033459cac6b42")
+        if (!target) {
+            target = creep.pos.findClosestByRange(FIND_STRUCTURES, {filter: obj => obj.structureType == STRUCTURE_RAMPART})
+        }
+        let act = creep.dismantle(target)
+        if (act == ERR_NOT_IN_RANGE) {
+            creep.moveTo(target)
+        }
+    }
+
+
+}
+
+function work4(name) {
+    //打爆
+    let creep = Game.creeps[name]
+
+    if (creep.memory.status == 'going') {
+        let posm = creep.memory.position[creep.memory.step]
+        let poss = new RoomPosition(posm[0], posm[1], posm[2])
+        creep.moveTo(poss)
+        if (creep.pos.getRangeTo(poss) == 0) {
+            creep.memory.step++
+        }
+        if (creep.memory.step == creep.memory.position.length) {
+            creep.memory.status = 'mining'
+        }
+    } else {
+        let target = creep.pos.findClosestByRange(FIND_HOSTILE_CREEPS)
+        if (target) {
+            let act = creep.attack(target)
+            if (act == ERR_NOT_IN_RANGE)
+                creep.moveTo(target)
+            // creep.moveTo(new RoomPosition(25,25,'E29N38'))
+        } else {
+            let target = creep.pos.findClosestByRange(FIND_HOSTILE_CREEPS)
+            if (!target) {
+                target = Game.getObjectById('5ce43effb6985640ab4831a6')
+                if (creep.getActiveBodyparts('work')) {
+                    if (creep.dismantle(target) == ERR_NOT_IN_RANGE) creep.moveTo(target)
+                } else {
+                    if (creep.attack(target) == ERR_NOT_IN_RANGE) creep.moveTo(target)
+                }
+            } else {
+                if (creep.attack(target) == ERR_NOT_IN_RANGE) {
+                    creep.moveTo(target)
+                }
+            }
+        }
+    }
+
+
+}
+
 module.exports = {
-    'work': work2,
+    'work': work4,
     'born': born,
 };

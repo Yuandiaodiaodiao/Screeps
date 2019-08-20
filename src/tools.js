@@ -4,7 +4,8 @@ module.exports = {
     'deepcopy':deepcopy,
     'findroomsfilter':findroomsfilter,
     'randomNum':randomNum,
-    'findroomselse':findroomselse
+    'findroomselse':findroomselse,
+    'findroomselsefilter':findroomselsefilter
 };
 
 function* range(beg, end, step = 1) {
@@ -18,6 +19,16 @@ function findroomselse(room, findconst) {
     for (let name in Game.rooms) {
         if (roomset.has(name)) {
             ans = ans.concat(Game.rooms[name].find(findconst))
+        }
+    }
+    return ans
+}
+function findroomselsefilter(room, findconst,filters) {
+    let roomset = new Set(Memory.rooms[room.name].subroom)
+    let ans = []
+    for (let name in Game.rooms) {
+        if (roomset.has(name)) {
+            ans = ans.concat(Game.rooms[name].find(findconst,filters))
         }
     }
     return ans
@@ -52,6 +63,18 @@ function bodycost(body) {
     return nowcost
 }
 function generatebody(body,spawnnow=null) {
+    let maxpart=0
+    for(let part in body){
+        maxpart+=Math.ceil(body[part])
+    }
+    while(maxpart>50){
+        let fix=49.9/maxpart
+        maxpart=0
+        for(let part in body){
+            body[part]*=fix
+            maxpart+=Math.ceil(body[part])
+        }
+    }
     if(spawnnow){
         let maxenergy=spawnnow.room.energyCapacityAvailable
         while(bodycost(body)>maxenergy){

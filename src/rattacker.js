@@ -1,8 +1,8 @@
 function born(spawnnow, creepname, memory) {
-    if (spawnnow.room.name != 'E28N46') return -11
     let bodyparts = require('tools').generatebody({
-        'ranged_attack': 20,
-        'move': 20
+        'ranged_attack': 10,
+        'heal': 10,
+        'move': 25,
     }, spawnnow)
     // console.log(JSON.stringify(bodyparts))
     return spawnnow.spawnCreep(
@@ -10,8 +10,15 @@ function born(spawnnow, creepname, memory) {
         creepname,
         {
             memory: {
-                status: 'goto',
+                status: 'going',
                 missionid: memory.roomName,
+                step: 0,
+                position: [
+                    [26, 14, 'E26N40'],
+                    [2, 35, 'E29N40'],
+
+
+                ]
             }
         }
     )
@@ -19,39 +26,59 @@ function born(spawnnow, creepname, memory) {
 
 
 function work(name) {
-
-
+    //rush
     let creep = Game.creeps[name]
-    if (creep.memory.status == 'goback') {
-        creep.moveTo(new RoomPosition(46, 44, 'E28N46'), {reusePath: 0})
-        if (creep.hits == creep.hitsMax) creep.memory.status = 'goto'
-    } else if (creep.memory.status == 'goto') {
-        if (creep.pos.roomName == 'E28N46') {
-            creep.moveTo(new RoomPosition(2, 44, 'E29N46'))
-            return
+    // if (creep.hits == creep.hitsMax) {
+    //     let healc = creep.pos.findClosestByRange(FIND_MY_CREEPS, {filter: obj => obj.hits < obj.hitsMax})
+    //     if (healc)
+    //         if(creep.heal(healc)==ERR_NOT_IN_RANGE){
+    //             creep.moveTo(healc)
+    //             return
+    //         }
+    // }else{
+        creep.heal(creep)
+    // }
+
+    if (creep.memory.status == 'going') {
+        let posm = creep.memory.position[creep.memory.step]
+        let poss = new RoomPosition(posm[0], posm[1], posm[2])
+        creep.moveTo(poss)
+        if (creep.pos.getRangeTo(poss) <= 1) {
+            creep.memory.step++
         }
-        let ene = creep.pos.findClosestByPath(FIND_HOSTILE_CREEPS)
-        if (ene) {
-            if (creep.rangedAttack(ene) == ERR_NOT_IN_RANGE) {
-                creep.moveTo(ene)
+        if (creep.memory.step == creep.memory.position.length) {
+            creep.memory.status = 'waiting'
+        }
+    } else if (creep.memory.status == 'waiting') {
+        if (creep.hits / creep.hitsMax <0.95) {
+            if (creep.pos.getRangeTo(new RoomPosition(9, 47, 'E29N39')) >1) {
+                creep.moveTo(new RoomPosition(9, 47, 'E29N39'))
             }
         } else {
-            let target = creep.pos.findClosestByRange(FIND_STRUCTURES,{
-                filter:obj=>obj.structureType==STRUCTURE_TOWER
-            })
-            if (creep.rangedAttack(target) == ERR_NOT_IN_RANGE) {
-                creep.moveTo(target)
+            // creep.moveTo(new RoomPosition(25,25,'E29N38'))
+
+
+            let target = Game.getObjectById('a')
+            if (!target) {
+                target = creep.pos.findClosestByRange(FIND_HOSTILE_CREEPS)
+                if(!target){
+                    target=creep.pos.findClosestByRange(FIND_HOSTILE_STRUCTURES)
+                }
+            }
+
+            if (creep.pos.getRangeTo(target) <= 1) {
+                creep.rangedMassAttack()
+            } else {
+                if (creep.rangedAttack(target) == ERR_NOT_IN_RANGE) {
+                    creep.moveTo(target)
+                }
             }
         }
-        // if (creep.hits / creep.hitsMax < 0.85) {
-        //     creep.memory.status = 'goback'
-        // }
-    } else {
-        creep.memory.status = 'goback'
+
     }
 
-}
 
+}
 
 module.exports = {
     'work': work,

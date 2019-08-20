@@ -9,14 +9,15 @@
 function work( name) {
     let creep = Game.creeps[name]
     if (creep.memory.status == 'going') {
-        let route = Game.map.findRoute(creep.room, creep.memory.roomName);
-        if(route.length > 0) {
-            const exit = creep.pos.findClosestByRange(route[0].exit);
-            creep.moveTo(exit);
+        if(creep.pos.roomName!=creep.memory.roomName){
+            creep.moveTo(new RoomPosition(25,25,creep.memory.roomName))
         }
-        if(creep.pos.roomName==creep.memory.roomName){
+        else if(creep.pos.roomName==creep.memory.roomName){
             creep.memory.status='arrive'
-            creep.moveTo(25,25)
+            if(creep.pos.x<=1)creep.move(RIGHT)
+            else if(creep.pos.x>=49)creep.move(LEFT)
+            else if(creep.pos.y<=1)creep.move(BOTTOM)
+            else if(creep.pos.y>=49)creep.move(TOP)
         }
     }else if(creep.memory.status=='arrive'){
         if(creep.pos.findInRange(STRUCTURE_ROAD,1)>0){

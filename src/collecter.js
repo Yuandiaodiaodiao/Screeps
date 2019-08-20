@@ -10,6 +10,9 @@ function work(name) {
     let creep = Game.creeps[name]
     let drop = null
     let link = null
+    if (_.sum(creep.carry) == 0) {
+        creep.memory.status = 'collecting'
+    }
     if (creep.memory.status == 'collecting') {
         let rubbish = creep.pos.findClosestByPath(FIND_TOMBSTONES, {
             filter: obj => _.sum(obj.store) > 0
@@ -22,11 +25,13 @@ function work(name) {
         } else if (drop = creep.pos.findClosestByPath(FIND_DROPPED_RESOURCES)) {
             if (creep.pickup(drop) == ERR_NOT_IN_RANGE)
                 creep.moveTo(drop, {visualizePathStyle: {}})
-        } else if (creep.memory.link &&(link = Game.getObjectById(creep.memory.link)) && link.energy > 500) {
-            if(creep.withdraw(link,RESOURCE_ENERGY)==ERR_NOT_IN_RANGE){
-                creep.moveTo(link)
-            }
-        } else {
+        }
+        // else if (creep.memory.link &&(link = Game.getObjectById(creep.memory.link)) && link.energy >=800) {
+        //         if(creep.withdraw(link,RESOURCE_ENERGY)==ERR_NOT_IN_RANGE){
+        //             creep.moveTo(link)
+        //         }
+        //     }
+        else {
             if (_.sum(creep.carry) == 0) {
                 // creep.moveTo(23, 15)
                 let target = creep.pos.findClosestByPath(FIND_FLAGS, {
@@ -43,7 +48,8 @@ function work(name) {
         if (_.sum(creep.carry) >= creep.carryCapacity) {
             creep.memory.status = 'carrying';
         }
-    } else if (creep.memory.status == 'carrying') {
+    }
+    if (creep.memory.status == 'carrying') {
         let target = Game.rooms[creep.memory.missionid].storage
         if (target) {
             for (const resourceType in creep.carry) {
@@ -69,8 +75,12 @@ function work(name) {
 }
 
 function born(spawnnow, creepname, memory) {
+    let bodyparts = require('tools').generatebody({
+        'carry': 8,
+        'move': 8
+    }, spawnnow)
     return spawnnow.spawnCreep(
-        [MOVE, CARRY, CARRY, MOVE, CARRY, CARRY],
+        bodyparts,
         creepname,
         {
             memory: {

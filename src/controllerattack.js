@@ -1,41 +1,56 @@
+var canborn=false
 function born(spawnnow, creepname, memory) {
-    if (spawnnow.room.name != 'E28N46') return -11
+    if(Game.time%1000==0)canborn=true
+    if(!canborn)return -11
     let bodyparts = require('tools').generatebody({
-        'claim': 4,
-        'move': 4
+        'claim': 25,
+        'move': 25
     }, spawnnow)
     // console.log(JSON.stringify(bodyparts))
-    return spawnnow.spawnCreep(
+    let act= spawnnow.spawnCreep(
         bodyparts,
         creepname,
         {
             memory: {
-                status: 'goto',
+                status: 'going',
                 missionid: memory.roomName,
+                step:0,
+                position:[
+                    [48, 40, 'E26N40'],
+                    [2, 35, 'E29N40'],
+                    [25, 19, 'E29N38'],
+                ]
             }
         }
     )
+    if(act==OK)canborn=false
+    return act
 }
+
 
 
 function work(name) {
-
-
+    //claim
     let creep = Game.creeps[name]
-    if (creep.memory.status == 'goto') {
-        if(creep.room.name=='E29N46'){
-            let target=creep.room.controller
-            if(creep.attackController(target)==ERR_NOT_IN_RANGE){
-                creep.moveTo(target)
-            }
-            // creep.signController(target,"Now it's mine")
-        }else{
-            creep.moveTo(new RoomPosition(2, 44, 'E29N46'))
+
+    if (creep.memory.status == 'going') {
+        let posm = creep.memory.position[creep.memory.step]
+        let poss = new RoomPosition(posm[0], posm[1], posm[2])
+        creep.moveTo(poss)
+        if (creep.pos.getRangeTo(poss) == 0) {
+            creep.memory.step++
+        }
+        if (creep.memory.step == creep.memory.position.length) {
+            creep.memory.status = 'mining'
+        }
+    }else{
+        let target =creep.room.controller
+        let act = creep.attackController(target)
+        if (act == ERR_NOT_IN_RANGE) {
+            creep.moveTo(target)
         }
     }
-
 }
-
 
 module.exports = {
     'work': work,

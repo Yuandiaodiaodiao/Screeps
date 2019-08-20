@@ -1,8 +1,9 @@
 function born(spawnnow, creepname, memory) {
     let bodyparts = require('tools').generatebody({
-        'tough':3,
-        'move': 6,
-        'attack': 3,
+        'tough': 5,
+        'attack': 10,
+        'ranged_attack': 10,
+        'move': 25,
     }, spawnnow)
     return spawnnow.spawnCreep(
         bodyparts,
@@ -20,10 +21,22 @@ function born(spawnnow, creepname, memory) {
 function work(name) {
 
     let creep = Game.creeps[name]
-    let target=require('tools').findroomselse(Game.rooms[creep.memory.missionid], FIND_HOSTILE_CREEPS)[0]
-    if(target&& creep.attack(target)==ERR_NOT_IN_RANGE){
-        creep.moveTo(target)
+    let target = require('tools').findroomselsefilter(Game.rooms[creep.memory.missionid], FIND_HOSTILE_CREEPS, {
+        filter: obj => {
+            return require('whitelist').whitelist.indexOf(obj.owner.username) == -1
+        }
+    })[0]
+    if (target) {
+        if (creep.attack(target) == ERR_NOT_IN_RANGE) {
+            creep.moveTo(target)
+        }
+        if (creep.pos.getRangeTo(target) <= 1) {
+            creep.rangedMassAttack()
+        } else {
+            creep.rangedAttack(target)
+        }
     }
+
 
 }
 

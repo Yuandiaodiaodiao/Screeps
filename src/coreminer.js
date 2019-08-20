@@ -1,9 +1,9 @@
 function born(spawnnow, creepname, memory) {
     let bodyparts = require('tools').generatebody(
         {
-            'work': 8,
+            'work': 10,
             'carry':2,
-            'move': 4,
+            'move': 5,
         }, spawnnow)
     // console.log(JSON.stringify(bodyparts))
     return spawnnow.spawnCreep(
@@ -62,6 +62,7 @@ function work(name) {
             if (creep.repair(container) == ERR_NOT_IN_RANGE) {
                 creep.moveTo(container)
             }
+            if(creep.pos.getRangeTo(container)>=1)creep.moveTo(container)
         }
         else if( creep.carry.energy > 0 &&(road=creep.pos.findInRange(FIND_STRUCTURES,3,{filter:obj=>obj.hits<obj.hitsMax})[0])) {
             creep.repair(road)

@@ -1,8 +1,7 @@
 function born(spawnnow, creepname, memory) {
     let bodyparts = require('tools').generatebody({
-        'work': 24,
-        'carry': 1,
-        'move': 12
+        'work': 40,
+        'move': 10
     }, spawnnow)
     // console.log(JSON.stringify(bodyparts))
     return spawnnow.spawnCreep(
