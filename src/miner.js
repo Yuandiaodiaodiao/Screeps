@@ -74,8 +74,9 @@ function work(creep) {
         if (container) {
             memory.container = memory.container || container.id
             if (creep.carry.energy / creep.carryCapacity > 0.85) {
-                creep.build(target[0])
+                creep.build(container)
             } else {
+                const target = Game.getObjectById(memory.missionid)
                 const action = creep.harvest(target)
                 if (action == ERR_NOT_IN_RANGE) {
                     creep.moveTo(target)
