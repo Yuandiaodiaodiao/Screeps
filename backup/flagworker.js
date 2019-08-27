@@ -28,12 +28,11 @@ function getting(room, creep, next_status, baseline = 0) {
     }
 }
 
-function work(name) {
+function work(creep) {
     //build
-    let creep = Game.creeps[name]
     let room = Game.rooms[creep.memory.missionid]
     if (creep.memory.status == 'finding') {
-        let flags = require('tools').findroomsfilter(room, FIND_FLAGS, {
+        let flags = require('../src/tools').findroomsfilter(room, FIND_FLAGS, {
             filter: obj => obj.name.split('_')[0] == 'fw'
         })
         if (flags.length > 0) {
@@ -69,7 +68,7 @@ function born(spawnnow, creepname, memory) {
         'carry': 8,
         'move': 12
     }
-    let bodyarray = require('tools').generatebody(body, spawnnow)
+    let bodyarray = require('../src/tools').generatebody(body, spawnnow)
     return spawnnow.spawnCreep(
         bodyarray,
         creepname,

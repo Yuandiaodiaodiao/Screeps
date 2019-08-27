@@ -1,35 +1,31 @@
-/*
- * Module code goes here. Use 'module.exports' to export things:
- * module.exports.thing = 'a thing';
- *
- * You can import it from another modules like this:
- * var mod = require('upgrader');
- * mod.thing == 'a thing'; // true
- */
-function work(name) {
-    let creep = Game.creeps[name]
-
-    if (creep.memory.status == 'upgrading') {
-        let target = Game.getObjectById(creep.memory.missionid)
-        let link = null
-        if (!creep.memory.container) {
-            link = creep.pos.findClosestByRange(FIND_STRUCTURES, {
+function work(creep) {
+    const memory = creep.memory
+    if (memory.status == 'going') {
+        let target = Game.getObjectById(memory.missionid)
+        if (creep.pos.getRangeTo(target) > 1) {
+            creep.moveTo(target)
+        } else {
+            memory.status = 'upgrading'
+        }
+    } else if (memory.status == 'upgrading') {
+        let target = Game.getObjectById(memory.missionid)
+        let container = Game.getObjectById(memory.container)
+        if (!container) {
+            container = creep.pos.findClosestByRange(FIND_STRUCTURES, {
                 filter: obj => obj.structureType == STRUCTURE_CONTAINER
             })
-            if (link) creep.memory.container = link.id
-            else creep.memory.container = 'x'
-        } else if (creep.carry.energy / creep.carryCapacity < 0.5
-            && (link = Game.getObjectById(creep.memory.container)) && link.store.energy > 0) {
-            creep.withdraw(link, RESOURCE_ENERGY)
+            if (container) memory.container = container.id
+        } else if (creep.carry.energy / creep.carryCapacity < 0.25 && container.store.energy > 0) {
+            creep.withdraw(container, RESOURCE_ENERGY)
         }
-        let action = creep.upgradeController(target)
+        const action = creep.upgradeController(target)
         if (action == ERR_NOT_IN_RANGE) {
             creep.moveTo(target)
         } else if (action == ERR_NOT_ENOUGH_RESOURCES) {
-            creep.memory.status = 'getting'
+            memory.status = 'getting'
         }
     }
-    if (creep.memory.status == 'getting') {
+    if (memory.status == 'getting') {
         let target = creep.pos.findClosestByPath(FIND_STRUCTURES, {
             filter: obj => {
                 if (creep.room.controller.level >= 6) {
@@ -49,7 +45,7 @@ function work(name) {
             }
         }
         if (creep.carry.energy >= creep.carryCapacity) {
-            creep.memory.status = 'upgrading';
+            memory.status = 'upgrading';
         }
     }
 }
@@ -60,8 +56,8 @@ function born(spawnnow, creepname, memory) {
         'carry': 4,
         'move': 6
     }
-    if(Game.getObjectById(memory.controller).level>=8){
-        body={
+    if (Game.getObjectById(memory.controller).level >= 8) {
+        body = {
             'work': 15,
             'carry': 4,
             'move': 5
@@ -73,14 +69,44 @@ function born(spawnnow, creepname, memory) {
         creepname,
         {
             memory: {
-                status: 'getting',
+                status: 'going',
                 missionid: memory.controller
             }
         }
     )
 }
 
+function miss(room) {
+    let role_num_fix = require('main').role_num_fix
+    if (room.storage && room.controller.level >= 5) {
+        if (room.storage.store[RESOURCE_ENERGY] / room.storage.storeCapacity < 0.4) {
+            role_num_fix[room.name].upgrader = 0
+        } else if (room.storage.store[RESOURCE_ENERGY] / room.storage.storeCapacity < 0.6) {
+            role_num_fix[room.name].upgrader = 1
+        } else if (room.storage.store[RESOURCE_ENERGY] / room.storage.storeCapacity < 0.8) {
+            role_num_fix[room.name].upgrader = 2
+        } else if (room.storage.store[RESOURCE_ENERGY] / room.storage.storeCapacity >= 0.8) {
+            role_num_fix[room.name].upgrader = 3
+        }
+    } else {
+        role_num_fix[room.name].upgrader = 1
+    }
+    if (room.controller.level >= 8) {
+        if (role_num_fix[room.name].upgrader >= 2) {
+            role_num_fix[room.name].upgrader = 1
+        }
+    }
+    if (room.controller.ticksToDowngrade && room.controller.ticksToDowngrade < 3000 && role_num_fix[room.name].upgrader == 0) {
+        role_num_fix[room.name].upgrader = 1
+    }
+
+    // if (room.name == 'E29N38') {
+    //     console.log('E29N38 upgrader=' + role_num_fix[room.name].upgrader)
+    // }
+}
+
 module.exports = {
     'work': work,
-    'born': born
+    'born': born,
+    'miss': miss,
 };

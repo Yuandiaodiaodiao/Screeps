@@ -1,5 +1,5 @@
 function born(spawnnow, creepname, memory) {
-    let bodyparts = require('tools').generatebody(
+    let bodyparts = require('../src/tools').generatebody(
         {
             'work': 10,
             'carry':2,
@@ -22,8 +22,7 @@ function born(spawnnow, creepname, memory) {
 }
 
 
-function work(name) {
-    let creep = Game.creeps[name]
+function work(creep) {
     let pos = new RoomPosition(creep.memory.x, creep.memory.y, creep.memory.roomName)
     let enemys = creep.room.find(FIND_HOSTILE_CREEPS, {filter: obj => obj.owner.username == 'Invader'})
     if (enemys.length > 0) {

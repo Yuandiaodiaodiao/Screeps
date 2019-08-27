@@ -1,5 +1,7 @@
 var api = require('api');
 var tower = require('tower');
+var link = require('link')
+require('prototype.Room.structures')
 
 function clearmem() {
     for (let name in Memory.creeps) {
@@ -21,6 +23,7 @@ module.exports.roomjson = {
 
 var missions_ori = {
     filler: {},
+    watcher: {},
     controllerattack: {},
     centerminer: {},
     subprotecter: {},
@@ -37,7 +40,7 @@ var missions_ori = {
     upgrader: {},
     reserver: {},
 
-    watcher: {},
+
     builder: {},
     flagworker: {},
     collecter: {},
@@ -45,7 +48,8 @@ var missions_ori = {
     opener: {},
     healer: {},
     attacker: {},
-    terminalmanager: {}
+    terminalmanager: {},
+    farcarryer: {}
 }
 
 var role_num = {
@@ -53,174 +57,190 @@ var role_num = {
     filler: 1,
     carryer: 1,
     miner: 1,
-    upgrader: 2,
+    upgrader: 0,
     reserver: 1,
     watcher: 1,
     builder: 1,
     collecter: 0,
-    flagworker: 1,
+    flagworker: 0,
     mineraler: 1,
     opener: 0,
-    healer: 0,
-    attacker: 0,
+    healer: 1,
+    attacker: 2,
     rattacker: 0,
     controllerattack: 0,
-    centerminer: 3,
-    coreminer: 1,
+    centerminer: 0,
+    coreminer: 0,
     subprotecter: 1,
-    terminalmanager: 1
+    terminalmanager: 1,
+    farcarryer: 0,
+    'power-a': 0,
+    'power-b': 0,
+    'power-c': 0
 }
 
 var role_num_fix = {
-    'E28N46': {
-        upgrader: -2,
-    },
+    'E28N46': {},
     'E25N43': {
-        upgrader: -2,
-        opener: 0,
+        opener: 1,
         // rattacker: 2,
         attacker: 0,
     },
     'E27N38': {
-        upgrader: -2,
         rattacker: 0,
-        healer: 1,
-        controllerattack: 1,
+        healer: 0,
+        opener: 1,
+        controllerattack: 0,
     },
     'E27N42': {
-        upgrader: -2,
         attacker: 0,
-        healer:1,
+        healer: 0,
+        opener: 1,
+        controllerattack: 0,
     },
     'E29N41': {
-        upgrader: -2,
-        attacker: 0,
-    }
+        attacker: -2,
+        opener: 0,
+        farcarryer: 0,
+    },
+    'E29N38': {},
+    'E19N41': {},
+}
+var hostile = {
+    // 'E31N41': {
+    //     next: [7, 3, 'E31N40'],
+    //     stage: ['healer','attacker'],
+    // }
 }
 
-module.exports.role_num_fix=role_num_fix
+module.exports.role_num_fix = role_num_fix
 
 function mission_generator(room) {
-//分配upgrader
-    if (room.storage && room.controller.level >= 5) {
-        if (room.storage.store[RESOURCE_ENERGY] / room.storage.storeCapacity < 0.4) {
-            role_num_fix[room.name].upgrader = -2
-        } else if (room.storage.store[RESOURCE_ENERGY] / room.storage.storeCapacity < 0.6) {
-            role_num_fix[room.name].upgrader = -1
-        } else if (room.storage.store[RESOURCE_ENERGY] / room.storage.storeCapacity < 0.8) {
-            role_num_fix[room.name].upgrader = 0
-        } else if (room.storage.store[RESOURCE_ENERGY] / room.storage.storeCapacity >= 0.8) {
-            role_num_fix[room.name].upgrader = 1
-        }
-    }
-    if (room.controller.level >= 8) {
-        if (role_num_fix[room.name].upgrader >= 0) {
-            role_num_fix[room.name].upgrader = -1
-        }
-    }
-    if (room.controller.ticksToDowngrade < 3000 && role_num_fix[room.name].upgrader == -2) {
-        role_num_fix[room.name].upgrader = -1
-    }
+
 
 // Memory.rooms[room.name].missions=missions
+    if (!room.memory.missions) room.memory.missions = {}
     let thisroom = Memory.rooms[room.name]
     thisroom.missions = require('tools').deepcopy(missions_ori)
     //找到所有资源
+    const sources = []
     let targets = require('tools').findrooms(room, FIND_SOURCES)
-    thisroom.source = []
     for (let obj of targets) {
-        thisroom.source.push(obj.id)
+        sources.push(obj)
     }
     //找矿
-    let minerals = room.find(FIND_MINERALS)
-    if (minerals.length > 0) {
-        thisroom.mineral = []
-        for (let obj of minerals) {
-            if (obj.pos.findInRange(FIND_STRUCTURES, 1,
-                {filter: obj => obj.structureType == STRUCTURE_EXTRACTOR}).length > 0)
-                thisroom.mineral.push(obj.id)
+    const minerals = []
+    {
+        const mineralstemp = room.find(FIND_MINERALS)
+        if (mineralstemp.length > 0) {
+            for (let obj of mineralstemp) {
+                if (obj.pos.findInRange(FIND_STRUCTURES, 1,
+                    {filter: obj => obj.structureType == STRUCTURE_EXTRACTOR}).length > 0)
+                    minerals.push(obj)
+            }
         }
     }
-    //找塔
-    thisroom.tower = []
-    let towers = room.find(FIND_STRUCTURES,
-        {filter: obj => obj.structureType == STRUCTURE_TOWER})
-    if (towers.length > 0) {
-        for (let tower of towers) {
-            thisroom.tower.push(tower.id)
+    {
+        //centerlink
+        if (room.storage) {
+            let centerlink = room.storage.pos.findClosestByRange(FIND_STRUCTURES, {filter: obj => obj.structureType == STRUCTURE_LINK})
+            if (centerlink) thisroom.centerlink = centerlink.id
         }
     }
-    //findlink
-    thisroom.link = []
-    let links = room.find(FIND_STRUCTURES,
-        {filter: obj => obj.structureType == STRUCTURE_LINK})
-    if (links.length > 0) {
-        for (let link of links) {
-            thisroom.link.push(link.id)
+    //findlab
+    if (room.controller.level == 8) {
+        thisroom.lab = {}
+        try {
+            let labs = room.labs
+            if (labs.length == 10) {
+                let xb = 0
+                let yb = 0
+                for (let lab of labs) {
+                    xb += lab.pos.x
+                    yb += lab.pos.y
+                }
+                xb /= 10
+                yb /= 10
+                labs.sort((a, b) => Math.abs(a.pos.x - xb) + Math.abs(a.pos.y - yb) - Math.abs(b.pos.x - xb) - Math.abs(b.pos.y - yb))
+                thisroom.lab['input'] = [labs[0].id, labs[1].id]
+                thisroom.lab['output'] = []
+                labs.slice(2).forEach(obj => thisroom.lab['output'].push(obj.id))
+                thisroom.lab['ok'] = true
+            }
+        } catch (e) {
+            console.log('findlab' + e)
         }
-    }
-    if (room.storage) {
-        let centerlink = room.storage.pos.findClosestByRange(FIND_STRUCTURES, {filter: obj => obj.structureType == STRUCTURE_LINK})
-        if (centerlink) thisroom.centerlink = centerlink.id
     }
 
 
     let missions = thisroom.missions
     //分配miner
-    for (let sourceid of thisroom.source) {
-        const container = Game.getObjectById(sourceid).pos.findInRange(FIND_STRUCTURES, 2, {
+    for (let source of sources) {
+        const container = source.pos.findInRange(FIND_STRUCTURES, 2, {
             filter: structure => structure.structureType == STRUCTURE_CONTAINER
         })[0]
-        const link = Game.getObjectById(sourceid).pos.findInRange(FIND_STRUCTURES, 2, {
+        const link = source.pos.findInRange(FIND_STRUCTURES, 2, {
             filter: structure => structure.structureType == STRUCTURE_LINK && structure.my == true
         })[0]
 
-        missions.miner[sourceid] = {
-            target: sourceid,
-            container: container ? container.id : null,
-            link: link ? link.id : null,
-            creeps: []
+        missions.miner[source.id] = {
+            target: source.id,
+            container: container ? container.id : undefined,
+            link: link ? link.id : undefined,
         }
 
     }
+
     //分配carryer
     for (let sourceid in missions.miner) {
         if (missions.miner[sourceid].container) {
             if (Game.getObjectById(missions.miner[sourceid].link)) continue
-            let canfill = require('tools').findroomsfilter(room, FIND_STRUCTURES, {
-                filter: obj => obj.structureType == STRUCTURE_LINK
-            })
+            let canfill = room.links
             let containerid = missions.miner[sourceid].container
             let container = Game.getObjectById(containerid)
             let filltarget = null
+            let mincost = 999
             if (!room.storage) {
-                let spawns = room.find(FIND_MY_SPAWNS)
+                let spawns = room.spawns
                 if (spawns.length == 0) continue
                 let spawn = spawns[0]
                 filltarget = spawn.pos.findClosestByRange(FIND_STRUCTURES, {
                     filter: obj => obj.structureType == STRUCTURE_CONTAINER
-                }).id
+                })
+                if (filltarget)
+                    mincost = PathFinder.search(container.pos, {pos: filltarget.pos, range: 1}, {
+                        plainCost: 2, swampCost: 10, roomCallback: require('tools').roomc_nocreep
+                    }).cost
             } else {
-                filltarget = room.storage.id;
-                let mincost = PathFinder.search(container.pos, {pos: room.storage.pos, range: 1}).cost - 4
-                for (let obj of canfill) {
-                    let nowcost = PathFinder.search(container.pos, {pos: obj.pos, range: 1}).cost
-                    if (mincost >= nowcost && obj.pos.roomName == room.name && container.pos.roomName != room.name) {
-                        filltarget = obj.id
-                        mincost = nowcost
+
+                filltarget = room.storage
+                mincost = PathFinder.search(container.pos, {pos: filltarget.pos, range: 1}, {
+                    plainCost: 2, swampCost: 10, roomCallback: require('tools').roomc_nocreep
+                }).cost - 4
+                // if (container.id == '5d447eca758e3f7453447016') console.log('filltargetcost' + mincost)
+                if (container.pos.roomName != room.name) {
+                    for (let obj of canfill) {
+                        let nowcost = PathFinder.search(container.pos, {pos: obj.pos, range: 1}, {
+                            plainCost: 2, swampCost: 10, roomCallback: require('tools').roomc_nocreep
+                        }).cost
+                        // if (container.id == '5d447eca758e3f7453447016') console.log('linkid=' + obj.id + 'cost=' + nowcost)
+                        if (nowcost <= mincost) {
+                            filltarget = obj
+                            mincost = nowcost
+                        }
                     }
                 }
+
             }
 
             if (filltarget) {
-                let cost = PathFinder.search(container.pos, {pos: Game.getObjectById(filltarget).pos, range: 1}).cost
-                if (cost > 5) {
+                // if (container.id == '5d447eca758e3f7453447016') console.log('filltar=' + filltarget.id)
+                if (mincost > 1) {
                     missions.carryer[containerid] = {
                         gettarget: containerid,
-                        fill: filltarget,
+                        fill: filltarget.id,
                         type: RESOURCE_ENERGY,
-                        carrycost: cost,
-                        creeps: []
+                        carrycost: mincost,
                     }
                 }
 
@@ -228,205 +248,108 @@ function mission_generator(room) {
 
         }
     }
+
     //分配upgrader
     let controller = room.controller
     missions.upgrader[controller.id] = {
         controller: controller.id,
-        creeps: []
     }
 
     //分配filler
-    let storage = room.storage
-    if (storage) {
-        missions.filler[storage.id] = {
-            gettarget: storage.id,
-            creeps: []
-        }
-    } else {
-        let spawns = room.find(FIND_MY_SPAWNS)
-        if (spawns.length > 0) {
-            let spawn = spawns[0]
-            let gettarget = spawn.pos.findClosestByRange(FIND_STRUCTURES, {
-                filter: obj => obj.structureType == STRUCTURE_CONTAINER
-            })
-            if (gettarget) {
-                missions.filler[gettarget.id] = {
-                    gettarget: gettarget.id,
-                    creeps: []
+    {
+        let storage = room.storage
+        if (storage) {
+            missions.filler[storage.id] = {
+                gettarget: storage.id,
+            }
+        } else {
+            let spawns = room.find(FIND_MY_SPAWNS)
+            if (spawns.length > 0) {
+                let spawn = spawns[0]
+                let gettarget = spawn.pos.findClosestByRange(FIND_STRUCTURES, {
+                    filter: obj => obj.structureType == STRUCTURE_CONTAINER
+                })
+                if (gettarget) {
+                    missions.filler[gettarget.id] = {
+                        gettarget: gettarget.id,
+                    }
                 }
+
             }
 
         }
-
     }
+
 
     //分配reserver
     if (!thisroom.subroom) thisroom.subroom = []
     for (let subroom of thisroom.subroom) {
         missions.reserver[subroom] = {
             roomName: subroom,
-            creeps: []
         }
     }
+
     //分配watcher
     for (let subroom of thisroom.subroom) {
         missions.watcher[subroom] = {
             roomName: subroom,
-            creeps: []
         }
-    }
-    //分配builder
-    if (require('tools').findrooms(room, FIND_CONSTRUCTION_SITES).length > 0) {
-        if (!(room.storage && room.storage.store[RESOURCE_ENERGY] / room.storage.storeCapacity < 0.2)) {
-            missions.builder[room.name] = {
-                creeps: [],
-                roomName: room.name
-            }
-        }
-
     }
 
-    //分配collecter
-    {
-        let link = null
-        if (room.storage) {
-            link = room.storage.pos.findInRange(FIND_STRUCTURES, 5, {filter: obj => obj.structureType == STRUCTURE_LINK})[0]
-        }
-        missions.collecter[room.name] = {
-            creeps: [],
-            roomName: room.name,
-            linkid: link ? link.id : null
-        }
-    }
 
     //opener
-    if (room.controller.level >= 2) {
+    if (room.controller.level >= 5) {
         missions.opener[room.name] = {
-            creeps: [],
-            roomName: room.name
-        }
-    }
-    //flagworker
-    if (require('tools').findroomsfilter(room, FIND_FLAGS, {
-        filter: obj => obj.name.split('_')[0] == 'fw'
-    }).length > 0) {
-        missions.flagworker[room.name] = {
-            creeps: [],
             roomName: room.name
         }
     }
 
+
     //mineraler
-    for (let sourceid of thisroom.mineral) {
-        let containers = Game.getObjectById(sourceid).pos.findInRange(FIND_STRUCTURES, 3, {
+    for (let source of minerals) {
+
+        const container = source.pos.findInRange(FIND_STRUCTURES, 3, {
             filter: structure => structure.structureType == STRUCTURE_CONTAINER
-        })
-        if (containers.length > 0 && !Game.getObjectById(sourceid).ticksToRegeneration) {
+        })[0]
+        if (container && !source.ticksToRegeneration) {
             //已经配置了container 允许采矿
-            missions.mineraler[sourceid] = {
-                target: sourceid,
-                container: containers[0].id,
-                creeps: []
+            missions.mineraler[source.id] = {
+                target: source.id,
+                container: container.id,
             }
         }
     }
+
     //mineraler配套carryer
     for (let sourceid in missions.mineraler) {
         if (missions.mineraler[sourceid].container) {
             let containerid = missions.mineraler[sourceid].container
             let filltarget = room.terminal
-            if (filltarget && !Game.getObjectById(sourceid).ticksToRegeneration) {
+            let source = Game.getObjectById(sourceid)
+            if (filltarget && !source.ticksToRegeneration) {
                 missions.carryer[containerid] = {
                     gettarget: containerid,
                     fill: filltarget.id,
-                    type: Game.getObjectById(sourceid).mineralType,
-                    creeps: []
+                    type: source.mineralType,
                 }
             }
 
         }
     }
-    //healer
-    missions.healer[room.name] = {
-        creeps: [],
-        roomName: room.name
-    }
-    //attacker
-    missions.attacker[room.name] = {
-        creeps: [],
-        roomName: room.name
-    }
-    //rattacker
-    missions.rattacker[room.name] = {
-        creeps: [],
-        roomName: room.name
-    }
+
+
+    // //rattacker
+    // missions.rattacker[room.name] = {
+    //     roomName: room.name
+    // }
+    // //farcarryer
+    // missions.farcarryer[room.name] = {
+    //     roomName: room.name
+    // }
     //controllerattack
-    missions.controllerattack[room.name] = {
-        creeps: [],
-        roomName: room.name
-    }
-    //centerminer
-    if (!thisroom.ctm) thisroom.ctm = []
-    for (let posr of thisroom.ctm) {
-        missions.centerminer[posr.x + posr.y + posr.roomName] = {
-            creeps: [],
-            x: posr.x,
-            y: posr.y,
-            roomName: posr.roomName
-        }
-    }
-    //coreminer
-    for (let posr of thisroom.ctm) {
-        missions.coreminer[posr.x + posr.y + posr.roomName] = {
-            creeps: [],
-            x: posr.x,
-            y: posr.y,
-            roomName: posr.roomName
-        }
-    }
-    //centcarryer
-    //分配carryer
-    for (let posr of thisroom.ctm) {
-        try {
-            let cpos = new RoomPosition(posr.x, posr.y, posr.roomName)
-            let container = cpos.findInRange(FIND_STRUCTURES, 3, {filter: obj => obj.structureType == STRUCTURE_CONTAINER})[0]
-            if (!container) continue
-            let canfill = require('tools').findroomsfilter(room, FIND_STRUCTURES, {
-                filter: obj => obj.structureType == STRUCTURE_LINK
-            })
-            let filltarget = null
-            if (!room.storage) {
-                let spawns = room.find(FIND_MY_SPAWNS)
-                if (spawns.length == 0) continue
-                let spawn = spawns[0]
-                filltarget = spawn.pos.findClosestByRange(FIND_STRUCTURES, {
-                    filter: obj => obj.structureType == STRUCTURE_CONTAINER
-                }).id
-            } else {
-                filltarget = room.storage.id;
-                let mincost = PathFinder.search(container.pos, {pos: room.storage.pos, range: 1}).cost - 10
-                for (let obj of canfill) {
-                    let nowcost = PathFinder.search(container.pos, {pos: obj.pos, range: 1}).cost
-                    if (mincost > nowcost && obj.pos.roomName == room.name) {
-                        filltarget = obj.id
-                        mincost = nowcost
-                    }
-                }
-            }
-            if (filltarget) {
-                missions.carryer[container.id] = {
-                    gettarget: container.id,
-                    fill: filltarget,
-                    type: RESOURCE_ENERGY,
-                    creeps: []
-                }
-            }
-        } catch
-            (e) {
-        }
-    }
-    //subprotecter
+    // missions.controllerattack[room.name] = {
+    //     roomName: room.name
+    // }
 
 
     //linkmanager
@@ -441,9 +364,7 @@ function mission_generator(room) {
             const link = room.storage.pos.findInRange(FIND_STRUCTURES, 6, {filter: obj => obj.structureType == STRUCTURE_LINK})[0]
             if (container && link) {
                 missions.linkmanager[room.name] = {
-                    creeps: [],
                     roomName: room.name,
-                    storage: storage.id,
                     link: link.id,
                     container: container.id
                 }
@@ -451,113 +372,170 @@ function mission_generator(room) {
         }
     }
 
-    {
-        //terminalmamager
-        const terminal = room.terminal
-        if (terminal) {
-            if (terminal.store[RESOURCE_ENERGY] > 50000
-                || (terminal.store[RESOURCE_POWER])) {
-                missions.terminalmanager[room.name] = {
-                    creeps: [],
-                    roomName: room.name,
+
+    //healer
+    if (room.controller.level >= 6) {
+        for (let roomName in hostile) {
+            if (hostile[roomName].stage.indexOf('healer') == -1 && hostile[roomName].stage.indexOf('attacker') == -1) continue
+            let goal = hostile[roomName].next
+            goal = new RoomPosition(goal[0], goal[1], goal[2])
+            console.log('goal=' + goal)
+            let ans = PathFinder.search(room.find(FIND_MY_SPAWNS)[0].pos, {pos: goal, range: 2}, {
+                plainCost: 1, swampCost: 5, roomCallback: require('tools').roomc_nocreep, maxOps: 20000, maxRooms: 32
+            })
+            console.log('room' + room.name + 'complete' + ans.incomplete + ' ops' + ans.ops + ' cost' + ans.cost)
+            if (ans.incomplete) continue
+            let position = []
+            let leng = ans.path.length
+            for (let a in ans.path) {
+                if (a % 20 == 0) {
+                    position.push([ans.path[a].x, ans.path[a].y, ans.path[a].roomName])
                 }
             }
+            position.push(hostile[roomName].next)
+            if (hostile[roomName].stage.indexOf('healer') != -1 && room.controller.level >= 7) {
+                let pos = require('tools').deepcopy(position)
+                missions.healer[roomName] = {
+                    roomName: roomName,
+                    goal: hostile[roomName].next,
+                    position: pos,
+                    cost: leng
+                }
+            }
+            if (hostile[roomName].stage.indexOf('attacker') != -1) {
+                let pos = require('tools').deepcopy(position)
+                missions.attacker[roomName] = {
+                    roomName: roomName,
+                    goal: hostile[roomName].next,
+                    position: pos,
+                    cost: leng
+                }
+            }
+
         }
 
-    }
 
+    }
+    for (let miss in missions) {
+        if (_.isEmpty(missions[miss])) {
+            delete missions[miss]
+        }
+    }
+    missions['subprotecter'] = missions['subprotecter'] || {}
 }
 
+var MissionCache = {}
+var SpawnList = {}
+
 function mission_detector() {
-    for (let roomName in Memory.rooms) {
-        let missions = Memory.rooms[roomName].missions
-        for (let roleName in missions) {
-            let mission = missions[roleName]
-            for (let missionid in mission) {
-                mission[missionid].creeps = []
-            }
-        }
-    }
-    for (let name in Game.creeps) {
+
+    Object.values(Game.creeps).forEach(cep => {
         try {
-            let creep = Game.creeps[name]
-            let namearray = name.split('_')
-            let roomName = namearray[0]
-            let role = namearray[1]
-            if (Memory.rooms[roomName].missions[role][creep.memory.missionid])
-                Memory.rooms[roomName].missions[role][creep.memory.missionid].creeps.push(name)
+            const namearray = cep.name.split('_')
+            const roomName = namearray[0]
+            const role = namearray[1]
+            let room = MissionCache[roomName]
+            if (!room) room = MissionCache[roomName] = {}
+            let missions = room[role]
+            if (!missions) missions = room[role] = {}
+            let mission = missions[cep.memory.missionid]
+            if (!mission) mission = missions[cep.memory.missionid] = []
+            mission.push(cep.id)
         } catch (e) {
-            console.log(name + 'mission_detector' + e)
+            console.log('missioncache' + e)
         }
-    }
+    })
+
+
 }
 
 function mission_spawner(room) {
-    let spawns = room.find(FIND_MY_SPAWNS)
-    if (spawns.length == 0) return
-    for (let spawn of spawns) {
-        if (spawn.spawning) continue
-        let missions = Memory.rooms[room.name].missions
-        for (let roleName in missions) {
-            let role = missions[roleName]
-            for (let missionid in role) {
-                try {
-                    let mission = role[missionid]
-                    // console.log(roleName + '--' + missionid + ' ' + mission.creeps.length)
-                    let fix = ((role_num_fix[room.name] && role_num_fix[room.name][roleName]) ? role_num_fix[room.name][roleName] : 0)
-                    if (mission.creeps.length <= role_num[roleName] - 1 + fix) {
-                        mission.isonly = true
-                        let act = api.missionspawn(spawn, roleName, mission)
-                        if (act == OK || act == ERR_NOT_ENOUGH_ENERGY) {
-                            return
-                        }
-                    } else if (mission.creeps.length != 0 && mission.creeps.length == role_num[roleName] + fix) {
-                        mission.isonly = false
-                        let onlycreep = Game.creeps[mission.creeps[0]]
-                        if (onlycreep.ticksToLive < onlycreep.body.length * 3 + 25) {
-                            let act = api.missionspawn(spawn, roleName, mission)
-                            if (act == OK || act == ERR_NOT_ENOUGH_ENERGY) {
-                                return
-                            }
-                        }
+
+    const spawn = _.find(room.spawns, obj => !obj.spawning)
+    if (!spawn) return
+    const missions = Memory.rooms[room.name].missions
+    const missioncreeps = MissionCache[room.name]
+    SpawnList[room.name] = []
+    const splist = SpawnList[room.name]
+    for (let roleName in missions) {
+        const role = missions[roleName]
+        const missioncreepsrole = missioncreeps ? missioncreeps[roleName] : null
+        for (let missionid in role) {
+            const missioncreepsid = missioncreepsrole ? (missioncreepsrole[missionid] || []) : []
+            try {
+                let ifreturn = false
+                const mission = role[missionid]
+                // console.log(roleName + '--' + missionid + ' ' + mission.creeps.length)
+                const fix = ((role_num_fix[room.name] && role_num_fix[room.name][roleName]) ? role_num_fix[room.name][roleName] : 0) + (mission.numfix || 0)
+                if (missioncreepsid.length <= role_num[roleName] - 1 + fix) {
+                    console.log('push' + roleName + ' room=' + room.name)
+                    splist.push([roleName, mission, true])
+                } else if (missioncreepsid.length != 0 && missioncreepsid.length == role_num[roleName] + fix) {
+                    const onlycreep = Game.getObjectById(missioncreepsid[0])
+                    if (onlycreep.ticksToLive < onlycreep.body.length * 3 + 25 + (mission.cost || 0)) {
+                        splist.push([roleName, mission, false])
                     }
-                } catch (e) {
-                    console.log(roleName + missionid + 'error' + e)
+                } else if (missioncreepsid.length >= 2 && missioncreepsid.length == role_num[roleName] + fix + 1) {
+                    const onlycreep = Game.getObjectById(missioncreepsid[1])
+                    if (onlycreep.ticksToLive < onlycreep.body.length * 3 + 25 + (mission.cost || 0)) {
+                        splist.push([roleName, mission, false])
+                    }
+
                 }
 
+            } catch (e) {
+                console.log(roleName + missionid + 'error' + e)
             }
+            if (missioncreepsid) missioncreepsid.length = 0
+
         }
     }
 
 }
 
-var everyTick = 0;
+function do_spawn(room) {
+    const spawn = _.find(room.spawns, obj => !obj.spawning)
+    if (!spawn) return
+    const miss = SpawnList[room.name] || []
+    while (miss.length > 0) {
+        const spawnmiss = _.head(miss)
+        let act = api.missionspawn(spawn, spawnmiss[0], spawnmiss[1], spawnmiss[2])
+        if (act == OK) {
+            miss.shift()
+            break
+        } else if (act == ERR_NOT_ENOUGH_ENERGY) {
+            break
+        } else {
+            miss.shift()
+        }
+    }
+}
+
 var lasttime = 0
-var iftimer = true
 
 function timer(strs = null) {
     let timeuse = Game.cpu.getUsed() - lasttime
+    if (true && strs) console.log(strs + "  " + timeuse.toFixed(4))
     lasttime = Game.cpu.getUsed()
-    if (iftimer && strs) console.log(strs + "  " + timeuse.toFixed(4))
     return timeuse
 }
 
-var cpuuse = 0
+var testtick = 0
 module.exports.loop = function () {
-
-    try {
-        require('spawn').work()
-    } catch (e) {
-        console.log('spawnerror' + e)
-    }
-    if (Game.time % 10 == 0) {
+    Memory.testtick = Math.max(Memory.testtick || 0, ++testtick)
+    if (Game.time % 20 == 0) {
+        if (!Game.getObjectById('5d43b391314ba67018b43081')) {
+            role_num.attacker = -3
+            role_num.healer = -3
+        }
         clearmem()
-
-
     }
     if (Game.time % 10 == 0) {
+
         for (let roomName in Memory.rooms) {
             let room = Game.rooms[roomName]
+
+            room.memory.missions.subprotecter = {}
             if (require('tools').findroomselsefilter(room, FIND_HOSTILE_CREEPS, {
                 filter: obj => {
                     return require('whitelist').whitelist.indexOf(obj.owner.username) == -1
@@ -570,7 +548,10 @@ module.exports.loop = function () {
             }
         }
     }
-    if (Game.time % 100 == 0) {
+
+    if (Game.time % 1000 == 0) {
+        require('observer').find()
+        require('tools').roomCache = {}
         for (let roomName in Memory.rooms) {
             mission_generator(Game.rooms[roomName])
 
@@ -593,52 +574,62 @@ module.exports.loop = function () {
         }
 
     }
-    if (Game.time % 2 == 0) {
+    if (Game.time % 10 == 0) {
         mission_detector()
         for (let roomName in Memory.rooms) {
             let room = Game.rooms[roomName]
             if (!room) continue
+            mission_spawner(room)
             try {
-                mission_spawner(room)
             } catch (e) {
                 console.log('mission_spawner' + e)
             }
         }
     }
+    {
+        try {
+            require('observer').work()
+        } catch (e) {
+            console.log('observerwork' + e)
+        }
+
+    }
+
     for (let roomName in Memory.rooms) {
         let room = Game.rooms[roomName]
         if (!room) continue
-        if (everyTick != 0) {
-            room.visual.text(((cpuuse / everyTick).toFixed(1)) + "cpu", 36, 22, {color: 'red', font: 0.8})
-            room.visual.text(Game.cpu.bucket + 'bucket', 36, 23, {color: 'red', font: 0.8})
+        try {
+            do_spawn(room)
+        } catch (e) {
+            console.log('dospawn' + e)
         }
-        if (room.find(FIND_NUKES).length > 0) {
-            room.visual.text('FUCK!', 25, 25, {color: 'red', font: 5})
+        try {
+            require('roomvisual').work(room)
+        } catch (e) {
+            console.log('roomvisual' + roomName + e)
         }
-        let busy = room.memory.busy || 0
-        let lazy = room.memory.lazy || 0
-        room.visual.text(((busy / (busy + lazy) * 100).toFixed(1)) + '%spawn', 36, 24, {color: 'red', font: 0.5})
+        try {
+            require('spawn').work(room)
+        } catch (e) {
+            console.log('spawnerror' + e)
+        }
         try {
             tower.work(room)
         } catch (e) {
             console.log(roomName + 'tower error ' + e)
         }
         try {
-            require('link').work(room)
+            link.work(room)
         } catch (e) {
             console.log(roomName + 'link error ' + e)
         }
 
-        if (room.memory.tower && room.memory.tower.length == 0 && room.find(FIND_HOSTILE_CREEPS).length > 0) {
+        if (room.towers.length == 0 && room.find(FIND_HOSTILE_CREEPS).length > 0) {
             room.controller.activateSafeMode()
         }
-    }
 
-
-    for (let roomName in Memory.rooms) {
         try {
-            let room = Game.rooms[roomName]
-            let powers = room.find(FIND_STRUCTURES, {filter: obj => obj.structureType == STRUCTURE_POWER_SPAWN})[0]
+            const powers = room.powerSpawn
             if (powers && powers.power > 0) {
                 powers.processPower()
             }
@@ -647,65 +638,111 @@ module.exports.loop = function () {
         }
     }
 
+    if ((Game.time + 1) % 500 == 0) {
+        try {
+            require('observer').cache()
+        } catch (e) {
+            console.log('observer' + e)
+        }
+    }
 
+
+    Object.values(Game.powerCreeps).forEach(obj => {
+        try {
+            require('powerscreep').work(obj)
+        } catch (e) {
+            console.log('power ' + obj.name + e)
+        }
+    })
+    if ((Game.time + 5) % 50 == 0) {
+        try {
+            require('powerBank').cache()
+        } catch (e) {
+            console.log('powerBank-cache' + e)
+        }
+    }
     if (Game.time % 50 == 0) {
-        for (let roomName in Memory.rooms) {
+        try {
+            require('powerBank').miss()
+        } catch (e) {
+            console.log('powerBank-miss' + e)
+        }
+        for (let roomn in Memory.powerPlan) {
             try {
-                let room = Game.rooms[roomName]
-                let terminal = room.terminal
-                if (terminal && room.storage && room.storage.store[RESOURCE_ENERGY] / room.storage.storeCapacity > 0.9) {
-                    for (let roomNames in Memory.rooms) {
-                        let rooms = Game.rooms[roomNames]
-                        if (rooms.storage && rooms.storage.store[RESOURCE_ENERGY] / rooms.storage.storeCapacity < 0.7) {
-                            let terminals = rooms.terminal
-                            if (terminals && terminals.store[RESOURCE_ENERGY] < 100000) {
-                                terminal.send(RESOURCE_ENERGY, 6000, rooms.name)
-                                break
-                            }
-                        }
-                    }
-                }
+                require('powerBank').solveplan(roomn)
             } catch (e) {
-                console.log('terminal ' + e)
+                console.log('powerBank-solveplan' + e)
             }
         }
     }
-    Object.values(Game.spawns).forEach(obj => {
-        let memory = obj.room.memory
-        if (!memory.busy) memory.busy = 0
-        if (!memory.lazy) memory.lazy = 0
-        if (obj.spawning) {
-            memory.busy++
-        } else {
-            memory.lazy++
-        }
-        if (memory.busy + memory.lazy > 3000) {
-            memory.busy /= 2
-            memory.lazy /= 2
-        }
-
-    })
-
-    for (let name in Game.creeps) {
-        if (name.split('_') < 1) continue
-        try {
-            let role = name.split('_')[1]
-            require(role).work(name)
-        } catch (e) {
-            console.log('role=' + name + 'error' + e)
+    if (Game.time % 100 == 0) {
+        //terminal
+        for (let roomName in Memory.rooms) {
+            let room = Game.rooms[roomName]
+            try {
+                require('terminal').work(room)
+            } catch (e) {
+                console.log('terminal' + roomName + e)
+            }
+            try {
+                require('reaction').work(room)
+            } catch (e) {
+                console.log('reaction' + roomName + e)
+            }
+            try {
+                require('upgrader').miss(room)
+            } catch (e) {
+                console.log('upgrader miss' + e)
+            }
+            try {
+                require('builder').miss(room)
+            } catch (e) {
+                console.log('builder miss' + e)
+            }
+            try {
+                require('terminalmanager').miss(room)
+            } catch (e) {
+                console.log('terminalmanager' + e)
+            }
         }
     }
 
-    everyTick++
-    everyTick %= 1000
-    if (everyTick == 0) cpuuse = 0
-    cpuuse += Game.cpu.getUsed()
+    if (Game.time % 5 == 0) {
+        for (let roomName in Memory.rooms) {
+            let room = Game.rooms[roomName]
+            try {
+                require('reaction').doreaction(room)
+            } catch (e) {
+                console.log('doreaction' + roomName + e)
+            }
+        }
+    }
 
+
+    if (!(Game.cpu.bucket < 1000 && Game.time % 3 == 0)) {
+        Object.values(Game.creeps).forEach(obj => {
+            try {
+                require(obj.name.split('_')[1]).work(obj)
+            } catch (e) {
+                console.log('role=' + obj.name + 'error' + e)
+            }
+        })
+
+    }
+
+
+    require('roomvisual').statistics()
 }
-module.exports.handmission = function () {
+module.exports.handlemission = function () {
+    timer()
     for (let roomName in Memory.rooms) {
         let room = Game.rooms[roomName]
         if (!room) continue
         mission_generator(room)
     }
+    timer('mission_generator use=')
+}
+module.exports.handlespawn = function (roomName) {
+    const room = Game.rooms[roomName]
+    mission_spawner(room)
 }

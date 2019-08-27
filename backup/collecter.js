@@ -6,8 +6,7 @@
  * var mod = require('miner');
  * mod.thing == 'a thing'; // true
  */
-function work(name) {
-    let creep = Game.creeps[name]
+function work(creep) {
     let drop = null
     let link = null
     if (_.sum(creep.carry) == 0) {
@@ -75,7 +74,7 @@ function work(name) {
 }
 
 function born(spawnnow, creepname, memory) {
-    let bodyparts = require('tools').generatebody({
+    let bodyparts = require('../src/tools').generatebody({
         'carry': 8,
         'move': 8
     }, spawnnow)

@@ -25,19 +25,9 @@ function born(spawnnow, creepname, memory) {
 }
 
 
-function work(name) {
-    //rush
-    let creep = Game.creeps[name]
-    // if (creep.hits == creep.hitsMax) {
-    //     let healc = creep.pos.findClosestByRange(FIND_MY_CREEPS, {filter: obj => obj.hits < obj.hitsMax})
-    //     if (healc)
-    //         if(creep.heal(healc)==ERR_NOT_IN_RANGE){
-    //             creep.moveTo(healc)
-    //             return
-    //         }
-    // }else{
+function work(creep) {
+
         creep.heal(creep)
-    // }
 
     if (creep.memory.status == 'going') {
         let posm = creep.memory.position[creep.memory.step]

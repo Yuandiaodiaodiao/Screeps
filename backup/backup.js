@@ -1,145 +1,138 @@
 function f() {
 
 
-var missions={
-    miner:{//挖矿&修复附近的建筑物
-        'recid':{
-            creeps:['creepname'],
-            target:'recid',
-            container:'cotid'
-        }
-    },
-    carryer:{//from A transfer to B
-        'cotid':{
-
-        }
-    },
-    upgrader:{
-        'controllerid':{
-
-        }
-    },
-    filler:{
-        'storageid':{
-
-        }
-    },
-    reserver:{
-        'roomName':{
-
-        }
-    }
-}
-function renew(spawns) {
-    if (spawns.spawning) return
-    for (let types in creeplist) {
-        for (let i of range(0, creeplist[types])) {
-            if (!Game.creeps.hasOwnProperty(types + i)) {
-                api.spawn(spawns, types, i)
-                return
+    var missions = {
+        miner: {//挖矿&修复附近的建筑物
+            'recid': {
+                creeps: ['creepname'],
+                target: 'recid',
+                container: 'cotid'
             }
+        },
+        carryer: {//from A transfer to B
+            'cotid': {}
+        },
+        upgrader: {
+            'controllerid': {}
+        },
+        filler: {
+            'storageid': {}
+        },
+        reserver: {
+            'roomName': {}
         }
     }
 
-
-}
-var creeplist = {
-    'f': 0,//filler
-    'm': 0,//miner
-    'c': 0,//carryer
-    'u': 0,//upgrader
-    'b': 0,//builder
-    'r': 0,//reserver
-
-}
-
-Object.defineProperties(RoomObject.prototype, {
-    /**
-     * Prepare an RoomObject by simplify it to {id, pos}
-     * @return  {Object}  A simplified object
-     */
-    simplify: {
-        get: function() { // NOTE: Arrow function no "this", cannot use
-            return (({
-                         id,
-                         pos
-                     }) => ({
-                id,
-                pos
-            }))(this);
+    function renew(spawns) {
+        if (spawns.spawning) return
+        for (let types in creeplist) {
+            for (let i of range(0, creeplist[types])) {
+                if (!Game.creeps.hasOwnProperty(types + i)) {
+                    api.spawn(spawns, types, i)
+                    return
+                }
+            }
         }
-    },
-    memory: {
-        configurable: true,
-        get: function() {
-            if (_.isUndefined(Memory.roomObjects)) {
-                Memory.roomObjects = {};
+
+
+    }
+
+    var creeplist = {
+        'f': 0,//filler
+        'm': 0,//miner
+        'c': 0,//carryer
+        'u': 0,//upgrader
+        'b': 0,//builder
+        'r': 0,//reserver
+
+    }
+
+    Object.defineProperties(RoomObject.prototype, {
+        /**
+         * Prepare an RoomObject by simplify it to {id, pos}
+         * @return  {Object}  A simplified object
+         */
+        simplify: {
+            get: function () { // NOTE: Arrow function no "this", cannot use
+                return (({
+                             id,
+                             pos
+                         }) => ({
+                    id,
+                    pos
+                }))(this);
             }
-            if (!_.isObject(Memory.roomObjects)) {
-                return undefined;
-            }
-            return (Memory.roomObjects[this.id] = Memory.roomObjects[this.id] || {});
         },
-        set: function(value) {
-            if (_.isUndefined(Memory.roomObjects)) {
-                Memory.roomObjects = {};
+        memory: {
+            configurable: true,
+            get: function () {
+                if (_.isUndefined(Memory.roomObjects)) {
+                    Memory.roomObjects = {};
+                }
+                if (!_.isObject(Memory.roomObjects)) {
+                    return undefined;
+                }
+                return (Memory.roomObjects[this.id] = Memory.roomObjects[this.id] || {});
+            },
+            set: function (value) {
+                if (_.isUndefined(Memory.roomObjects)) {
+                    Memory.roomObjects = {};
+                }
+                if (!_.isObject(Memory.roomObjects)) {
+                    throw new Error("Could not set room object " + this.id + " memory");
+                }
+                Memory.roomObjects[this.id] = value;
+                Memory.roomObjects[this.id].structureType = this.structureType;
             }
-            if (!_.isObject(Memory.roomObjects)) {
-                throw new Error("Could not set room object " + this.id + " memory");
-            }
-            Memory.roomObjects[this.id] = value;
-            Memory.roomObjects[this.id].structureType = this.structureType;
-        }
-    },
-}
-
-
-
-Object.defineProperties(RoomObject.prototype, {
-    memory: {
-        configurable: true,
-        get: function() {
-            if (_.isUndefined(Memory.roomObjects)) {
-                Memory.roomObjects = {};
-            }
-            if (!_.isObject(Memory.roomObjects)) {
-                return undefined;
-            }
-            return (Memory.roomObjects[this.id] = Memory.roomObjects[this.id] || {});
         },
-        set: function(value) {
-            if (_.isUndefined(Memory.roomObjects)) {
-                Memory.roomObjects = {};
-            }
-            if (!_.isObject(Memory.roomObjects)) {
-                throw new Error("Could not set room object " + this.id + " memory");
-            }
-            Memory.roomObjects[this.id] = value;
-            Memory.roomObjects[this.id].structureType = this.structureType;
-        }
-    },
-})
-/*
-set http_proxy=http://127.0.0.1:1080
-set https_proxy=http://127.0.0.1:1080
-*/
-let roada= [
-    [11, 49, 'E25N44'],
-    [11, 41, 'E25N44'],
-    [49, 25, 'E25N44'],
-    [39, 12, 'E26N44'],
-    [36, 0, 'E26N44'],
-    [35, 47, 'E26N45'],
-    [35, 46, 'E26N45'],
-    [40, 45, 'E26N45'],
-    [30, 0, 'E26N45'],
-    [40, 45, 'E26N46'],
-    [49, 29, 'E26N46'],
-    [49, 14, 'E27N46'],
-    [8, 12, 'E28N46'],
-]
+    }
 
-    Memory.rooms['E27N42']={ctm:[],subroom:[],source:[],missions:{},tower:[],mineral:[]}
+
+    Object.defineProperties(RoomObject.prototype, {
+        memory: {
+            configurable: true,
+            get: function () {
+                if (_.isUndefined(Memory.roomObjects)) {
+                    Memory.roomObjects = {};
+                }
+                if (!_.isObject(Memory.roomObjects)) {
+                    return undefined;
+                }
+                return (Memory.roomObjects[this.id] = Memory.roomObjects[this.id] || {});
+            },
+            set: function (value) {
+                if (_.isUndefined(Memory.roomObjects)) {
+                    Memory.roomObjects = {};
+                }
+                if (!_.isObject(Memory.roomObjects)) {
+                    throw new Error("Could not set room object " + this.id + " memory");
+                }
+                Memory.roomObjects[this.id] = value;
+                Memory.roomObjects[this.id].structureType = this.structureType;
+            }
+        },
+    })
+    /*
+    set http_proxy=http://127.0.0.1:1080
+    set https_proxy=http://127.0.0.1:1080
+    */
+    let roada = [
+        [11, 49, 'E25N44'],
+        [11, 41, 'E25N44'],
+        [49, 25, 'E25N44'],
+        [39, 12, 'E26N44'],
+        [36, 0, 'E26N44'],
+        [35, 47, 'E26N45'],
+        [35, 46, 'E26N45'],
+        [40, 45, 'E26N45'],
+        [30, 0, 'E26N45'],
+        [40, 45, 'E26N46'],
+        [49, 29, 'E26N46'],
+        [49, 14, 'E27N46'],
+        [8, 12, 'E28N46'],
+    ]
+
+    Memory.rooms['E27N42'] = {ctm: [], subroom: [], source: [], missions: {}, tower: [], mineral: []}
 }
 
 {
@@ -187,3 +180,10 @@ let roada= [
         }
     }
 }
+
+PathFinder.search(new RoomPosition(27, 12, 'E26N37'), {
+    pos: Game.getObjectById('5d423dc1b82e1179ccba5781').pos,
+    range: 1
+}, {
+    plainCost: 2, swampCost: 10, roomCallback: require('tools').roomc_nocreep
+}).cost

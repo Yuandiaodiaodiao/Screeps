@@ -10,7 +10,6 @@ function born(spawnnow, creepname, memory) {
         {
             memory: {
                 status: 'going',
-                target: memory.target,
                 missionid: memory.target,
                 container: memory.container
             }
@@ -18,8 +17,7 @@ function born(spawnnow, creepname, memory) {
     )
 }
 
-function work(name) {
-    let creep = Game.creeps[name]
+function work(creep) {
     if (creep.memory.status == 'going') {
         let target = Game.getObjectById(creep.memory.container)
         if (target) {
@@ -29,8 +27,10 @@ function work(name) {
             }
         }
     } else if (creep.memory.status == 'mining') {
-        let target = Game.getObjectById(creep.memory.target)
-        creep.harvest(target)
+        if(Game.time%6==0){
+            let target = Game.getObjectById(creep.memory.missionid)
+            creep.harvest(target)
+        }
     }
 }
 

@@ -1,22 +1,20 @@
-module.exports.work = function () {
-    Object.values(Game.spawns).forEach(
-        obj => {
-            if (obj.spawning) return
-            const creep = obj.pos.findInRange(FIND_MY_CREEPS, 1, {
-                filter:
-                    cep => {
-                        if(cep.ticksToLive > 1400 ||cep.ticksToLive<=100)return false
-                        if(obj.room.storage&&obj.room.storage.store[RESOURCE_ENERGY]<5e4)return false
-                        if(cep.name.split('_')[1]=='upgrader'&&obj.room.storage&&obj.room.storage.store[RESOURCE_ENERGY] / obj.room.storage.storeCapacity < 0.4)return false
-                        if(cep.name.split('_')[1]=='subprotecter')return false
-                        if(cep.name.split('_')[1]=='builder')return false
-                        if(cep.name.split('_')[1]=='terminalmanager'&&cep.memory.type!=RESOURCE_POWER)return false
-                        return true
-                    }
-            })[0]
-            if (creep) {
-                obj.renewCreep(creep)
+module.exports.work = function (room) {
+        const spawns = room.spawns
+        const creeps = room.find(FIND_MY_CREEPS, {
+            filter: obj => {
+                if (obj.ticksToLive > 1400 || obj.ticksToLive <= 100) return false
+                const role = obj.name.split('_')[1]
+                if (role == 'linkmanager' || role == 'filler' ) return true
+                return false
+            }
+        })
+        if(creeps.length>0){
+            for(let spawn of spawns){
+                if(spawn.spawning)continue
+
+                const creep=_.find(creeps,obj=>obj.pos.getRangeTo(spawn)<=1)
+
+                if(creep)spawn.renewCreep(creep)
             }
         }
-    )
 }

@@ -1,21 +1,10 @@
-/*
- * Module code goes here. Use 'module.exports' to export things:
- * module.exports.thing = 'a thing';
- *
- * You can import it from another modules like this:
- * var mod = require('tower');
- * mod.thing == 'a thing'; // true
- */
+var towerCache = {}
 
 function work(room) {
+    if(room.memory.mineral)delete room.memory.mineral
     let target = room.find(FIND_HOSTILE_CREEPS)[0]
-    let roomenergy = 0
-    if (room.storage) {
-        roomenergy = room.storage.store[RESOURCE_ENERGY] / room.storage.storeCapacity
-    }
     if (target) {
-        for (let id of room.memory.tower) {
-            let tower = Game.getObjectById(id)
+        for (let tower of room.towers) {
             tower.attack(tower.pos.findClosestByRange(FIND_HOSTILE_CREEPS))
         }
     } else if (target = room.find(FIND_MY_CREEPS,
@@ -24,61 +13,62 @@ function work(room) {
                 obj.hits < obj.hitsMax
         }
     )[0]) {
-        for (let id of room.memory.tower) {
-            Game.getObjectById(id).heal(target)
+        for (let tower of room.towers) {
+            tower.heal(target)
         }
 
-    } else if (Game.time % 10 == 0) {
-        room.memory.towercache = []
+    } else if (Game.time % 20 == 0) {
+        let roomenergy = 0
+        if (room.storage) {
+            roomenergy = room.storage.store[RESOURCE_ENERGY] / room.storage.storeCapacity
+        }
+
         target = room.find(FIND_STRUCTURES, {
-            filter: obj => ((obj.hits < obj.hitsMax
-                    && obj.structureType != STRUCTURE_WALL
-                    && obj.hits < 1e7)
-                || (obj.structureType == STRUCTURE_WALL && obj.hits < 1e5)
-            )
+            filter: obj => {
+                if (obj.structureType == STRUCTURE_WALL) return obj.hits < 1e5
+                else if (obj.structureType == STRUCTURE_RAMPART) {
+                    if (obj.pos.getRangeTo(room.storage) <= 10) {
+                        return obj.hits < 1e7
+                    } else {
+                        return obj.hits < 1e6
+                    }
+                } else {
+                    return obj.hits < obj.hitsMax
+                }
+
+            }
         }).sort((a, b) => {
             return (a.hits - b.hits)
         })
         let num = 0
         let target1 = null
+        const twc = towerCache[room.name] = []
         for (let target1 of target) {
             if ((target1.structureType == STRUCTURE_WALL || target1.structureType == STRUCTURE_RAMPART) && roomenergy < 0.5) continue
-            room.memory.towercache.push(target1.id)
+            twc.push(target1.id)
+            const tower = room.towers[num]
+            if (tower) tower.repair(target1)
             num++
             if (num == 10) break
         }
-        num = 0
-        for (let id of room.memory.tower) {
-            if (target1 = target[num]) {
-                Game.getObjectById(id).repair(target1)
-            }
-            num++
-        }
     } else {
         try {
-            target = room.memory.towercache
-            if (target && target.length > 0) {
-
-                for (let id of room.memory.tower) {
-                    let target1 = Game.getObjectById(target[0])
-                    let num = 0
-                    const tower = Game.getObjectById(id)
-                    while (target1.hits == target1.hitsMax) {
-                        num++
-                        if (!(target1 = Game.getObjectById(target[num]))) {
-                            break
-                        }
+            const targets = towerCache[room.name] || []
+            let target = Game.getObjectById(targets[0])
+            while (target) {
+                if (target.hits < target.hitsMax) {
+                    for (let tower of room.towers) {
+                        tower.repair(target)
                     }
-                    if (target1) {
-                        tower.repair(target1)
-                    }
+                    break
+                } else {
+                    targets.shift()
+                    target = Game.getObjectById(targets[0])
                 }
             }
         } catch (e) {
             console.log('tower cache error' + e)
         }
-
-
     }
 
 

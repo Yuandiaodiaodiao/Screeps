@@ -1,5 +1,5 @@
 function born(spawnnow, creepname, memory) {
-    let bodyparts = require('tools').generatebody(
+    let bodyparts = require('../src/tools').generatebody(
         {
             'tough': 20,
             'carry': 2,
@@ -25,8 +25,7 @@ function born(spawnnow, creepname, memory) {
 }
 
 
-function work(name) {
-    let creep = Game.creeps[name]
+function work(creep) {
     let pos = new RoomPosition(creep.memory.x, creep.memory.y, creep.memory.roomName)
     let skp = null
     if (creep.room.name == pos.roomName) {

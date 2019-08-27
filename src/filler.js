@@ -4,25 +4,22 @@ module.exports = {
 };
 var tools = require('tools')
 
-function work(name) {
+function work(creep) {
     //fill
-
-    let creep = Game.creeps[name]
-    let nowstatus = creep.memory.status
+    const memory = creep.memory
     if (creep.carry.energy == 0) {
-        creep.memory.status = 'getting';
+        memory.status = 'getting'
     }
+    if (memory.status == 'getting') {
 
-    if (creep.memory.status == 'getting') {
-
-        let target = Game.getObjectById(creep.memory.missionid)
+        let target = Game.getObjectById(memory.missionid)
 
         if (target && target.store[RESOURCE_ENERGY] > 0) {
-            let action = creep.withdraw(target, RESOURCE_ENERGY)
+            const action = creep.withdraw(target, RESOURCE_ENERGY)
             if (action == ERR_NOT_IN_RANGE) {
                 creep.moveTo(target)
-            } else if (action == OK) {
-                creep.memory.status = 'carrying'
+            } else if (action == OK || action == ERR_FULL) {
+                memory.status = 'carrying'
             }
         } else {
             try {
@@ -43,14 +40,15 @@ function work(name) {
             if (action == ERR_NOT_IN_RANGE) {
                 creep.moveTo(target)
             } else if (action == OK) {
-                creep.memory.status = 'carrying'
+                memory.status = 'carrying'
+            }
+            if (creep.carry.energy >= creep.carryCapacity) {
+                memory.status = 'carrying'
             }
         }
-        if (creep.carry.energy >= creep.carryCapacity) {
-            creep.memory.status = 'carrying';
-        }
+
     }
-    if (creep.memory.status == 'carrying') {
+    if (memory.status == 'carrying') {
         let target = creep.pos.findClosestByPath(FIND_STRUCTURES, {
             filter: (structure) => {
                 if (structure.structureType == STRUCTURE_EXTENSION) {
@@ -59,55 +57,51 @@ function work(name) {
                     return structure.energy < 250
                 } else if (structure.structureType == STRUCTURE_TOWER) {
                     return structure.energy / structure.energyCapacity < 0.75
-                } else if (structure.structureType == STRUCTURE_TERMINAL) {
-                    return structure.store[RESOURCE_ENERGY] < 1e4
-                }else if(structure.structureType==STRUCTURE_NUKER){
-                    return  structure.energy<structure.energyCapacity &&creep.room.storage.store[RESOURCE_ENERGY]/creep.room.storage.storeCapacity>0.5
-                }else if(structure.structureType==STRUCTURE_POWER_SPAWN){
-                    return structure.energy/structure.energyCapacity<0.5 &&creep.room.storage.store[RESOURCE_ENERGY]/creep.room.storage.storeCapacity>0.6
+                } else if (creep.room.energyAvailable / creep.room.energyCapacityAvailable > 0.99) {
+                    if (structure.structureType == STRUCTURE_TERMINAL && structure.my) {
+                        return structure.store[RESOURCE_ENERGY] < 1e4
+                    } else if (structure.structureType == STRUCTURE_NUKER) {
+                        return structure.energy < structure.energyCapacity && creep.room.storage.store[RESOURCE_ENERGY] / creep.room.storage.storeCapacity > 0.5
+                    } else if (structure.structureType == STRUCTURE_POWER_SPAWN) {
+                        return structure.energy / structure.energyCapacity < 0.5 && creep.room.storage.store[RESOURCE_ENERGY] / creep.room.storage.storeCapacity > 0.6
+                    }
                 }
+                return false
             }
         })
         if (target) {
-            let action = creep.transfer(target, RESOURCE_ENERGY)
+            const action = creep.transfer(target, RESOURCE_ENERGY)
             if (action == ERR_NOT_IN_RANGE) {
                 creep.moveTo(target)
-            } else if (action == OK && target.structureType == STRUCTURE_EXTENSION) {
-                let target2 = creep.pos.findClosestByPath(FIND_STRUCTURES, {
-                    filter: (structure) => {
-                        return (structure.structureType == STRUCTURE_EXTENSION
-                            && structure.energy < structure.energyCapacity)
-                            && structure.id != target.id
-                    }
-                })
-                creep.moveTo(target2)
             }
         } else {
             if (creep.carry.energy >= creep.carryCapacity) {
-                creep.memory.status = 'sleeping'
+                memory.status = 'sleeping'
             } else {
-                creep.memory.status = 'getting'
+                memory.status = 'getting'
             }
         }
 
-    } else if (creep.memory.status == 'sleeping') {
+    } else if (memory.status == 'sleeping') {
         if (creep.room.energyAvailable < creep.room.energyCapacityAvailable) {
-            creep.memory.status = 'carrying'
+            memory.status = 'carrying'
         } else {
-            for (let towerid of creep.room.memory.tower) {
-                let tower = Game.getObjectById(towerid)
-                if (tower.energy / tower.energyCapacity < 0.75) {
-                    creep.memory.status = 'carrying'
-                    break
+            if (Game.time % 5 == 0) {
+                const towers = creep.room.towers
+                for (let tower of towers) {
+                    if (tower.energy / tower.energyCapacity < 0.75) {
+                        memory.status = 'carrying'
+                        break
+                    }
                 }
             }
-        }
 
+        }
     }
 
 }
 
-function born(spawnnow, creepname, memory) {
+function born(spawnnow, creepname, memory, isonly) {
     let body = {
         'carry': 33,
         'move': 17
@@ -123,7 +117,7 @@ function born(spawnnow, creepname, memory) {
             }
         }
     )
-    if (memory.isonly) {
+    if (isonly) {
         while (ans == ERR_NOT_ENOUGH_ENERGY) {
             let maxbody = -1
             for (let name in body) {
