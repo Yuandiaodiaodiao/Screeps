@@ -35,7 +35,7 @@ function work(creep) {
             creep.heal(creep)
         }
     } else if (creep.memory.status == 'heal') {
-        const target=Game.getObjectById(creep.memory.target)||creep.pos.findClosestByRange(FIND_MY_CREEPS,{filter:obj=>obj.getActiveBodyparts('attack')})
+        const target=Game.getObjectById(creep.memory.target)||creep.pos.findClosestByRange(FIND_MY_CREEPS,{filter:obj=>obj.name.split('_')[1]=='power-a'})
         if(!target)return
         creep.memory.target=target.id
         const act = creep.heal(target)

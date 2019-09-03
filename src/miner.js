@@ -1,8 +1,8 @@
 function born(spawnnow, creepname, memory) {
     let bodypart = {
+        'move': 3,
         'work': 6,
         'carry': memory.link ? 4 : 1,
-        'move': 3
     }
     let bodyparts = require('tools').generatebody(bodypart, spawnnow)
     return spawnnow.spawnCreep(

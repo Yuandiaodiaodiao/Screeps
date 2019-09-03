@@ -4,7 +4,6 @@ function born(spawnnow, creepname, memory) {
         'heal': 15,
         'move': 25,
     }, spawnnow)
-    // console.log(JSON.stringify(bodyparts))
     return spawnnow.spawnCreep(
         bodyparts,
         creepname,
@@ -23,12 +22,16 @@ function born(spawnnow, creepname, memory) {
 
 function work(creep) {
     //rush
-
+    // if (creep.id == '5d65a145c04cb240a54926fe') {
+    //     creep.rangedAttack(Game.getObjectById('5ca1b90c848f8614de0d7404'))
+    //     creep.moveTo(Game.getObjectById('5ca1b90c848f8614de0d7404'))
+    //     return
+    // }
     if (creep.memory.status == 'going') {
         const posx = creep.memory.position[creep.memory.step]
         let pos = new RoomPosition(posx[0], posx[1], posx[2])
         creep.moveTo(pos, {reusePath: 20})
-        if (creep.pos.getRangeTo(pos) <= 1) {
+        if (creep.pos.getRangeTo(pos) <= 2) {
             creep.memory.step++
         }
         if (creep.memory.step == creep.memory.position.length) {
@@ -53,9 +56,9 @@ function work(creep) {
         } else {
             if (Game.flags['rush']) {
                 creep.memory.status = 'rushing'
-            }else if(Game.flags['go']){
+            } else if (Game.flags['go']) {
                 creep.memory.status = "flaging"
-            }else if(Game.flags['test']) {
+            } else if (Game.flags['test']) {
                 creep.memory.status = "testing"
             }
             if (creep.pos.roomName == goal.roomName) {
@@ -92,7 +95,7 @@ function work(creep) {
                 creep.moveTo(goal)
             }
             if (target) {
-                if (creep.pos.getRangeTo(target) <= 1 ) {
+                if (creep.pos.getRangeTo(target) <= 1) {
                     creep.rangedMassAttack()
                 } else {
                     creep.rangedAttack(target)
@@ -100,7 +103,7 @@ function work(creep) {
             }
         } else if (creep.pos.roomName == creep.memory.missionid) {
             if (target) {
-                if (creep.pos.getRangeTo(target) <= 1&& (target.structureType ? target.structureType != STRUCTURE_ROAD && target.structureType != STRUCTURE_CONTAINER : true)) {
+                if (creep.pos.getRangeTo(target) <= 1 && (target.structureType ? target.structureType != STRUCTURE_ROAD && target.structureType != STRUCTURE_CONTAINER : true)) {
                     creep.rangedMassAttack()
                 } else {
                     creep.rangedAttack(target)
@@ -111,43 +114,43 @@ function work(creep) {
             creep.memory.status = 'fighting'
         }
 
-    }else if(creep.memory.status=='flaging'){
+    } else if (creep.memory.status == 'flaging') {
         creep.heal(creep)
 
-        let target = creep.pos.findInRange(FIND_HOSTILE_CREEPS,3)[0]
-        if(!target)target=creep.pos.findInRange(FIND_HOSTILE_STRUCTURES,3)[0]
+        let target = creep.pos.findInRange(FIND_HOSTILE_CREEPS, 3)[0]
+        if (!target) target = creep.pos.findInRange(FIND_HOSTILE_STRUCTURES, 3)[0]
         if (target) {
-            if (creep.pos.getRangeTo(target) <= 1 ) {
+            if (creep.pos.getRangeTo(target) <= 1) {
                 creep.rangedMassAttack()
             } else {
                 creep.rangedAttack(target)
             }
         }
-        let flag=Game.flags['go']
-        if(!flag){
-            creep.memory.status='fighting'
-        }else{
+        let flag = Game.flags['go']
+        if (!flag) {
+            creep.memory.status = 'fighting'
+        } else {
             creep.moveTo(flag)
         }
-    }else if(creep.memory.status=='testing'){
+    } else if (creep.memory.status == 'testing') {
         creep.heal(creep)
 
-        let target = creep.pos.findInRange(FIND_HOSTILE_CREEPS,3)[0]
-        if(!target)target=creep.pos.findInRange(FIND_HOSTILE_STRUCTURES,3)[0]
+        let target = creep.pos.findInRange(FIND_HOSTILE_CREEPS, 3)[0]
+        if (!target) target = creep.pos.findInRange(FIND_HOSTILE_STRUCTURES, 3)[0]
         if (target) {
-            if (creep.pos.getRangeTo(target) <= 1 ) {
+            if (creep.pos.getRangeTo(target) <= 1) {
                 creep.rangedMassAttack()
             } else {
                 creep.rangedAttack(target)
             }
         }
-        let flag1=Game.flags['test']
-        let flag2=Game.flags['return']
-        if(!flag1){
-            creep.memory.status='fighting'
-        }else if(creep.hits==creep.hitsMax&& creep.pos.getRangeTo(flag1)>=2){
+        let flag1 = Game.flags['test']
+        let flag2 = Game.flags['return']
+        if (!flag1) {
+            creep.memory.status = 'fighting'
+        } else if (creep.hits == creep.hitsMax && creep.pos.getRangeTo(flag1) >= 2) {
             creep.moveTo(flag1)
-        }else if(creep.pos.getRangeTo(flag2)>1){
+        } else if (creep.pos.getRangeTo(flag2) > 1) {
             creep.moveTo(flag2)
         }
     }

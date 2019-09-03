@@ -180,10 +180,18 @@ function f() {
         }
     }
 }
+{
 
-PathFinder.search(new RoomPosition(27, 12, 'E26N37'), {
-    pos: Game.getObjectById('5d423dc1b82e1179ccba5781').pos,
-    range: 1
-}, {
-    plainCost: 2, swampCost: 10, roomCallback: require('tools').roomc_nocreep
-}).cost
+
+    PathFinder.search(new RoomPosition(27, 12, 'E26N37'), {
+        pos: Game.getObjectById('5d423dc1b82e1179ccba5781').pos,
+        range: 1
+    }, {
+        plainCost: 2, swampCost: 10, roomCallback: require('tools').roomc_nocreep
+    }).cost
+}
+
+{
+
+    Game.getObjectById('5d58a050ea104379d90eb36e').launchNuke(new RoomPosition(20,35,'E31N38'));Game.getObjectById('5d5e20a452d12c73f02d996d').launchNuke(new RoomPosition(11,41,'E31N37'));Game.getObjectById('5d5b0a943a990a6377228922').launchNuke(new RoomPosition(22,30,'E32N36'))
+}

@@ -33,7 +33,7 @@ function work(creep) {
 
         }
     } else if (creep.memory.status == 'get') {
-        console.log('poerpstatus=' + powerp.status)
+        // console.log('poerpstatus=' + powerp.status)
         if (powerp.status >= 4) {
             const res = creep.pos.findClosestByPath(FIND_DROPPED_RESOURCES)
             if (res) {

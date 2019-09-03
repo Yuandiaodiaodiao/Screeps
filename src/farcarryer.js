@@ -8,15 +8,16 @@ function work(creep) {
             creep.memory.status='getting'
         }
     }else if(creep.memory.status=='getting'){
-        let act=creep.withdraw(Game.getObjectById('5cf34f6dc3623d67632a48ac'),RESOURCE_KEANIUM)
+        let target=creep.room.storage
+        let act=creep.withdraw(target,RESOURCE_OXYGEN)
         if(act==ERR_NOT_IN_RANGE){
-            creep.moveTo(Game.getObjectById('5cf34f6dc3623d67632a48ac'))
+            creep.moveTo(target)
         }else if(act==OK){
             creep.memory.status='return'
         }
     }else if(creep.memory.status=='return'){
-        let target=Game.getObjectById('5cf34f6dc3623d67632a48ac').room.storage
-        let act=creep.transfer(target,RESOURCE_KEANIUM)
+        const target=Game.getObjectById('5d6e13a7debcf91de559bd01')
+        let act=creep.transfer(target,RESOURCE_OXYGEN)
         if(act==ERR_NOT_IN_RANGE){
             creep.moveTo(target)
         }else if(act==OK){
@@ -29,15 +30,15 @@ function born(spawnnow, creepname, memory = {}) {
 
 
     let bodyparts = require('tools').generatebody({
-        'carry': 25,
-        'move': 25
+        'carry': 32,
+        'move': 32
     }, spawnnow)
     return spawnnow.spawnCreep(
         bodyparts,
         creepname,
         {
             memory: {
-                status: 'going',
+                status: 'getting',
                 missionid: spawnnow.room.name,
 
             }

@@ -15,7 +15,7 @@ function work(creep) {
                 filter: obj => obj.structureType == STRUCTURE_CONTAINER
             })
             if (container) memory.container = container.id
-        } else if (creep.carry.energy / creep.carryCapacity < 0.25 && container.store.energy > 0) {
+        } else if (creep.carry.energy<=40 && container.store.energy > 0) {
             creep.withdraw(container, RESOURCE_ENERGY)
         }
         const action = creep.upgradeController(target)
@@ -62,6 +62,12 @@ function born(spawnnow, creepname, memory) {
             'carry': 4,
             'move': 5
         }
+    }else if(Game.getObjectById(memory.controller).level <=4){
+        body={
+            'work':16,
+            'move':8,
+            'carry':12
+        }
     }
     let bodyarray = require('tools').generatebody(body, spawnnow)
     return spawnnow.spawnCreep(
@@ -78,7 +84,7 @@ function born(spawnnow, creepname, memory) {
 
 function miss(room) {
     let role_num_fix = require('main').role_num_fix
-    if (room.storage && room.controller.level >= 5) {
+    if (room.storage && room.controller.level >= 4) {
         if (room.storage.store[RESOURCE_ENERGY] / room.storage.storeCapacity < 0.4) {
             role_num_fix[room.name].upgrader = 0
         } else if (room.storage.store[RESOURCE_ENERGY] / room.storage.storeCapacity < 0.6) {

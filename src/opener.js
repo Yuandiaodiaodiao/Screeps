@@ -1,9 +1,5 @@
 function work(creep) {
-    // if(creep.id=='5d6515d606b55c2b244a3ab6'){
-    //     const act=creep.dismantle(Game.getObjectById('5cf2318eae7b66405a93cf1b'))
-    //     creep.moveTo(Game.getObjectById('5cf2318eae7b66405a93cf1b'))
-    //     return
-    // }
+
     if (creep.memory.status == 'solving') {
         let goal = creep.memory.goal
         goal = new RoomPosition(goal[0], goal[1], goal[2])
@@ -25,8 +21,7 @@ function work(creep) {
         }
         creep.memory.position.push(creep.memory.goal)
         creep.memory.status = 'going'
-    }
-    if (creep.memory.status == 'going') {
+    } else if (creep.memory.status == 'going') {
         let pos = creep.memory.position[creep.memory.step]
         pos = new RoomPosition(pos[0], pos[1], pos[2])
         creep.moveTo(pos, {reusePath: 20})
@@ -68,8 +63,7 @@ function work(creep) {
             filter: obj => obj.structureType != STRUCTURE_WALL
         })
         if (!target) {
-            creep.memory.role = 'filling'
-            creep.memory.status = 'mining'
+            creep.memory.status = 'filling'
         }
         let act = creep.build(target)
         if (act == ERR_NOT_IN_RANGE) {

@@ -18,15 +18,15 @@ function work(creep) {
         if (act == ERR_NOT_IN_RANGE) {
             creep.moveTo(target)
         } else if (act == OK) {
-            if (!creep.carry[creep.memory.type] || creep.carry[creep.memory.type] == 0)
+
+        }else if(act==ERR_NOT_ENOUGH_RESOURCES){
+            if ((creep.carry[creep.memory.type] || 0) == 0)
                 creep.memory.status = 'miss'
-        } else if (act == ERR_NOT_ENOUGH_RESOURCES) {
-            creep.memory.status = 'getting'
         }
     } else if (creep.memory.status == 'miss') {
         if (Game.time % 5 == 0) {
             if (creep.memory.role) {
-                if (creep.memory.role == 'power' && creep.room.powerSpawn.power==0) {
+                if (creep.memory.role == 'power' && creep.room.powerSpawn.power == 0) {
                     creep.memory.type = RESOURCE_POWER
                     creep.memory.target = creep.room.powerSpawn.id
                     creep.memory.status = 'getting'
@@ -79,12 +79,12 @@ function miss(room) {
     room.memory.missions.terminalmanager = {}
     const terminal = room.terminal
     if (terminal) {
-        if (terminal.store[RESOURCE_ENERGY] > 90000 || (!room.controller.isPowerEnabled && terminal.store[RESOURCE_GHODIUM] && terminal.store[RESOURCE_GHODIUM] >= 5000 && room.nuker && room.nuker.ghodium < 5000)) {
+        if (terminal.store[RESOURCE_ENERGY] > 90000 || (!room.controller.isPowerEnabled && terminal.store[RESOURCE_GHODIUM] && terminal.store[RESOURCE_GHODIUM] >= 3000 && room.nuker && room.nuker.ghodium < 5000)) {
             room.memory.missions.terminalmanager[room.name] = {
                 roomName: room.name,
             }
         }
-        if (!room.controller.isPowerEnabled && terminal.store[RESOURCE_POWER] > 1400 && room.storage.store[RESOURCE_ENERGY] / room.storage.storeCapacity > 0.6) {
+        if (!room.controller.isPowerEnabled && terminal.store[RESOURCE_POWER] > 1400 && room.storage.store[RESOURCE_ENERGY] / room.storage.storeCapacity > 0.65) {
             room.memory.missions.terminalmanager[room.name] = {
                 roomName: room.name,
                 capacity: 100,

@@ -1,8 +1,19 @@
-const reaction = {
-    'ZK': ['Z', 'K'],
-    'UL': ['U', 'L'],
-    'G': ['ZK', 'UL']
+function gen_reaction() {
+    let reactions = {}
+    for (let a in REACTIONS) {
+        const blist = REACTIONS[a]
+        for (let b in blist) {
+            const ans = blist[b]
+            if (!reactions[ans]) {
+                reactions[ans] = [a, b]
+            }
+        }
+    }
+    console.log(JSON.stringify(reactions))
+    return reactions
 }
+
+const reaction = gen_reaction()
 module.exports.reaction = reaction
 module.exports.work = function (room) {
     const terminal = room.terminal
@@ -31,6 +42,8 @@ module.exports.work = function (room) {
         let lab2 = Game.getObjectById(room.memory.lab.input[1])
         if ([lab1, lab2].every(obj => obj.mineralAmount == 3000 || (obj.mineralAmount > 0 && !terminal.store[obj.mineralType]))) {
             room.memory.reaction.status = 'react'
+            room.memory.reaction.time = REACTION_TIME[room.memory.reaction.type]
+
         }
     } else if (room.memory.reaction.status == 'react') {
         let lab1 = Game.getObjectById(room.memory.lab.input[0])
@@ -53,6 +66,7 @@ module.exports.work = function (room) {
 
 }
 module.exports.doreaction = function (room) {
+    if (Game.time % (room.memory.reaction.time || 5) != 0) return
     if (room.memory.reaction && room.memory.reaction.status == 'react') {
         const lab1 = Game.getObjectById(room.memory.lab.input[0])
         const lab2 = Game.getObjectById(room.memory.lab.input[1])

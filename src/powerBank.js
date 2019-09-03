@@ -7,16 +7,19 @@ module.exports = {
 var powerRoom = {
     'E28N46': ['E30N46', 'E30N47', 'E30N48', 'E30N49'],
     'E27N38': ['E30N38', 'E30N37', 'E30N36'],
-    'E25N43': [ 'E25N40', 'E26N40', 'E27N40']
+    'E25N43': [ 'E25N40', 'E26N40', 'E27N40'],
+    'E27N42':['E28N40','E29N40']
 }
 
 function miss() {
     Memory.powerPlan = Memory.powerPlan || {}
     for (let roomName in powerRoom) {
+        const terminal=Game.rooms[roomName].terminal
+        if((terminal.store[RESOURCE_POWER]||0)>100000)continue
         const rooms = powerRoom[roomName]
         for (let roomn of rooms) {
             const roomc = require('observer').observerCache[roomn]
-            if (roomc && roomc.powerBank && roomc.power >= 500 && Game.time - roomc.startTime <= 1000 && !Memory.powerPlan[roomn]) {
+            if (roomc && roomc.powerBank && roomc.power >= 1000 && Game.time - roomc.startTime <= 500 && !Memory.powerPlan[roomn] && Game.rooms[roomName].storage.store[RESOURCE_ENERGY]>300000) {
                 const targetpos = new RoomPosition(roomc.pos[0], roomc.pos[1], roomn)
                 const ans = PathFinder.search(Game.rooms[roomName].spawns[0].pos, {pos: targetpos, range: 2}, {
                     plainCost: 1, swampCost: 5, roomCallback: require('tools').roomc_nocreep, maxOps: 6000
@@ -54,7 +57,7 @@ function solveplan(roomn) {
     let plan = Memory.powerPlan[roomn]
     const spawnRoom = plan.spawnRoom
     let missions = Memory.rooms[spawnRoom].missions
-
+    if(plan.status<=3 &&Game.time-plan.startTime>5000+1500)plan.status=4
     if (plan.status == 1) {
         //attack healer注入
         missions["power-a"] = missions["power-a"] || {}
@@ -87,7 +90,7 @@ function solveplan(roomn) {
         //carry取消 plan取消
         missions['power-a'] ? missions['power-a'][roomn] = undefined:undefined
         missions['power-b'] ? missions['power-b'][roomn] = undefined:undefined
-        missions['power-b'] ? missions['power-b'][roomn] = undefined:undefined
+        missions['power-c'] ? missions['power-c'][roomn] = undefined:undefined
         if (Game.time - plan.timelock > 5) {
             plan.status = 5
             Memory.powerPlan[roomn]=undefined

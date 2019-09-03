@@ -27,30 +27,32 @@ function work(creep) {
         if (creep.pos.getRangeTo(pos) <= 1) {
             creep.memory.step++
         }
-        if (creep.memory.step ==powerp.position.length) {
+        if (creep.memory.step == powerp.position.length) {
             creep.memory.status = 'dig'
             delete creep.memory.step
         }
     } else if (creep.memory.status == 'dig') {
         const pb = creep.room.powerBanks[0]
-        if(pb&&pb.hits<1000&& pb.ticksToDecay>3&&creep.ticksToLive>3&&!creep.room.find(FIND_MY_CREEPS).some(obj=>obj.getActiveBodyparts('carry'))){
-            return
+        if (pb && pb.hits < 1000 && pb.ticksToDecay > 3 && creep.ticksToLive > 3 && !creep.room.find(FIND_MY_CREEPS).some(obj => obj.getActiveBodyparts('carry'))) {
+//wait
+        } else {
+            const act = creep.attack(pb)
+            if (act == ERR_NOT_IN_RANGE) {
+                creep.moveTo(pb)
+            } else if (act == OK) {
+                creep.memory.digtick = (creep.memory.digtick || 0) + 1
+            }
         }
-        const act = creep.attack(pb)
-        if (act == ERR_NOT_IN_RANGE) {
-            creep.moveTo(pb)
-        }else if(act==OK){
-            creep.memory.digtick=(creep.memory.digtick||0)+1
-        }
-        if (powerp.status==1&& pb.hits < creep.ticksToLive * 750&&creep.hits==creep.hitsMax&&creep.memory.digtick>=5) {
+
+        if (pb && powerp.status == 1 && pb.hits < creep.ticksToLive * 750 && creep.hits == creep.hitsMax && creep.memory.digtick >= 2) {
             powerp.status = 2
-        }else if(powerp.status==2 && (pb.hits/750)< powerp.roadcost+Math.ceil(powerp.carry/3)*200 ){
+        } else if (pb && powerp.status == 2 && (pb.hits / 750) < powerp.roadcost + Math.ceil(powerp.carry / 3) * 300) {
             powerp.status = 3
-        }else if(powerp.status==3&&!pb){
-            powerp.status=4
+        } else if (powerp.status == 3 && !pb) {
+            powerp.status = 4
             creep.suicide()
-        }else if(!pb){
-            powerp.status=4
+        } else if (!pb) {
+            powerp.status = 4
             creep.suicide()
         }
 

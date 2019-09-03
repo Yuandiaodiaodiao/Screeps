@@ -57,7 +57,7 @@ function work(creep) {
                     return structure.energy < 250
                 } else if (structure.structureType == STRUCTURE_TOWER) {
                     return structure.energy / structure.energyCapacity < 0.75
-                } else if (creep.room.energyAvailable / creep.room.energyCapacityAvailable > 0.99) {
+                } else if (creep.room.energyAvailable / creep.room.energyCapacityAvailable > 0.95) {
                     if (structure.structureType == STRUCTURE_TERMINAL && structure.my) {
                         return structure.store[RESOURCE_ENERGY] < 1e4
                     } else if (structure.structureType == STRUCTURE_NUKER) {
@@ -83,28 +83,31 @@ function work(creep) {
         }
 
     } else if (memory.status == 'sleeping') {
-        if (creep.room.energyAvailable < creep.room.energyCapacityAvailable) {
+        if (creep.room.energyAvailable < creep.room.energyCapacityAvailable-200) {
             memory.status = 'carrying'
-        } else {
-            if (Game.time % 5 == 0) {
-                const towers = creep.room.towers
-                for (let tower of towers) {
-                    if (tower.energy / tower.energyCapacity < 0.75) {
-                        memory.status = 'carrying'
-                        break
-                    }
+        } else if (Game.time % 5 == 0) {
+            const towers = creep.room.towers
+            for (let tower of towers) {
+                if (tower.energy / tower.energyCapacity < 0.75) {
+                    memory.status = 'carrying'
+                    break
                 }
             }
-
+        }else if(Game.time%2001==0){
+            if(creep.body.length<48&&creep.room.energyCapacityAvailable>creep.body.length*50+500){
+                creep.suicide()
+            }
         }
+
+
     }
 
 }
 
 function born(spawnnow, creepname, memory, isonly) {
     let body = {
-        'carry': 33,
-        'move': 17
+        'carry': 32,
+        'move': 16
     }
     let bodyarray = tools.generatebody(body, spawnnow)
     let ans = spawnnow.spawnCreep(

@@ -9,6 +9,11 @@ function clearmem() {
             delete Memory.creeps[name];
         }
     }
+    for (let name in Memory.powerCreeps) {
+        if (!Game.powerCreeps[name] || !Game.powerCreeps[name].ticksToLive) {
+            delete Memory.powerCreeps[name];
+        }
+    }
 }
 
 module.exports.roomjson = {
@@ -65,8 +70,8 @@ var role_num = {
     flagworker: 0,
     mineraler: 1,
     opener: 0,
-    healer: 1,
-    attacker: 2,
+    healer: 2,
+    attacker: 1,
     rattacker: 0,
     controllerattack: 0,
     centerminer: 0,
@@ -82,20 +87,20 @@ var role_num = {
 var role_num_fix = {
     'E28N46': {},
     'E25N43': {
-        opener: 1,
+        opener: 0,
         // rattacker: 2,
         attacker: 0,
     },
     'E27N38': {
         rattacker: 0,
         healer: 0,
-        opener: 1,
+        opener: 0,
         controllerattack: 0,
     },
     'E27N42': {
         attacker: 0,
         healer: 0,
-        opener: 1,
+        opener: 0,
         controllerattack: 0,
     },
     'E29N41': {
@@ -103,13 +108,17 @@ var role_num_fix = {
         opener: 0,
         farcarryer: 0,
     },
-    'E29N38': {},
-    'E19N41': {},
+    'E29N38': {
+        farcarryer: 0,
+    },
+    'E19N41': {
+        farcarryer: 1
+    },
 }
 var hostile = {
-    // 'E31N41': {
-    //     next: [7, 3, 'E31N40'],
-    //     stage: ['healer','attacker'],
+    // 'E34N42': {
+    //     next: [27, 3, 'E34N41'],
+    //     stage: ['healer'],
     // }
 }
 
@@ -259,6 +268,8 @@ function mission_generator(room) {
     {
         let storage = room.storage
         if (storage) {
+
+            missions.filler = {}
             missions.filler[storage.id] = {
                 gettarget: storage.id,
             }
@@ -280,14 +291,6 @@ function mission_generator(room) {
         }
     }
 
-
-    //分配reserver
-    if (!thisroom.subroom) thisroom.subroom = []
-    for (let subroom of thisroom.subroom) {
-        missions.reserver[subroom] = {
-            roomName: subroom,
-        }
-    }
 
     //分配watcher
     for (let subroom of thisroom.subroom) {
@@ -342,10 +345,10 @@ function mission_generator(room) {
     // missions.rattacker[room.name] = {
     //     roomName: room.name
     // }
-    // //farcarryer
-    // missions.farcarryer[room.name] = {
-    //     roomName: room.name
-    // }
+    // farcarryer
+    missions.farcarryer[room.name] = {
+        roomName: room.name
+    }
     //controllerattack
     // missions.controllerattack[room.name] = {
     //     roomName: room.name
@@ -381,7 +384,12 @@ function mission_generator(room) {
             goal = new RoomPosition(goal[0], goal[1], goal[2])
             console.log('goal=' + goal)
             let ans = PathFinder.search(room.find(FIND_MY_SPAWNS)[0].pos, {pos: goal, range: 2}, {
-                plainCost: 1, swampCost: 5, roomCallback: require('tools').roomc_nocreep, maxOps: 20000, maxRooms: 32
+                plainCost: 1,
+                swampCost: 5,
+                roomCallback: require('tools').roomc_nocreep,
+                maxOps: 20000,
+                maxRooms: 32,
+                maxCost: 500,
             })
             console.log('room' + room.name + 'complete' + ans.incomplete + ' ops' + ans.ops + ' cost' + ans.cost)
             if (ans.incomplete) continue
@@ -393,7 +401,7 @@ function mission_generator(room) {
                 }
             }
             position.push(hostile[roomName].next)
-            if (hostile[roomName].stage.indexOf('healer') != -1 && room.controller.level >= 7) {
+            if (hostile[roomName].stage.indexOf('healer') != -1) {
                 let pos = require('tools').deepcopy(position)
                 missions.healer[roomName] = {
                     roomName: roomName,
@@ -428,19 +436,18 @@ var MissionCache = {}
 var SpawnList = {}
 
 function mission_detector() {
-
+    MissionCache = {}
     Object.values(Game.creeps).forEach(cep => {
         try {
             const namearray = cep.name.split('_')
             const roomName = namearray[0]
             const role = namearray[1]
-            let room = MissionCache[roomName]
-            if (!room) room = MissionCache[roomName] = {}
-            let missions = room[role]
-            if (!missions) missions = room[role] = {}
-            let mission = missions[cep.memory.missionid]
-            if (!mission) mission = missions[cep.memory.missionid] = []
-            mission.push(cep.id)
+            let room = MissionCache[roomName] || (MissionCache[roomName] = {})
+            let missions = room[role] || (room[role] = {})
+            let mission = missions[cep.memory.missionid] || (missions[cep.memory.missionid] = [])
+            if (cep.id) {
+                mission.push(cep.id)
+            }
         } catch (e) {
             console.log('missioncache' + e)
         }
@@ -465,12 +472,10 @@ function mission_spawner(room) {
             try {
                 let ifreturn = false
                 const mission = role[missionid]
-                // console.log(roleName + '--' + missionid + ' ' + mission.creeps.length)
                 const fix = ((role_num_fix[room.name] && role_num_fix[room.name][roleName]) ? role_num_fix[room.name][roleName] : 0) + (mission.numfix || 0)
                 if (missioncreepsid.length <= role_num[roleName] - 1 + fix) {
-                    console.log('push' + roleName + ' room=' + room.name)
                     splist.push([roleName, mission, true])
-                } else if (missioncreepsid.length != 0 && missioncreepsid.length == role_num[roleName] + fix) {
+                } else if (missioncreepsid.length >= 1 && missioncreepsid.length == role_num[roleName] + fix) {
                     const onlycreep = Game.getObjectById(missioncreepsid[0])
                     if (onlycreep.ticksToLive < onlycreep.body.length * 3 + 25 + (mission.cost || 0)) {
                         splist.push([roleName, mission, false])
@@ -484,9 +489,9 @@ function mission_spawner(room) {
                 }
 
             } catch (e) {
-                console.log(roleName + missionid + 'error' + e)
+                console.log("mission_spawner" + roleName + missionid + 'error' + e)
             }
-            if (missioncreepsid) missioncreepsid.length = 0
+            // if (missioncreepsid) missioncreepsid.length = 0
 
         }
     }
@@ -499,6 +504,7 @@ function do_spawn(room) {
     const miss = SpawnList[room.name] || []
     while (miss.length > 0) {
         const spawnmiss = _.head(miss)
+
         let act = api.missionspawn(spawn, spawnmiss[0], spawnmiss[1], spawnmiss[2])
         if (act == OK) {
             miss.shift()
@@ -654,7 +660,7 @@ module.exports.loop = function () {
             console.log('power ' + obj.name + e)
         }
     })
-    if ((Game.time + 5) % 50 == 0) {
+    if ((Game.time + 10) % 50 == 0) {
         try {
             require('powerBank').cache()
         } catch (e) {
@@ -680,12 +686,18 @@ module.exports.loop = function () {
         for (let roomName in Memory.rooms) {
             let room = Game.rooms[roomName]
             try {
+                const t1 = Game.cpu.getUsed()
                 require('terminal').work(room)
+                const t2 = Game.cpu.getUsed()
+                console.log('terminal time' + roomName + '=' + (t2 - t1))
             } catch (e) {
                 console.log('terminal' + roomName + e)
             }
             try {
+                const t1 = Game.cpu.getUsed()
                 require('reaction').work(room)
+                const t2 = Game.cpu.getUsed()
+                console.log('terminal time' + roomName + '=' + (t2 - t1))
             } catch (e) {
                 console.log('reaction' + roomName + e)
             }
@@ -703,6 +715,11 @@ module.exports.loop = function () {
                 require('terminalmanager').miss(room)
             } catch (e) {
                 console.log('terminalmanager' + e)
+            }
+            try {
+                require('reserver').miss(room)
+            } catch (e) {
+                console.log('reserver-miss' + e)
             }
         }
     }
@@ -745,4 +762,10 @@ module.exports.handlemission = function () {
 module.exports.handlespawn = function (roomName) {
     const room = Game.rooms[roomName]
     mission_spawner(room)
+}
+module.exports.spawncache = function () {
+    mission_detector()
+    for (let roomName in MissionCache) {
+        console.log(JSON.stringify(MissionCache[roomName]))
+    }
 }

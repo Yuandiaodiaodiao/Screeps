@@ -12,35 +12,23 @@ function work(creep) {
 }
 
 function born(spawnnow, creepname, memory) {
-    const room = Game.rooms[memory.roomName]
-    if (!room) return -11
-    const controller = Game.rooms[memory.roomName].controller
     let body = {
-        'claim': 8,
-        'move': 8
+        'claim': memory.part || 2,
+        'move': memory.part || 2
     }
     try {
         let bodypart = require('tools').generatebody(body, spawnnow)
-        let num = 0
-        for (let bd of bodypart) {
-            if (bd == 'claim') num++
-        }
-        if (!controller.reservation
-            || controller.reservation.ticksToEnd <= 5000 - Math.max(0, (num - 1)) * 600) {
-
-            return spawnnow.spawnCreep(
-                bodypart,
-                creepname,
-                {
-                    memory: {
-                        status: 'going',
-                        missionid: memory.roomName
-                    }
+        return spawnnow.spawnCreep(
+            bodypart,
+            creepname,
+            {
+                memory: {
+                    status: 'going',
+                    missionid: memory.roomName
                 }
-            )
-        } else {
-            return -11
-        }
+            }
+        )
+
     } catch (e) {
         console.log(creepname + ' born err' + e)
     }
@@ -48,7 +36,30 @@ function born(spawnnow, creepname, memory) {
 
 }
 
+function miss(room) {
+    //分配reserver
+    const thisroom = room.memory
+    const missions = thisroom.missions
+    if (!thisroom.subroom) thisroom.subroom = []
+    missions.reserver={}
+    for (let subroom of thisroom.subroom) {
+        const roomb = Game.rooms[subroom]
+        if (!roomb) continue
+        const maxparts = Math.min(8, Math.floor(room.energyCapacityAvailable / (600 + 50)))
+        if (!roomb.controller.reservation
+            || roomb.controller.reservation.ticksToEnd <= 5000 - Math.max(0, (maxparts - 1)) * 600) {
+
+            missions.reserver[subroom] = {
+                roomName: subroom,
+                part: maxparts,
+            }
+        }
+
+    }
+}
+
 module.exports = {
     'work': work,
-    'born': born
+    'born': born,
+    'miss':miss,
 };

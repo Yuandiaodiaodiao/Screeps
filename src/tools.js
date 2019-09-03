@@ -72,7 +72,7 @@ function generatebody(body, spawnnow = null) {
         }
     }
     if (spawnnow) {
-        let maxenergy = spawnnow.room.energyCapacityAvailable
+        let maxenergy = spawnnow.room.energyCapacityAvailable-50
         while (bodycost(body) > maxenergy) {
             let maxbody = -1
             for (let part in body) {
