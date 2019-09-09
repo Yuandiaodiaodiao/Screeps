@@ -1,7 +1,9 @@
+require('prototype.Room.structures')
 var api = require('api');
 var tower = require('tower');
 var link = require('link')
-require('prototype.Room.structures')
+require('creepMove')
+const profiler = require('screeps-profiler');
 
 function clearmem() {
     for (let name in Memory.creeps) {
@@ -12,6 +14,15 @@ function clearmem() {
     for (let name in Memory.powerCreeps) {
         if (!Game.powerCreeps[name] || !Game.powerCreeps[name].ticksToLive) {
             delete Memory.powerCreeps[name];
+        }
+    }
+    if (Game.time % 100 == 0) {
+        const time = Game.time
+        let last = require('creepMove').lastMove
+        for (let x in last) {
+            if (time - last[x][3] > 100) {
+                delete last[x]
+            }
         }
     }
 }
@@ -89,43 +100,38 @@ var role_num_fix = {
     'E25N43': {
         opener: 0,
         // rattacker: 2,
-        attacker: 0,
     },
     'E27N38': {
         rattacker: 0,
         healer: 0,
         opener: 0,
-        controllerattack: 0,
     },
     'E27N42': {
-        attacker: 0,
         healer: 0,
         opener: 0,
-        controllerattack: 0,
     },
     'E29N41': {
-        attacker: -2,
         opener: 0,
         farcarryer: 0,
     },
     'E29N38': {
+        //1
         farcarryer: 0,
     },
     'E19N41': {
-        farcarryer: 1
+        farcarryer: 0
     },
 }
 var hostile = {
-    // 'E34N42': {
-    //     next: [27, 3, 'E34N41'],
-    //     stage: ['healer'],
-    // }
+    'E14N41': {
+        next: [14, 3, 'E14N40'],
+        stage: ['healer'],
+    }
 }
 
 module.exports.role_num_fix = role_num_fix
 
 function mission_generator(room) {
-
 
 // Memory.rooms[room.name].missions=missions
     if (!room.memory.missions) room.memory.missions = {}
@@ -181,7 +187,7 @@ function mission_generator(room) {
         }
     }
 
-
+    require('tools').solveExtension(room)
     let missions = thisroom.missions
     //分配miner
     for (let source of sources) {
@@ -388,13 +394,13 @@ function mission_generator(room) {
                 swampCost: 5,
                 roomCallback: require('tools').roomc_nocreep,
                 maxOps: 20000,
-                maxRooms: 32,
+                maxRooms: 64,
                 maxCost: 500,
             })
             console.log('room' + room.name + 'complete' + ans.incomplete + ' ops' + ans.ops + ' cost' + ans.cost)
             if (ans.incomplete) continue
             let position = []
-            let leng = ans.path.length
+            let leng = ans.cost
             for (let a in ans.path) {
                 if (a % 20 == 0) {
                     position.push([ans.path[a].x, ans.path[a].y, ans.path[a].roomName])
@@ -467,10 +473,11 @@ function mission_spawner(room) {
     for (let roleName in missions) {
         const role = missions[roleName]
         const missioncreepsrole = missioncreeps ? missioncreeps[roleName] : null
+
         for (let missionid in role) {
             const missioncreepsid = missioncreepsrole ? (missioncreepsrole[missionid] || []) : []
             try {
-                let ifreturn = false
+
                 const mission = role[missionid]
                 const fix = ((role_num_fix[room.name] && role_num_fix[room.name][roleName]) ? role_num_fix[room.name][roleName] : 0) + (mission.numfix || 0)
                 if (missioncreepsid.length <= role_num[roleName] - 1 + fix) {
@@ -504,7 +511,10 @@ function do_spawn(room) {
     const miss = SpawnList[room.name] || []
     while (miss.length > 0) {
         const spawnmiss = _.head(miss)
-
+        if(!spawnmiss){
+            miss.shift()
+            continue
+        }
         let act = api.missionspawn(spawn, spawnmiss[0], spawnmiss[1], spawnmiss[2])
         if (act == OK) {
             miss.shift()
@@ -527,228 +537,199 @@ function timer(strs = null) {
 }
 
 var testtick = 0
+profiler.enable()
 module.exports.loop = function () {
-    Memory.testtick = Math.max(Memory.testtick || 0, ++testtick)
-    if (Game.time % 20 == 0) {
-        if (!Game.getObjectById('5d43b391314ba67018b43081')) {
-            role_num.attacker = -3
-            role_num.healer = -3
+    Game.test = require('test').test
+    profiler.wrap(function () {
+        require('creepMove').moveCache.clear()
+        Memory.testtick = Math.max(Memory.testtick || 0, ++testtick)
+        if (Game.time % 20 == 0) {
+            clearmem()
         }
-        clearmem()
-    }
-    if (Game.time % 10 == 0) {
+        if (Game.time % 10 == 0) {
 
-        for (let roomName in Memory.rooms) {
-            let room = Game.rooms[roomName]
+            for (let roomName in Memory.rooms) {
+                const room = Game.rooms[roomName]
+                require('subprotecter').miss(room)
+            }
+        }
 
-            room.memory.missions.subprotecter = {}
-            if (require('tools').findroomselsefilter(room, FIND_HOSTILE_CREEPS, {
-                filter: obj => {
-                    return require('whitelist').whitelist.indexOf(obj.owner.username) == -1
+        if (Game.time % 1000 == 0) {
+            require('observer').find()
+            // require('tools').roomCache = {}
+            for (let roomName in Memory.rooms) {
+                try {
+                    mission_generator(Game.rooms[roomName])
+                } catch (e) {
+                    console.log(roomName + 'mission_generator error ' + e)
                 }
-            }).length > 0) {
-                room.memory.missions.subprotecter[room.name] = {
-                    creeps: [],
-                    roomName: room.name
+            }
+
+        }
+        if (Game.time % 10 == 0) {
+            mission_detector()
+            for (let roomName in Memory.rooms) {
+                let room = Game.rooms[roomName]
+                try {
+                    mission_spawner(room)
+                } catch (e) {
+                    console.log('mission_spawner' + e)
                 }
             }
         }
-    }
-
-    if (Game.time % 1000 == 0) {
-        require('observer').find()
-        require('tools').roomCache = {}
-        for (let roomName in Memory.rooms) {
-            mission_generator(Game.rooms[roomName])
-
+        {
             try {
-
+                require('observer').work()
             } catch (e) {
-                console.log(roomName + 'mission_generator error ' + e)
-            }
-            if (Game.rooms[roomName].terminal && false) {
-                let order = Game.market.getAllOrders({type: ORDER_BUY, resourceType: RESOURCE_HYDROGEN}).sort(
-                    (b, a) => (a.price * 1000 - Game.market.calcTransactionCost(1000, roomName, a.roomName) * 15) -
-                        (b.price * 1000 - Game.market.calcTransactionCost(1000, roomName, b.roomName) * 15)
-                )[0]
-                if (order) {
-                    console.log(JSON.stringify(order))
-                    console.log('cost=' + (order.price * 1000 - Game.market.calcTransactionCost(1000, roomName, order.roomName) * 15))
-                }
+                console.log('observerwork' + e)
             }
 
         }
 
-    }
-    if (Game.time % 10 == 0) {
-        mission_detector()
         for (let roomName in Memory.rooms) {
             let room = Game.rooms[roomName]
             if (!room) continue
-            mission_spawner(room)
             try {
+                do_spawn(room)
             } catch (e) {
-                console.log('mission_spawner' + e)
-            }
-        }
-    }
-    {
-        try {
-            require('observer').work()
-        } catch (e) {
-            console.log('observerwork' + e)
-        }
-
-    }
-
-    for (let roomName in Memory.rooms) {
-        let room = Game.rooms[roomName]
-        if (!room) continue
-        try {
-            do_spawn(room)
-        } catch (e) {
-            console.log('dospawn' + e)
-        }
-        try {
-            require('roomvisual').work(room)
-        } catch (e) {
-            console.log('roomvisual' + roomName + e)
-        }
-        try {
-            require('spawn').work(room)
-        } catch (e) {
-            console.log('spawnerror' + e)
-        }
-        try {
-            tower.work(room)
-        } catch (e) {
-            console.log(roomName + 'tower error ' + e)
-        }
-        try {
-            link.work(room)
-        } catch (e) {
-            console.log(roomName + 'link error ' + e)
-        }
-
-        if (room.towers.length == 0 && room.find(FIND_HOSTILE_CREEPS).length > 0) {
-            room.controller.activateSafeMode()
-        }
-
-        try {
-            const powers = room.powerSpawn
-            if (powers && powers.power > 0) {
-                powers.processPower()
-            }
-        } catch (e) {
-            console.log('pows ' + e)
-        }
-    }
-
-    if ((Game.time + 1) % 500 == 0) {
-        try {
-            require('observer').cache()
-        } catch (e) {
-            console.log('observer' + e)
-        }
-    }
-
-
-    Object.values(Game.powerCreeps).forEach(obj => {
-        try {
-            require('powerscreep').work(obj)
-        } catch (e) {
-            console.log('power ' + obj.name + e)
-        }
-    })
-    if ((Game.time + 10) % 50 == 0) {
-        try {
-            require('powerBank').cache()
-        } catch (e) {
-            console.log('powerBank-cache' + e)
-        }
-    }
-    if (Game.time % 50 == 0) {
-        try {
-            require('powerBank').miss()
-        } catch (e) {
-            console.log('powerBank-miss' + e)
-        }
-        for (let roomn in Memory.powerPlan) {
-            try {
-                require('powerBank').solveplan(roomn)
-            } catch (e) {
-                console.log('powerBank-solveplan' + e)
-            }
-        }
-    }
-    if (Game.time % 100 == 0) {
-        //terminal
-        for (let roomName in Memory.rooms) {
-            let room = Game.rooms[roomName]
-            try {
-                const t1 = Game.cpu.getUsed()
-                require('terminal').work(room)
-                const t2 = Game.cpu.getUsed()
-                console.log('terminal time' + roomName + '=' + (t2 - t1))
-            } catch (e) {
-                console.log('terminal' + roomName + e)
+                console.log('dospawn' + e)
             }
             try {
-                const t1 = Game.cpu.getUsed()
-                require('reaction').work(room)
-                const t2 = Game.cpu.getUsed()
-                console.log('terminal time' + roomName + '=' + (t2 - t1))
+                require('roomvisual').work(room)
             } catch (e) {
-                console.log('reaction' + roomName + e)
+                console.log('roomvisual' + roomName + e)
             }
             try {
-                require('upgrader').miss(room)
+                require('spawn').work(room)
             } catch (e) {
-                console.log('upgrader miss' + e)
+                console.log('spawnerror' + e)
             }
             try {
-                require('builder').miss(room)
+                tower.work(room)
             } catch (e) {
-                console.log('builder miss' + e)
+                console.log(roomName + 'tower error ' + e)
             }
             try {
-                require('terminalmanager').miss(room)
+                link.work(room)
             } catch (e) {
-                console.log('terminalmanager' + e)
+                console.log(roomName + 'link error ' + e)
             }
+
+            if (room.towers.length == 0 && room.find(FIND_HOSTILE_CREEPS).length > 0) {
+                room.controller.activateSafeMode()
+            }
+
             try {
-                require('reserver').miss(room)
+                const powers = room.powerSpawn
+                if (powers && powers.power > 0) {
+                    powers.processPower()
+                }
             } catch (e) {
-                console.log('reserver-miss' + e)
+                console.log('pows ' + e)
             }
         }
-    }
 
-    if (Game.time % 5 == 0) {
-        for (let roomName in Memory.rooms) {
-            let room = Game.rooms[roomName]
+        if ((Game.time + 20) % 500 == 0) {
             try {
-                require('reaction').doreaction(room)
+                require('observer').cache()
             } catch (e) {
-                console.log('doreaction' + roomName + e)
+                console.log('observer' + e)
             }
         }
-    }
 
 
-    if (!(Game.cpu.bucket < 1000 && Game.time % 3 == 0)) {
-        Object.values(Game.creeps).forEach(obj => {
+        Object.values(Game.powerCreeps).forEach(obj => {
             try {
-                require(obj.name.split('_')[1]).work(obj)
+                require('powerscreep').work(obj)
             } catch (e) {
-                console.log('role=' + obj.name + 'error' + e)
+                console.log('power ' + obj.name + e)
             }
         })
+        if ((Game.time + 25) % 50 == 0) {
+            try {
+                require('powerBank').cache()
+            } catch (e) {
+                console.log('powerBank-cache' + e)
+            }
+        }
+        if (Game.time % 50 == 0) {
+            try {
+                require('powerBank').miss()
+            } catch (e) {
+                console.log('powerBank-miss' + e)
+            }
+            for (let roomn in Memory.powerPlan) {
+                try {
+                    require('powerBank').solveplan(roomn)
+                } catch (e) {
+                    console.log('powerBank-solveplan' + e)
+                }
+            }
+        }
+        if (Game.time % 100 == 0) {
+            //terminal
+            for (let roomName in Memory.rooms) {
+                let room = Game.rooms[roomName]
+                try {
+                    require('terminal').work(room)
+                } catch (e) {
+                    console.log('terminal' + roomName + e)
+                }
+                try {
+                    require('reaction').work(room)
+                } catch (e) {
+                    console.log('reaction' + roomName + e)
+                }
+                try {
+                    require('upgrader').miss(room)
+                } catch (e) {
+                    console.log('upgrader miss' + e)
+                }
+                try {
+                    require('builder').miss(room)
+                } catch (e) {
+                    console.log('builder miss' + e)
+                }
+                try {
+                    require('terminalmanager').miss(room)
+                } catch (e) {
+                    console.log('terminalmanager' + e)
+                }
+                try {
+                    require('reserver').miss(room)
+                } catch (e) {
+                    console.log('reserver-miss' + e)
+                }
+            }
+        }
 
-    }
+        if (Game.time % 5 == 0) {
+            for (let roomName in Memory.rooms) {
+                let room = Game.rooms[roomName]
+                try {
+                    require('reaction').doreaction(room)
+                } catch (e) {
+                    console.log('doreaction' + roomName + e)
+                }
+            }
+        }
 
 
-    require('roomvisual').statistics()
+        if (!(Game.cpu.bucket < 1000 && Game.time % 3 == 0)) {
+            Object.values(Game.creeps).forEach(obj => {
+                try {
+                    require(obj.name.split('_')[1]).work(obj)
+                } catch (e) {
+                    console.log('role=' + obj.name + 'error' + e)
+                }
+            })
+
+        }
+
+
+        require('roomvisual').statistics()
+    });
+
 }
 module.exports.handlemission = function () {
     timer()
@@ -766,6 +747,6 @@ module.exports.handlespawn = function (roomName) {
 module.exports.spawncache = function () {
     mission_detector()
     for (let roomName in MissionCache) {
-        console.log(JSON.stringify(MissionCache[roomName]))
+        console.log(roomName + JSON.stringify(MissionCache[roomName]))
     }
 }

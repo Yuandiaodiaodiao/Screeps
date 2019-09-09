@@ -24,9 +24,10 @@ function work(creep) {
     if (creep.memory.status == 'sleep') {
         if (Game.time % 10 == 0) {
             creep.memory.status = 'fight'
+            creep.memory._move=undefined
         }
     } else if (creep.memory.status == 'fight') {
-        let target = require('tools').findroomselsefilter(Game.rooms[creep.memory.missionid], FIND_HOSTILE_CREEPS, {
+        let target = require('tools').findroomselse(Game.rooms[creep.memory.missionid], FIND_HOSTILE_CREEPS, {
             filter: obj => {
                 return require('whitelist').whitelist.indexOf(obj.owner.username) == -1
             }
@@ -52,8 +53,24 @@ function work(creep) {
 
 
 }
+function miss(room){
+    room.memory.missions.subprotecter = {}
+    if (require('tools').findroomselse(room, FIND_HOSTILE_CREEPS, {
+        filter: obj => {
+            return require('whitelist').whitelist.indexOf(obj.owner.username) == -1
+        }
+    }).length > 0) {
+        room.memory.missions.subprotecter[room.name] = {
+            creeps: [],
+            roomName: room.name
+        }
+    }else{
+        room.memory.missions.subprotecter = undefined
+    }
+}
 
 module.exports = {
     'work': work,
     'born': born,
+    'miss':miss
 };

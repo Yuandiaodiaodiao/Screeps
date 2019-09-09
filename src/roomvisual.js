@@ -8,6 +8,12 @@ module.exports.work = function (room) {
     let busy = room.memory.busy || 0
     let lazy = room.memory.lazy || 0
     room.visual.text(((busy / (busy + lazy) * 100).toFixed(1)) + '%spawn', 36, 24, {color: 'red', font: 0.5})
+    let ls=require('tools').extensionList[room.name]||[]
+    for(let x in ls){
+        let pos=Game.getObjectById(ls[x]).pos
+        room.visual.text(''+x,pos.x, pos.y, {color: 'red', font: 0.5})
+    }
+
 }
 module.exports.statistics = function () {
 
@@ -22,7 +28,9 @@ module.exports.statistics = function () {
         }
         if (memory.busy + memory.lazy > 3000) {
             memory.busy /= 2
+            memory.busy.toFixed(1)
             memory.lazy /= 2
+            memory.busy.toFixed(1)
         }
     })
     // let tw=[[27,38],[12,11]]

@@ -6,7 +6,12 @@ function work(creep) {
         const ops = creep.carry[RESOURCE_OPS] || 0
         if (creep.ticksToLive && creep.ticksToLive < 200) {
             memory.status = 'renewing'
-        } else if (creep.powers[PWR_OPERATE_EXTENSION] && !creep.powers[PWR_GENERATE_OPS].cooldown) {
+        }else if(!creep.ticksToLive){
+            if(!creep.spawnCooldownTime){
+                creep.spawn(Game.rooms[creep.name].find(FIND_STRUCTURES, {filter: obj => obj.structureType == STRUCTURE_POWER_SPAWN})[0])
+            }
+        }
+        else if (creep.powers[PWR_OPERATE_EXTENSION] && !creep.powers[PWR_GENERATE_OPS].cooldown) {
             let act = creep.usePower(PWR_GENERATE_OPS)
             if (act == ERR_INVALID_ARGS) {
                 memory.status = 'enable'
@@ -106,7 +111,7 @@ function work(creep) {
         let filltarget = Game.getObjectById(memory.filltarget)
         const act = creep.transfer(filltarget, memory.type, memory.fillthor)
         if (act == ERR_NOT_IN_RANGE) {
-            creep.moveTo(filltarget)
+            creep.moveTo(filltarget,{reusePath: 10})
         } else if (act == OK) {
             if (!creep.carry[memory.type] || creep.carry[memory.type] == 0)
                 memory.status = 'miss'
@@ -124,7 +129,7 @@ function work(creep) {
             act = creep.withdraw(gettarget, memory.type)
         }
         if (act == ERR_NOT_IN_RANGE) {
-            creep.moveTo(gettarget)
+            creep.moveTo(gettarget,{reusePath: 10})
         } else if (act == OK) {
             memory.status = memory.nexts
         } else if (act == ERR_NOT_ENOUGH_RESOURCES) {
@@ -155,7 +160,7 @@ function work(creep) {
         let target = room.powerSpawn
         let act = creep.renew(target)
         if (act == ERR_NOT_IN_RANGE) {
-            creep.moveTo(target)
+            creep.moveTo(target,{reusePath: 10})
         } else if (act == OK) {
             memory.status = 'miss'
         }

@@ -3,7 +3,7 @@ function work(creep) {
     if (memory.status == 'going') {
         let target = Game.getObjectById(memory.missionid)
         if (creep.pos.getRangeTo(target) > 1) {
-            creep.moveTo(target)
+            creep.moveTo(target,{reusePath: 10})
         } else {
             memory.status = 'upgrading'
         }
@@ -23,6 +23,8 @@ function work(creep) {
             creep.moveTo(target)
         } else if (action == ERR_NOT_ENOUGH_RESOURCES) {
             memory.status = 'getting'
+        }else if(action==OK){
+            memory._move=undefined
         }
     }
     if (memory.status == 'getting') {

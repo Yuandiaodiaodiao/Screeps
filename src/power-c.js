@@ -24,7 +24,7 @@ function work(creep) {
     if (creep.memory.status == 'going') {
         const posx = powerp.position[creep.memory.step]
         let pos = new RoomPosition(posx[0], posx[1], posx[2])
-        creep.moveTo(pos, {reusePath: 20})
+        creep.moveTo(pos, {reusePath: 25,plainCost: 1, swampCost: 5})
         if (creep.pos.getRangeTo(pos) <= 3) {
             creep.memory.step++
         }
@@ -39,7 +39,7 @@ function work(creep) {
             if (res) {
                 const act = creep.pickup(res)
                 if (act == ERR_NOT_IN_RANGE) {
-                    creep.moveTo(res)
+                    creep.moveTo(res,{plainCost: 1, swampCost: 5})
                 } else if (act == ERR_FULL) {
                     creep.memory.status = 'return'
                 }
@@ -71,10 +71,17 @@ function work(creep) {
 
             }
             if (_.sum(creep.carry) == 0) {
-                creep.suicide()
+                creep.memory.status='suicide'
             }
         }
+    }else if(creep.memory.status=='suicide'){
+        const target=creep.pos.findClosestByPath(FIND_STRUCTURES,{filter:obj=>obj.structureType==STRUCTURE_CONTAINER})
+        creep.moveTo(target)
+        if(creep.pos.getRangeTo(target)==0){
+            creep.suicide()
+        }
     }
+
 
 }
 

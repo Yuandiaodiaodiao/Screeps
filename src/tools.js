@@ -1,21 +1,9 @@
-
 function* range(beg, end, step = 1) {
     for (let i = beg; i < end; i += step)
         yield i;
 }
 
-function findroomselse(room, findconst) {
-    let roomset = new Set(Memory.rooms[room.name].subroom)
-    let ans = []
-    for (let name in Game.rooms) {
-        if (roomset.has(name)) {
-            ans = ans.concat(Game.rooms[name].find(findconst))
-        }
-    }
-    return ans
-}
-
-function findroomselsefilter(room, findconst, filters) {
+function findroomselse(room, findconst, filters) {
     let roomset = new Set(Memory.rooms[room.name].subroom)
     let ans = []
     for (let name in Game.rooms) {
@@ -26,19 +14,8 @@ function findroomselsefilter(room, findconst, filters) {
     return ans
 }
 
-function findrooms(room, findconst) {
-    let roomset = new Set(Memory.rooms[room.name].subroom)
-    roomset.add(room.name)
-    let ans = []
-    for (let name in Game.rooms) {
-        if (roomset.has(name)) {
-            ans = ans.concat(Game.rooms[name].find(findconst))
-        }
-    }
-    return ans
-}
 
-function findroomsfilter(room, findconst, filters) {
+function findrooms(room, findconst, filters) {
     let roomset = new Set(Memory.rooms[room.name].subroom)
     roomset.add(room.name)
     let ans = []
@@ -49,6 +26,7 @@ function findroomsfilter(room, findconst, filters) {
     }
     return ans
 }
+
 
 function bodycost(body) {
     let nowcost = 0
@@ -72,7 +50,7 @@ function generatebody(body, spawnnow = null) {
         }
     }
     if (spawnnow) {
-        let maxenergy = spawnnow.room.energyCapacityAvailable-50
+        let maxenergy = Math.max(spawnnow.room.energyCapacityAvailable - 100, 300)
         while (bodycost(body) > maxenergy) {
             let maxbody = -1
             for (let part in body) {
@@ -82,13 +60,14 @@ function generatebody(body, spawnnow = null) {
             if (maxbody == 1) break
         }
     }
-    let bodyarray = []
-    for (let part in body) {
-        for (let i of range(0, Math.ceil(body[part]))) {
-            bodyarray.push(part)
-        }
-    }
-    return bodyarray
+    return body
+    // let bodyarray = []
+    // for (let part in body) {
+    //     for (let i of range(0, Math.ceil(body[part]))) {
+    //         bodyarray.push(part)
+    //     }
+    // }
+    // return bodyarray
 }
 
 function deepcopy(obj) {
@@ -214,17 +193,125 @@ function testmemory() {
     console.log('memory prase=' + (t2 - t1).toFixed(4) + ' stringify=' + (t3 - t2).toFixed(4))
 }
 
+var extensionList = {}
+
+function solveExtension(room) {
+    let tar = room.storage || _.head(room.spawns) || undefined
+    if (!tar) return extensionList[room.name]=[]
+    let t1=Game.cpu.getUsed()
+    const maxnum = Math.floor((Math.min(33, Math.floor((room.energyCapacityAvailable - room.spawns.length * 300) / 150 * 2)) * 50) / EXTENSION_ENERGY_CAPACITY[room.controller.level])
+    console.log('maxnum=' + maxnum + 'room=' + room.name)
+    let nownum = maxnum
+    let pos = nearavailable(tar.pos)
+    let used = new Set()
+    let position = []
+    let idlist = []
+    let target = null
+    let n = 1
+    while (target = pos.findClosestByPath(FIND_STRUCTURES, {filter: obj => obj.structureType == STRUCTURE_EXTENSION && !used.has(obj.id)})) {
+        if (!pos.isNearTo(target)) {
+            let ans = PathFinder.search(pos, {pos: target.pos, range: 1}, {
+                plainCost: 0xff,
+                swampCost: 0xff,
+                roomCallback: require('tools').roomc_nocreep,
+            })
+            // for (let x of ans.path) {
+            //     if (position.length == 0 || !_.last(position).isEqualTo(x)) {
+            //         position.push(x)
+            //     }
+            // }
+            pos = _.last(ans.path)
+        }
+        idlist.push(target.id)
+        used.add(target.id)
+        --nownum
+        if (nownum == 0) {
+            nownum = maxnum
+            pos = nearavailable(tar.pos)
+        }
+    }
+    extensionList[room.name] = idlist
+    // t1=Game.cpu.getUsed()
+    // target = pos.findClosestByPath(FIND_STRUCTURES, {filter: obj => obj.structureType == STRUCTURE_EXTENSION })
+    // let t2=Game.cpu.getUsed()
+    // console.log(room.name+'solveExtension used='+(t2-t1))
+}
+
+function nearavailable(pos) {
+    if (Game.rooms[pos.roomName]) {
+        for (let a = -1; a <= 1; ++a) {
+            for (let b = -1; b <= 1; ++b) {
+                if (a == b && b == 0) continue
+                let newpos = new RoomPosition(pos.x + a, pos.y + b, pos.roomName)
+                if (walkable(newpos)) {
+                    return newpos
+                }
+            }
+        }
+    }
+}
+
+function walkable(pos) {
+    return pos.lookFor(LOOK_STRUCTURES).every(struct => {
+        if (struct.structureType !== STRUCTURE_CONTAINER && struct.structureType != STRUCTURE_ROAD &&
+            (struct.structureType !== STRUCTURE_RAMPART ||
+                !struct.my)) {
+            return false
+        }
+        return true
+    })
+}
+
+if (!StructureSpawn.prototype._spawnCreep) {
+    StructureSpawn.prototype._spawnCreep = StructureSpawn.prototype.spawnCreep
+    StructureSpawn.prototype.spawnCreep = function (body, name, options = {}) {
+        let bodycosts=9999
+        if(_.isArray(body)){
+            for (let part of body) {
+                bodycosts = BODYPART_COST[part]
+            }
+        }else if(_.isPlainObject(body)){
+            bodycosts=bodycost(body)
+            let bodyarray = []
+            for (let part in body) {
+                for (let i of range(0, Math.ceil(body[part]))) {
+                    bodyarray.push(part)
+                }
+            }
+            body=bodyarray
+        }
+        console.log(name+' cost='+bodycosts)
+        if(!extensionList[this.room.name]){
+            solveExtension(this.room)
+        }
+        if (!options.energyStructures&&extensionList[this.room.name]) {
+            let es = []
+            extensionList[this.room.name].forEach(o => {
+                if(bodycosts>0){
+                    let ext=Game.getObjectById(o)
+                    bodycosts-= ext.energy
+                    es.push(ext)
+                }
+            })
+            this.room.spawns.forEach(o => es.push(o))
+            options.energyStructures = es
+        }
+        return this._spawnCreep(body, name, options)
+    }
+}
+
 module.exports = {
     'findrooms': findrooms,
     'generatebody': generatebody,
     'deepcopy': deepcopy,
-    'findroomsfilter': findroomsfilter,
     'randomNum': randomNum,
     'findroomselse': findroomselse,
-    'findroomselsefilter': findroomselsefilter,
     'roomCache': roomCache,
-    'roomCachettl':roomCachettl,
+    'roomCachettl': roomCachettl,
     'roomc': roomc,
     'roomc_nocreep': roomc_nocreep,
     'testmemory': testmemory,
+    'solveExtension': solveExtension,
+    'nearavailable': nearavailable,
+    'extensionList': extensionList,
 };

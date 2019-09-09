@@ -28,6 +28,7 @@ function work() {
             }
             if (used.size == Memory.observer.length) break
         } else {
+
             //可见
             // console.log('getroom '+roomName)
             observer_queue.delete(roomName)
@@ -63,21 +64,17 @@ function work() {
                     }
                 }
             }
-            if (room.controller && !room.controller.owner && !room.controller.reservation) {
+           {
                 const roomC = require('tools').roomCache[roomName]
                 const ttl = require('tools').roomCachettl[roomName]
                 if (!roomC || !ttl || Game.time - ttl > 500) {
-                    //refreash cache
                     const costs = new PathFinder.CostMatrix
-
                     room.find(FIND_STRUCTURES).forEach(function (struct) {
                         if (struct.structureType === STRUCTURE_ROAD) {
-                            // Favor roads over plain tiles
                             costs.set(struct.pos.x, struct.pos.y, 1);
                         } else if (struct.structureType !== STRUCTURE_CONTAINER &&
                             (struct.structureType !== STRUCTURE_RAMPART ||
                                 !struct.my)) {
-                            // Can't walk through non-walkable buildings
                             costs.set(struct.pos.x, struct.pos.y, 0xff);
                         }
                     })

@@ -3,7 +3,11 @@ module.exports = {
     'born': born
 };
 var tools = require('tools')
+function findfill(room){
+    let extensionList=require('tools').extensionList[room.name]
 
+
+}
 function work(creep) {
     //fill
     const memory = creep.memory
@@ -88,7 +92,7 @@ function work(creep) {
         } else if (Game.time % 5 == 0) {
             const towers = creep.room.towers
             for (let tower of towers) {
-                if (tower.energy / tower.energyCapacity < 0.75) {
+                if (tower&&tower.energy / tower.energyCapacity < 0.75) {
                     memory.status = 'carrying'
                     break
                 }

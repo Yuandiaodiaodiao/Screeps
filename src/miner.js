@@ -4,6 +4,13 @@ function born(spawnnow, creepname, memory) {
         'work': 6,
         'carry': memory.link ? 4 : 1,
     }
+    if(spawnnow.room.controller.level>=5){
+        bodypart={
+            'move': 6,
+            'work': 12,
+            'carry': memory.link ? 8 : 1,
+        }
+    }
     let bodyparts = require('tools').generatebody(bodypart, spawnnow)
     return spawnnow.spawnCreep(
         bodyparts,
@@ -24,19 +31,18 @@ function work(creep) {
     if (memory.status == 'mining') {
         const target = Game.getObjectById(memory.missionid)
         const container = Game.getObjectById(memory.container)
-        if (container.hits < container.hitsMax && creep.carry.energy > 6) {
+        if (container.hits < container.hitsMax && creep.carry.energy > 12) {
             creep.repair(container)
-        } else if (target.energy > 0) {
+        } else if (target.energy > 0 && container.store.energy<1976) {
             const action = creep.harvest(target)
             if (action == ERR_NOT_IN_RANGE) {
                 creep.moveTo(target)
             } else if (action == ERR_NO_BODYPART) {
                 creep.suicide()
             }
-        } else {
+        } else if(target.energy == 0){
             memory.sleep = target.ticksToRegeneration || 0
             memory.status = 'sleep'
-            memory.temp = memory.status
         }
     } else if (memory.status == 'linking') {
         const link = Game.getObjectById(memory.link)
@@ -46,7 +52,7 @@ function work(creep) {
             if (act == ERR_NOT_IN_RANGE) {
                 creep.moveTo(target)
             }
-            if (creep.carryCapacity - creep.carry.energy <= 12) {
+            if (creep.carryCapacity - creep.carry.energy <= 24) {
                 const act = creep.transfer(link, RESOURCE_ENERGY)
                 if (act == ERR_NOT_IN_RANGE) {
                     creep.moveTo(link)
@@ -54,18 +60,13 @@ function work(creep) {
             }
         } else {
             memory.sleep = target.ticksToRegeneration || 0
-            memory.temp = memory.status
             memory.status = 'sleep'
         }
     } else if (memory.status == 'sleep') {
         if (--memory.sleep <= 0) {
-            memory.status = memory.temp
-
-            if (memory.status == 'sleep') {
-                memory.status = 'going'
-            }
-            memory.temp = undefined
+            memory.status = memory.link?'linking':memory.container?'mining':'dropping'
             memory.sleep = undefined
+            memory._move=undefined
         }
     } else if (memory.status == 'dropping') {
         let container = Game.getObjectById(memory.container) || creep.pos.findInRange(FIND_CONSTRUCTION_SITES, 3, {
@@ -91,25 +92,25 @@ function work(creep) {
             memory.container = container.id
         }
     } else if (memory.status == 'going') {
-        if (Game.getObjectById(memory.link)) {
+        if (memory.link) {
             const link = Game.getObjectById(memory.link)
             const mine = Game.getObjectById(memory.missionid)
             if (creep.pos.getRangeTo(mine) > 1) {
-                creep.moveTo(mine, {reusePath: 10})
+                creep.moveTo(mine, {reusePath: 50})
             } else if (creep.pos.getRangeTo(link) > 1) {
                 creep.move(creep.pos.getDirectionTo(link))
             } else {
                 memory.status = 'linking'
             }
-        } else if (Game.getObjectById(memory.container)) {
+        } else if (memory.container) {
             const container = Game.getObjectById(memory.container)
-            creep.moveTo(container, {reusePath: 10})
+            creep.moveTo(container, {reusePath: 50})
             if (creep.pos.getRangeTo(container) == 0) {
                 memory.status = 'mining'
             }
         } else {
             const mine = Game.getObjectById(memory.missionid)
-            creep.moveTo(mine)
+            creep.moveTo(mine,{reusePath: 50})
             if (creep.pos.getRangeTo(mine) <= 1) {
                 memory.status = 'dropping'
             }

@@ -9,7 +9,6 @@ function gen_reaction() {
             }
         }
     }
-    console.log(JSON.stringify(reactions))
     return reactions
 }
 
@@ -50,6 +49,8 @@ module.exports.work = function (room) {
         let lab2 = Game.getObjectById(room.memory.lab.input[1])
         if (lab1.mineralAmount == 0 && lab2.mineralAmount == 0) {
             room.memory.reaction.status = 'collect'
+            room.memory.reaction.type = undefined
+            room.memory.reaction.time = undefined
         }
     } else if (room.memory.reaction.status == 'collect') {
         if (room.memory.lab.output.every(obj => {
@@ -66,8 +67,8 @@ module.exports.work = function (room) {
 
 }
 module.exports.doreaction = function (room) {
-    if (Game.time % (room.memory.reaction.time || 5) != 0) return
     if (room.memory.reaction && room.memory.reaction.status == 'react') {
+        if (Game.time % (room.memory.reaction.time || 5) != 0) return
         const lab1 = Game.getObjectById(room.memory.lab.input[0])
         const lab2 = Game.getObjectById(room.memory.lab.input[1])
         for (let id of room.memory.lab.output) {

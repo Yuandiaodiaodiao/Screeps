@@ -1,7 +1,8 @@
 function born(spawnnow, creepname, memory) {
+    console.log('spawnhealer')
     let bodyparts = require('tools').generatebody({
-        'ranged_attack': 10,
-        'heal': 15,
+        'ranged_attack': 10-0.001,
+        'heal': 15-0.001,
         'move': 25,
     }, spawnnow)
     return spawnnow.spawnCreep(

@@ -2,7 +2,6 @@
 function missionspawn(spawnnow, types, memory,isonly) {
     let creepname = spawnnow.room.name + "_" + types + "_" + Game.time
     let ans = require(types).born(spawnnow, creepname, memory,isonly)
-    // if (ans == OK) console.log('borntype=' + types)
     return ans
 }
 

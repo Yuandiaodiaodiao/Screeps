@@ -2083,6 +2083,12 @@ const LOOK_TOMBSTONES = "tombstone";
  * @constant
  * @type {string}
  */
+const LOOK_POWER_CREEPS = "powerCreep";
+
+/**
+ * @constant
+ * @type {string}
+ */
 const SYSTEM_USERNAME = 'Screeps';
 
 /**

@@ -1,13 +1,19 @@
 function work(creep) {
-    let room = Game.rooms[creep.memory.missionid]
-    if (room) {
-        if (creep.reserveController(room.controller) == ERR_NOT_IN_RANGE) {
+    if(!creep.memory.status){
+        const room = Game.rooms[creep.memory.missionid]
+        const action=creep.reserveController(room.controller)
+        if (action== ERR_NOT_IN_RANGE) {
             creep.moveTo(room.controller)
         }
-        // if(creep.room.controller.sign.username!='Yuandiaodiaodiao'){
-        //     creep.signController(creep.room.controller,'☕')
-        // }
-
+    }else{
+        const room = Game.rooms[creep.memory.missionid]
+        if(room){
+            creep.moveTo(room.controller,{reusePath: 50})
+            if(creep.pos.getRangeTo(room.controller)<=1){
+                creep.memory.status=undefined
+                creep.memory._move=undefined
+            }
+        }
     }
 }
 
@@ -48,13 +54,14 @@ function miss(room) {
         const maxparts = Math.min(8, Math.floor(room.energyCapacityAvailable / (600 + 50)))
         if (!roomb.controller.reservation
             || roomb.controller.reservation.ticksToEnd <= 5000 - Math.max(0, (maxparts - 1)) * 600) {
-
             missions.reserver[subroom] = {
                 roomName: subroom,
                 part: maxparts,
             }
         }
-
+    }
+    if(_.size(missions.reserver)==0){
+        missions.reserver=undefined
     }
 }
 

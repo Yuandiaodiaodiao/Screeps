@@ -4,7 +4,7 @@ function work(creep) {
         const target = Game.getObjectById(memory.missionid)
         if (target) {
             if (creep.pos.getRangeTo(target) > 1) {
-                creep.moveTo(target, {reusePath: 10})
+                creep.moveTo(target, {reusePath: 50})
                 const tomb = creep.pos.lookFor(LOOK_TOMBSTONES)[0]
                 if (tomb) {
                     creep.withdraw(tomb, memory.type)
@@ -25,7 +25,7 @@ function work(creep) {
         if (target.structureType == STRUCTURE_STORAGE && _.sum(target.store) / target.storeCapacity > 0.95) return
         if (target) {
             if (creep.pos.getRangeTo(target) > 6) {
-                creep.moveTo(target, {reusePath: 10})
+                creep.moveTo(target, {reusePath: 50})
                 let road = creep.pos.lookFor(LOOK_STRUCTURES)[0]
                 if (road && road.hits < road.hitsMax) {
                     creep.repair(road)

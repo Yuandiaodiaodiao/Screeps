@@ -15,7 +15,7 @@ function miss() {
     Memory.powerPlan = Memory.powerPlan || {}
     for (let roomName in powerRoom) {
         const terminal=Game.rooms[roomName].terminal
-        if((terminal.store[RESOURCE_POWER]||0)>100000)continue
+        if((terminal.store[RESOURCE_POWER]||0)>50000 )continue
         const rooms = powerRoom[roomName]
         for (let roomn of rooms) {
             const roomc = require('observer').observerCache[roomn]

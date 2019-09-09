@@ -3,7 +3,7 @@ function work(creep) {
     if (creep.memory.status == 'getting') {
         let act = creep.withdraw(terminal, creep.memory.type)
         if (act == ERR_NOT_IN_RANGE) {
-            creep.moveTo(terminal)
+            creep.moveTo(terminal,{reusePath: 10})
         } else if (act == OK) {
             creep.memory.status = 'carrying'
         } else if (act == ERR_NOT_ENOUGH_RESOURCES) {
@@ -16,7 +16,7 @@ function work(creep) {
         const act = creep.transfer(target, creep.memory.type)
         // console.log(act)
         if (act == ERR_NOT_IN_RANGE) {
-            creep.moveTo(target)
+            creep.moveTo(target,{reusePath: 10})
         } else if (act == OK) {
 
         }else if(act==ERR_NOT_ENOUGH_RESOURCES){
@@ -91,6 +91,9 @@ function miss(room) {
                 role: 'power',
             }
         }
+    }
+    if(_.size(  room.memory.missions.terminalmanager)==0){
+        room.memory.missions.terminalmanager=undefined
     }
 
 
