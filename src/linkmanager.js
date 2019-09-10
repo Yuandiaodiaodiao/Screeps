@@ -4,6 +4,7 @@ function work(creep) {
     const container = Game.getObjectById(memory.container)
     const storage = creep.room.storage
     if (memory.status == 'miss') {
+        memory._move=undefined
         if (link.energy > 0) {
             memory.status = 'getlink'
         } else if (container.store.energy / container.storeCapacity < 0.5) {

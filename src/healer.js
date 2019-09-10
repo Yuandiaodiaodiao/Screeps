@@ -1,5 +1,4 @@
 function born(spawnnow, creepname, memory) {
-    console.log('spawnhealer')
     let bodyparts = require('tools').generatebody({
         'ranged_attack': 10-0.001,
         'heal': 15-0.001,
@@ -31,7 +30,7 @@ function work(creep) {
     if (creep.memory.status == 'going') {
         const posx = creep.memory.position[creep.memory.step]
         let pos = new RoomPosition(posx[0], posx[1], posx[2])
-        creep.moveTo(pos, {reusePath: 20})
+        creep.moveTo(pos, {reusePath: 50,plainCost: 1, swampCost: 5})
         if (creep.pos.getRangeTo(pos) <= 2) {
             creep.memory.step++
         }
@@ -82,6 +81,7 @@ function work(creep) {
     }
     if (creep.memory.status == 'rushing') {
         creep.heal(creep)
+        creep.say('👎')
         let target = creep.pos.findClosestByRange(FIND_HOSTILE_CREEPS)
         if (!target) target = creep.pos.findClosestByRange(FIND_HOSTILE_STRUCTURES, {filter: obj => obj.structureType != STRUCTURE_RAMPART && (!obj.pos.lookFor(LOOK_STRUCTURES).some(obj => obj.structureType == STRUCTURE_RAMPART)) && obj.structureType != STRUCTURE_CONTROLLER})
         if (!target) target = creep.pos.findClosestByRange(FIND_STRUCTURES, {filter: obj => obj.structureType != STRUCTURE_CONTROLLER})
@@ -93,7 +93,7 @@ function work(creep) {
                 })
                 creep.moveByPath(ans.path);
             } else if (creep.pos.getRangeTo(goal) > 1) {
-                creep.moveTo(goal)
+                creep.moveTo(goal,{ plainCost: 1, swampCost: 5})
             }
             if (target) {
                 if (creep.pos.getRangeTo(target) <= 1) {
@@ -117,8 +117,10 @@ function work(creep) {
 
     } else if (creep.memory.status == 'flaging') {
         creep.heal(creep)
+        creep.say('👎')
 
         let target = creep.pos.findInRange(FIND_HOSTILE_CREEPS, 3)[0]
+        if(!target)target=Game.getObjectById("5d7655c5c44c5f3c1b6a03da")
         if (!target) target = creep.pos.findInRange(FIND_HOSTILE_STRUCTURES, 3)[0]
         if (target) {
             if (creep.pos.getRangeTo(target) <= 1) {
@@ -131,10 +133,11 @@ function work(creep) {
         if (!flag) {
             creep.memory.status = 'fighting'
         } else {
-            creep.moveTo(flag)
+            creep.moveTo(flag,{ plainCost: 1, swampCost: 5})
         }
     } else if (creep.memory.status == 'testing') {
         creep.heal(creep)
+        creep.say('✌')
 
         let target = creep.pos.findInRange(FIND_HOSTILE_CREEPS, 3)[0]
         if (!target) target = creep.pos.findInRange(FIND_HOSTILE_STRUCTURES, 3)[0]

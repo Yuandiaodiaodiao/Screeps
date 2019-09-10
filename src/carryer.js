@@ -10,13 +10,16 @@ function work(creep) {
                     creep.withdraw(tomb, memory.type)
                 }
             } else if (target.store[memory.type] >= creep.carryCapacity - (creep.carry[memory.type] || 0)) {
+
                 const action = creep.withdraw(target, memory.type)
                 if (action == ERR_NOT_IN_RANGE) {
                     creep.moveTo(target)
-                } else if (action == OK) {
+                } else if (action == OK||action==ERR_FULL) {
                     memory.status = 'carrying'
-                }else if(action==ERR_FULL){
-                    memory.status='carrying'
+                   if( Memory.rooms[creep.name.split('_')[0]].missions[creep.name.split('_')[1]][memory.missionid].carrycost>creep.ticksToLive){
+                       creep.cancelOrder()
+                       creep.suicide()
+                   }
                 }
             }
         }
@@ -36,14 +39,18 @@ function work(creep) {
                 if (act == ERR_NOT_IN_RANGE) {
                     creep.moveTo(target)
                 } else if (act == OK) {
-                    if (target.structureType == STRUCTURE_LINK && target.energyCapacity - target.energy >= creep.carry[memory.type]) {
+                    if (target.structureType == STRUCTURE_LINK && target.energyCapacity - target.energy >= creep.carry[memory.type]
+                        ||(target.storeCapacity - _.sum(target.store) >= creep.carry[memory.type])) {
                         memory.status = 'getting'
-                    } else if (target.storeCapacity - _.sum(target.store) >= creep.carry[memory.type]) {
-                        memory.status = 'getting'
+                        if(Memory.rooms[creep.name.split('_')[0]].missions[creep.name.split('_')[1]][memory.missionid].carrycost*2>creep.ticksToLive){
+                            memory.status='suicide'
+                        }
                     }
                 }
             }
         }
+    }else if(memory.status=='suicide'){
+        require('tools').suicide(creep)
     }
 }
 

@@ -6,6 +6,7 @@ function work(creep) {
             creep.moveTo(target,{reusePath: 10})
         } else {
             memory.status = 'upgrading'
+            creep.signController(creep.room.controller,'☕')
         }
     } else if (memory.status == 'upgrading') {
         let target = Game.getObjectById(memory.missionid)

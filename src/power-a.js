@@ -47,7 +47,7 @@ function work(creep) {
 
         if (pb && powerp.status == 1 && pb.hits < creep.ticksToLive * 750 && creep.hits == creep.hitsMax && creep.memory.digtick >= 2) {
             powerp.status = 2
-        } else if (pb && powerp.status == 2 && (pb.hits / 750) < powerp.roadcost + Math.ceil(powerp.carry / 3) * 300) {
+        } else if (pb && powerp.status == 2 && (pb.hits / 750) < powerp.roadcost + Math.ceil(powerp.carry / 3) * 250) {
             powerp.status = 3
         } else if (powerp.status == 3 && !pb) {
             powerp.status = 4

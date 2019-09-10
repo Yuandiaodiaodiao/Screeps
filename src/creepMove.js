@@ -35,7 +35,7 @@ if (!Creep.prototype._move) {
         const direction = +target
         const thisarray = [this.pos.x, this.pos.y, direction, Game.time]
         const lastM = lastMove[this.name] = lastMove[this.name] || thisarray
-        if ((this.room.storage && this.pos.getRangeTo(this.room.storage.pos) < 10) || (lastM[0] == this.pos.x && lastM[1] == this.pos.y && lastM[3] + 1 == Game.time && lastM[2] == direction) || (this.pos.x<=1||this.pos.x>=49||this.pos.y<=1||this.pos.y>=49)) {
+        if ((this.room.storage && this.pos.getRangeTo(this.room.storage.pos) < 10) || (lastM[0] == this.pos.x && lastM[1] == this.pos.y && lastM[3] + 1 == Game.time && lastM[2] == direction) || (this.pos.x <= 1 || this.pos.x >= 49 || this.pos.y <= 1 || this.pos.y >= 49)) {
             const tarpos = pos2direction(this.pos, direction)
             const tarcreep = tarpos.lookFor(LOOK_CREEPS)[0] || tarpos.lookFor(LOOK_POWER_CREEPS)[0]
             if (tarcreep && !moveCache.has(tarcreep.name)) {
@@ -72,7 +72,7 @@ if (!Creep.prototype._moveTo) {
         } else {
             ops = opts || {}
         }
-        if (ops.ignoreCreeps==undefined || ops.ignoreCreeps == true) {
+        if (ops.ignoreCreeps == undefined || ops.ignoreCreeps == true) {
             ops.ignoreCreeps = true
             ops.costCallback = require('tools').roomc_nocreep
 
@@ -96,7 +96,19 @@ if (!PowerCreep.prototype._moveTo) {
         if (!this.room) {
             return ERR_BUSY
         }
-        return Creep.prototype._moveTo.call(this, firstArg, secondArg, opts)
+        let ops = {}
+        if (_.isObject(firstArg)) {
+            ops = secondArg || {}
+        } else {
+            ops = opts || {}
+        }
+        ops.plainCost = 1
+        ops.swampCost = 1
+        if (_.isObject(firstArg)) {
+            return Creep.prototype._moveTo.call(this, firstArg, ops)
+        } else {
+            return Creep.prototype._moveTo.call(this, firstArg, secondArg, ops)
+        }
     }
 }
 
@@ -109,5 +121,12 @@ if (!RoomPosition.prototype._findClosestByPath) {
         opts.plainCost = 2
         opts.swampCost = 10
         return this._findClosestByPath(type, opts)
+    }
+}
+
+if (!Creep.prototype._say) {
+    Creep.prototype._say = Creep.prototype.say
+    Creep.prototype.say = function (msg, pub = true) {
+        this._say(msg, pub)
     }
 }

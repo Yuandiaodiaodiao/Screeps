@@ -8,10 +8,11 @@ function work(creep) {
     }else{
         const room = Game.rooms[creep.memory.missionid]
         if(room){
-            creep.moveTo(room.controller,{reusePath: 50})
+            creep.moveTo(room.controller,{reusePath: 50,plainCost: 1, swampCost: 5})
             if(creep.pos.getRangeTo(room.controller)<=1){
                 creep.memory.status=undefined
                 creep.memory._move=undefined
+                creep.signController(creep.room.controller,'☕')
             }
         }
     }

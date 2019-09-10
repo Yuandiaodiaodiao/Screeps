@@ -196,41 +196,46 @@ function testmemory() {
 var extensionList = {}
 
 function solveExtension(room) {
-    let tar = room.storage || _.head(room.spawns) || undefined
-    if (!tar) return extensionList[room.name]=[]
-    let t1=Game.cpu.getUsed()
-    const maxnum = Math.floor((Math.min(33, Math.floor((room.energyCapacityAvailable - room.spawns.length * 300) / 150 * 2)) * 50) / EXTENSION_ENERGY_CAPACITY[room.controller.level])
-    console.log('maxnum=' + maxnum + 'room=' + room.name)
-    let nownum = maxnum
-    let pos = nearavailable(tar.pos)
-    let used = new Set()
-    let position = []
-    let idlist = []
-    let target = null
-    let n = 1
-    while (target = pos.findClosestByPath(FIND_STRUCTURES, {filter: obj => obj.structureType == STRUCTURE_EXTENSION && !used.has(obj.id)})) {
-        if (!pos.isNearTo(target)) {
-            let ans = PathFinder.search(pos, {pos: target.pos, range: 1}, {
-                plainCost: 0xff,
-                swampCost: 0xff,
-                roomCallback: require('tools').roomc_nocreep,
-            })
-            // for (let x of ans.path) {
-            //     if (position.length == 0 || !_.last(position).isEqualTo(x)) {
-            //         position.push(x)
-            //     }
-            // }
-            pos = _.last(ans.path)
+    try {
+        let tar = room.storage || _.head(room.spawns) || undefined
+        if (!tar) return extensionList[room.name] = []
+        let t1 = Game.cpu.getUsed()
+        const maxnum = Math.floor((Math.min(33, Math.floor((room.energyCapacityAvailable - room.spawns.length * 300) / 150 * 2)) * 50) / EXTENSION_ENERGY_CAPACITY[room.controller.level])
+        // console.log('maxnum=' + maxnum + 'room=' + room.name)
+        let nownum = maxnum
+        let pos = nearavailable(tar.pos)
+        let used = new Set()
+        let position = []
+        let idlist = []
+        let target = null
+        let n = 1
+        while (target = pos.findClosestByPath(FIND_STRUCTURES, {filter: obj => obj.structureType == STRUCTURE_EXTENSION && !used.has(obj.id)})) {
+            if (!pos.isNearTo(target)) {
+                let ans = PathFinder.search(pos, {pos: target.pos, range: 1}, {
+                    plainCost: 0xff,
+                    swampCost: 0xff,
+                    roomCallback: require('tools').roomc_nocreep,
+                })
+                // for (let x of ans.path) {
+                //     if (position.length == 0 || !_.last(position).isEqualTo(x)) {
+                //         position.push(x)
+                //     }
+                // }
+                pos = _.last(ans.path)
+            }
+            idlist.push(target.id)
+            used.add(target.id)
+            --nownum
+            if (nownum == 0) {
+                nownum = maxnum
+                pos = nearavailable(tar.pos)
+            }
         }
-        idlist.push(target.id)
-        used.add(target.id)
-        --nownum
-        if (nownum == 0) {
-            nownum = maxnum
-            pos = nearavailable(tar.pos)
-        }
+        return extensionList[room.name] = idlist
+    } catch (e) {
+        console.log('solveExtension error' + e)
     }
-    extensionList[room.name] = idlist
+
     // t1=Game.cpu.getUsed()
     // target = pos.findClosestByPath(FIND_STRUCTURES, {filter: obj => obj.structureType == STRUCTURE_EXTENSION })
     // let t2=Game.cpu.getUsed()
@@ -265,31 +270,33 @@ function walkable(pos) {
 if (!StructureSpawn.prototype._spawnCreep) {
     StructureSpawn.prototype._spawnCreep = StructureSpawn.prototype.spawnCreep
     StructureSpawn.prototype.spawnCreep = function (body, name, options = {}) {
-        let bodycosts=9999
-        if(_.isArray(body)){
+        let bodycosts = 9999
+        if (_.isArray(body)) {
+            bodycosts = 0
             for (let part of body) {
-                bodycosts = BODYPART_COST[part]
+                bodycosts += BODYPART_COST[part]
             }
-        }else if(_.isPlainObject(body)){
-            bodycosts=bodycost(body)
+            if (bodycosts > this.room.energyAvailable) return ERR_NOT_ENOUGH_ENERGY
+        } else if (_.isPlainObject(body)) {
+            bodycosts = bodycost(body)
+            if (bodycosts > this.room.energyAvailable) return ERR_NOT_ENOUGH_ENERGY
             let bodyarray = []
             for (let part in body) {
                 for (let i of range(0, Math.ceil(body[part]))) {
                     bodyarray.push(part)
                 }
             }
-            body=bodyarray
+            body = bodyarray
         }
-        console.log(name+' cost='+bodycosts)
-        if(!extensionList[this.room.name]){
+        if (!extensionList[this.room.name]) {
             solveExtension(this.room)
         }
-        if (!options.energyStructures&&extensionList[this.room.name]) {
+        if (!options.energyStructures && extensionList[this.room.name]) {
             let es = []
             extensionList[this.room.name].forEach(o => {
-                if(bodycosts>0){
-                    let ext=Game.getObjectById(o)
-                    bodycosts-= ext.energy
+                if (bodycosts > 0) {
+                    let ext = Game.getObjectById(o)
+                    bodycosts -= ext.energy
                     es.push(ext)
                 }
             })
@@ -297,6 +304,25 @@ if (!StructureSpawn.prototype._spawnCreep) {
             options.energyStructures = es
         }
         return this._spawnCreep(body, name, options)
+    }
+}
+
+function suicide(creep) {
+    let target=null
+    if (_.sum(creep.carry) > 0 &&( target=creep.room.storage)) {
+        for (let type of creep.carry) {
+            creep.transfer(target, type)
+        }
+        if (!creep.pos.isNearTo(target)) {
+            creep.moveTo(target)
+        }
+    }else if(target=room.containers[0]){
+        creep.moveTo(target)
+        if(creep.pos.isEqualTo(target)){
+            creep.suicide()
+        }
+    }else{
+        creep.suicide()
     }
 }
 
@@ -314,4 +340,5 @@ module.exports = {
     'solveExtension': solveExtension,
     'nearavailable': nearavailable,
     'extensionList': extensionList,
+    'suicide': suicide
 };

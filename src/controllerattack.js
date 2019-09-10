@@ -3,27 +3,29 @@ var canborn = false
 function born(spawnnow, creepname, memory) {
     if (Game.time % 1000 == 0) canborn = true
     if (!canborn) return -11
-    let bodyparts = require('tools').generatebody({
-        'claim': 25,
-        'move': 25
-    }, spawnnow)
+    let bodyparts=null
+        bodyparts = require('tools').generatebody({
+            'claim': 25,
+            'move': 25
+        }, spawnnow)
+
+
     // console.log(JSON.stringify(bodyparts))
-    let act = spawnnow.spawnCreep(
-        bodyparts,
-        creepname,
-        {
-            memory: {
-                status: 'solving',
-                missionid: memory.roomName,
-                step: 0,
-                position: [
-                ],
-                goal:[7,44,'E19N41'],
+        let act = spawnnow.spawnCreep(
+            bodyparts,
+            creepname,
+            {
+                memory: {
+                    status: 'solving',
+                    missionid: memory.roomName,
+                    step: 0,
+                    position: [],
+                    goal: [27, 34, 'E14N41'],
+                }
             }
-        }
-    )
-    if (act == OK) canborn = false
-    return act
+        )
+        if (act == OK) canborn = false
+        return act
 }
 
 
@@ -34,7 +36,12 @@ function work(creep) {
         let goal = creep.memory.goal
         goal = new RoomPosition(goal[0], goal[1], goal[2])
         let ans = PathFinder.search(creep.pos, {pos: goal, range: 1}, {
-            plainCost: 1, swampCost: 5, roomCallback: require('tools').roomc_nocreep, maxOps: 20000, maxCost: 1500,maxRooms:32,
+            plainCost: 1,
+            swampCost: 5,
+            roomCallback: require('tools').roomc_nocreep,
+            maxOps: 20000,
+            maxCost: 1200,
+            maxRooms: 32,
         })
         creep.memory.position = []
         creep.memory.step = 0
@@ -60,12 +67,14 @@ function work(creep) {
         }
     } else {
         let target = creep.room.controller
-        let act = creep.attackController(target)
-        if (act == ERR_NOT_IN_RANGE) {
-            creep.moveTo(target)
+        if (!target.my) {
+            let act = creep.attackController(target)
+            if (act == ERR_NOT_IN_RANGE) {
+                creep.moveTo(target)
+            }
         }
         if (!target.owner) {
-        creep.claimController(target)
+            creep.claimController(target)
         }
     }
 }

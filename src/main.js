@@ -81,7 +81,7 @@ var role_num = {
     flagworker: 0,
     mineraler: 1,
     opener: 0,
-    healer: 2,
+    healer: 1,
     attacker: 1,
     rattacker: 0,
     controllerattack: 0,
@@ -119,14 +119,15 @@ var role_num_fix = {
         farcarryer: 0,
     },
     'E19N41': {
-        farcarryer: 0
+        farcarryer: 0,
+        controllerattack: 1
     },
 }
 var hostile = {
-    'E14N41': {
-        next: [14, 3, 'E14N40'],
-        stage: ['healer'],
-    }
+    // 'E33N38': {
+    //     next: [47, 23, 'E32N38'],
+    //     stage: ['healer','attacker'],
+    // }
 }
 
 module.exports.role_num_fix = role_num_fix
@@ -352,13 +353,13 @@ function mission_generator(room) {
     //     roomName: room.name
     // }
     // farcarryer
-    missions.farcarryer[room.name] = {
-        roomName: room.name
-    }
-    //controllerattack
-    // missions.controllerattack[room.name] = {
+    // missions.farcarryer[room.name] = {
     //     roomName: room.name
     // }
+    // controllerattack
+    missions.controllerattack[room.name] = {
+        roomName: room.name
+    }
 
 
     //linkmanager
@@ -395,7 +396,7 @@ function mission_generator(room) {
                 roomCallback: require('tools').roomc_nocreep,
                 maxOps: 20000,
                 maxRooms: 64,
-                maxCost: 500,
+                maxCost: 300,
             })
             console.log('room' + room.name + 'complete' + ans.incomplete + ' ops' + ans.ops + ' cost' + ans.cost)
             if (ans.incomplete) continue
@@ -511,7 +512,7 @@ function do_spawn(room) {
     const miss = SpawnList[room.name] || []
     while (miss.length > 0) {
         const spawnmiss = _.head(miss)
-        if(!spawnmiss){
+        if (!spawnmiss) {
             miss.shift()
             continue
         }
@@ -718,7 +719,9 @@ module.exports.loop = function () {
         if (!(Game.cpu.bucket < 1000 && Game.time % 3 == 0)) {
             Object.values(Game.creeps).forEach(obj => {
                 try {
-                    require(obj.name.split('_')[1]).work(obj)
+                    if (!obj.spawning) {
+                        require(obj.name.split('_')[1]).work(obj)
+                    }
                 } catch (e) {
                     console.log('role=' + obj.name + 'error' + e)
                 }

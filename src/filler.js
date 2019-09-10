@@ -3,27 +3,114 @@ module.exports = {
     'born': born
 };
 var tools = require('tools')
-function findfill(room){
-    let extensionList=require('tools').extensionList[room.name]
 
 
-}
 function work(creep) {
     //fill
     const memory = creep.memory
     if (creep.carry.energy == 0) {
         memory.status = 'getting'
     }
+    if (memory.status == 'fillextension') {
+        let step = memory.step || 0
+        let extensionList = require('tools').extensionList[creep.room.name] || require('tools').solveExtension(creep.room)
+        if (!extensionList) {
+            memory.status = 'carrying'
+            console.log('err no extensionList')
+            return
+        }
+        let target = null
+
+        while (target = Game.getObjectById(extensionList[step])) {
+            if (target.energy == target.energyCapacity) {
+                step++
+                continue
+            }
+            const act = creep.transfer(target, RESOURCE_ENERGY)
+            if (act == ERR_NOT_IN_RANGE) {
+                creep.moveTo(target, {reusePath: 10})
+            } else if (act == OK || act == ERR_FULL) {
+                if (creep.carry.energy - (target.energyCapacity - target.energy) == 0) {
+                    step++
+                    memory.status = 'getting'
+                } else if (creep.carry.energy - (target.energyCapacity - target.energy) < 0) {
+                    memory.status = 'getting'
+                } else {
+                    step++
+                    //pre move
+                    if ((target = Game.getObjectById(extensionList[step])) && !creep.pos.isNearTo(target) && target.energy < target.energyCapacity) {
+                        creep.moveTo(target, {reusePath: 10})
+                    }
+                }
+            } else if (act == ERR_NOT_ENOUGH_RESOURCES) {
+                memory.status = 'getting'
+            } else {
+                memory.status = 'miss'
+            }
+            break
+        }
+        if (step >= extensionList.length) {
+            memory.status = 'miss'
+            memory.step = undefined
+        } else {
+            memory.step = step
+        }
+    } else if (memory.status == 'miss') {
+        let target = _.find(creep.room.spawns, o => o.energy < 250)
+        if (!target) target = _.find(creep.room.towers, o => o.energy / o.energyCapacity < 0.75)
+        if (!target && creep.room.energyAvailable / creep.room.energyCapacityAvailable > 0.9) {
+            if (creep.room.terminal && creep.room.terminal.my && creep.room.terminal.store[RESOURCE_ENERGY] < 1e4) {
+                target = creep.room.terminal
+            } else if (creep.room.nuker && creep.room.nuker.energy < creep.room.nuker.energyCapacity && creep.room.storage.store[RESOURCE_ENERGY] / creep.room.storage.storeCapacity > 0.5) {
+                target = creep.room.nuker
+            } else if (creep.room.powerSpawn && creep.room.powerSpawn.energy / creep.room.powerSpawn.energyCapacity < 0.65 && creep.room.storage.store[RESOURCE_ENERGY] / creep.room.storage.storeCapacity > 0.6) {
+                target = creep.room.powerSpawn
+            }
+        } else if (!target) {
+            memory.status = 'fillextension'
+            memory.step = 0
+        }
+        if (target) {
+            memory.target = target.id
+            memory.status = 'filling'
+        } else if (Game.time % 2001 == 0 && creep.body.length < 48 && creep.room.energyCapacityAvailable > creep.body.length * 50 + 500) {
+            creep.suicide()
+        } else if (creep.carry.energy < creep.carryCapacity) {
+            memory.status = 'getting'
+        } else {
+            memory.status = 'sleep'
+            memory.target = undefined
+            memory.step = undefined
+        }
+    } else if (memory.status == 'sleep' && Game.time % 5 == 0) {
+        if (creep.room.energyAvailable < creep.room.energyCapacityAvailable - 200) {
+            memory.status = 'fillextension'
+            memory.step = 0
+        } else {
+            memory.status = 'miss'
+        }
+    }
+
     if (memory.status == 'getting') {
-
         let target = Game.getObjectById(memory.missionid)
-
         if (target && target.store[RESOURCE_ENERGY] > 0) {
             const action = creep.withdraw(target, RESOURCE_ENERGY)
             if (action == ERR_NOT_IN_RANGE) {
                 creep.moveTo(target)
             } else if (action == OK || action == ERR_FULL) {
-                memory.status = 'carrying'
+                if (memory.step) {
+                    memory.status = 'fillextension'
+                    let extensionList = require('tools').extensionList[creep.room.name] || require('tools').solveExtension(creep.room)
+                    if (target = Game.getObjectById(extensionList[0])) {
+                        if (target.energy < target.energyCapacity) {
+                            memory.step = 0
+                        }
+                    }
+                } else {
+                    memory.status = 'miss'
+                }
+            } else {
+                console.log(`${creep.name}error ${action}`)
             }
         } else {
             try {
@@ -51,8 +138,7 @@ function work(creep) {
             }
         }
 
-    }
-    if (memory.status == 'carrying') {
+    } else if (memory.status == 'carrying') {
         let target = creep.pos.findClosestByPath(FIND_STRUCTURES, {
             filter: (structure) => {
                 if (structure.structureType == STRUCTURE_EXTENSION) {
@@ -86,24 +172,14 @@ function work(creep) {
             }
         }
 
-    } else if (memory.status == 'sleeping') {
-        if (creep.room.energyAvailable < creep.room.energyCapacityAvailable-200) {
-            memory.status = 'carrying'
-        } else if (Game.time % 5 == 0) {
-            const towers = creep.room.towers
-            for (let tower of towers) {
-                if (tower&&tower.energy / tower.energyCapacity < 0.75) {
-                    memory.status = 'carrying'
-                    break
-                }
-            }
-        }else if(Game.time%2001==0){
-            if(creep.body.length<48&&creep.room.energyCapacityAvailable>creep.body.length*50+500){
-                creep.suicide()
-            }
+    } else if (memory.status == 'filling') {
+        const target = Game.getObjectById(memory.target)
+        const act = creep.transfer(target, RESOURCE_ENERGY)
+        if (act == ERR_NOT_IN_RANGE) {
+            creep.moveTo(target, {reusePath: 10})
+        } else {
+            memory.status = 'miss'
         }
-
-
     }
 
 }

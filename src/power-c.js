@@ -24,7 +24,7 @@ function work(creep) {
     if (creep.memory.status == 'going') {
         const posx = powerp.position[creep.memory.step]
         let pos = new RoomPosition(posx[0], posx[1], posx[2])
-        creep.moveTo(pos, {reusePath: 25,plainCost: 1, swampCost: 5})
+        creep.moveTo(pos, {reusePath: 25, plainCost: 1, swampCost: 5})
         if (creep.pos.getRangeTo(pos) <= 3) {
             creep.memory.step++
         }
@@ -35,17 +35,27 @@ function work(creep) {
     } else if (creep.memory.status == 'get') {
         // console.log('poerpstatus=' + powerp.status)
         if (powerp.status >= 4) {
-            const res = creep.pos.findClosestByPath(FIND_DROPPED_RESOURCES)
+            let res = creep.room.find(FIND_DROPPED_RESOURCES)[0]
             if (res) {
                 const act = creep.pickup(res)
                 if (act == ERR_NOT_IN_RANGE) {
-                    creep.moveTo(res,{plainCost: 1, swampCost: 5})
+                    creep.moveTo(res, {plainCost: 1, swampCost: 5})
                 } else if (act == ERR_FULL) {
                     creep.memory.status = 'return'
                 }
-            } else {
+            } else if (_.sum(creep.carry) == creep.carryCapacity) {
                 creep.memory.status = 'return'
-            }
+            } else if (res = creep.room.find(FIND_TOMBSTONES,{filter:o=>_.sum(o.store)>0})[0]) {
+                for(let type in res.store){
+                    creep.withdraw(res,type)
+                    break
+                }
+                if(!creep.pos.isNearTo(res)){
+                    creep.moveTo(res,{plainCost: 1, swampCost: 5})
+                }
+            }else{
+                creep.memory.status = 'return'
+                }
         }
 
     } else if (creep.memory.status == 'return') {
@@ -64,22 +74,18 @@ function work(creep) {
             creep.moveTo(target)
         } else {
             for (let type in creep.carry) {
-                if (creep.carry[type] > 0){
+                if (creep.carry[type] > 0) {
                     creep.transfer(target, type)
                     break
                 }
 
             }
             if (_.sum(creep.carry) == 0) {
-                creep.memory.status='suicide'
+                creep.memory.status = 'suicide'
             }
         }
-    }else if(creep.memory.status=='suicide'){
-        const target=creep.pos.findClosestByPath(FIND_STRUCTURES,{filter:obj=>obj.structureType==STRUCTURE_CONTAINER})
-        creep.moveTo(target)
-        if(creep.pos.getRangeTo(target)==0){
-            creep.suicide()
-        }
+    } else if (creep.memory.status == 'suicide') {
+       require('tools').suicide(creep)
     }
 
 
