@@ -5,7 +5,7 @@ module.exports = {
     'logcache': logcache
 }
 var powerRoom = {
-    'E28N46': ['E30N46', 'E30N47', 'E30N48', 'E30N49'],
+    'E28N46': ['E30N46', 'E30N47','E30N48','E30N49'],
     'E27N38': ['E30N38', 'E30N37', 'E30N36'],
     'E29N38': ['E30N39'],
     'E29N41': ['E30N40'],
@@ -76,9 +76,8 @@ function solveplan(roomn) {
             numfix: 2
         }
     } else if (plan.status == 2) {
-        //attack healer取消
+        //attack
         missions['power-a'] ? missions['power-a'][roomn] = undefined:undefined
-        missions['power-b'] ? missions['power-b'][roomn] = undefined:undefined
     } else if (plan.status == 3) {
         missions['power-a'] ? missions['power-a'][roomn] = undefined:undefined
         missions['power-b'] ? missions['power-b'][roomn] = undefined:undefined

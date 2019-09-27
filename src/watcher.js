@@ -1,10 +1,9 @@
 function work(creep) {
     if (!creep.memory.status) return
-    else if (creep.memory.status == 'going') {
+    if (creep.memory.status == 'going') {
         if (creep.pos.roomName != creep.memory.missionid) {
-            creep.moveTo(new RoomPosition(25, 25, creep.memory.missionid))
+            creep.moveTo(new RoomPosition(25, 25, creep.memory.missionid), {reusePath: 20, plainCost: 1, swampCost: 5})
         } else {
-            creep.memory.status = 'arrive'
             if (creep.pos.x <= 1) creep.move(RIGHT)
             else if (creep.pos.x >= 49) creep.move(LEFT)
             else if (creep.pos.y <= 1) creep.move(BOTTOM)

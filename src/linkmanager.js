@@ -4,17 +4,26 @@ function work(creep) {
     const container = Game.getObjectById(memory.container)
     const storage = creep.room.storage
     if (memory.status == 'miss') {
-        memory._move=undefined
+        const upgrader = require('main').role_num_fix[creep.pos.roomName].upgrader || require('upgrader').miss(creep.room)
+        memory._move = undefined
         if (link.energy > 0) {
             memory.status = 'getlink'
-        } else if (container.store.energy / container.storeCapacity < 0.5) {
+        } else if (container.store.energy / container.storeCapacity < 0.5 && upgrader > 0) {
             memory.status = 'getstorage'
-        } else if (creep.carry.energy >= 0) {
+        } else if (creep.carry.energy > 0) {
             memory.status = 'fillstorage'
+        } else if (container.store.energy > 0 && upgrader == 0) {
+            memory.status = 'getcontainer'
         }
     }
-
-    if (memory.status == 'getlink') {
+    if (memory.status == 'getcontainer') {
+        const act = creep.withdraw(container, RESOURCE_ENERGY)
+        if (act == ERR_NOT_IN_RANGE) {
+            creep.moveTo(container)
+        } else if (act == OK || act == ERR_FULL || act == ERR_NOT_ENOUGH_RESOURCES) {
+            memory.status = 'fillstorage'
+        }
+    } else if (memory.status == 'getlink') {
         const act = creep.withdraw(link, RESOURCE_ENERGY)
         if (act == ERR_NOT_IN_RANGE) {
             creep.moveTo(link)
@@ -37,7 +46,7 @@ function work(creep) {
             const act = creep.transfer(storage, RESOURCE_ENERGY)
             if (act == ERR_NOT_IN_RANGE) {
                 creep.moveTo(storage)
-            } else if (act == OK||act==ERR_NOT_ENOUGH_RESOURCES) {
+            } else if (act == OK || act == ERR_NOT_ENOUGH_RESOURCES) {
                 memory.status = 'miss'
             }
         } else {

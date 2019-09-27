@@ -2,7 +2,7 @@ module.exports.work = function (room) {
         const spawns = room.spawns
         const creeps = room.find(FIND_MY_CREEPS, {
             filter: obj => {
-                if (obj.ticksToLive > 1400 || obj.ticksToLive <= 100) return false
+                if (obj.ticksToLive > 1400 || obj.ticksToLive <= 250) return false
                 const role = obj.name.split('_')[1]
                 if (role == 'linkmanager' || role == 'filler' ) return true
                 return false

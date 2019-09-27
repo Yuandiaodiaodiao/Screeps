@@ -1,58 +1,50 @@
 var observer_queue = new Set()
-var observerCache = {}
+var observerCache = undefined
 
 function work() {
     if (!observerCache) observerCache = {}
     if (!observer_queue) observer_queue = new Set()
-    // if (observer_queue.size > 0) console.log('observer_queue.size= ' + observer_queue.size + ' time=' + Game.time)
     let used = new Set()
+    if (observer_queue.size == 0) return
+    let observers = []
+    Memory.observer.forEach(o => observers.push(Game.getObjectById(o)))
     for (let roomName of observer_queue) {
         const room = Game.rooms[roomName]
         if (!room) {
             //不可见
             let flag = false
-            for (let id of Memory.observer) {
-                if (used.has(id)) continue
-                const obs = Game.getObjectById(id)
+            for (let obs of observers) {
+                if (used.has(obs.id)) continue
                 const act = obs.observeRoom(roomName)
                 if (act == OK) {
                     flag = true
-                    used.add(id)
-                    // console.log(id+' observe '+roomName)
+                    used.add(obs.id)
                     break
                 }
             }
             if (flag == false) {
-                // console.log('cant observe'+roomName)
-                observer_queue.delete(roomName)
+                if (observers.every(o => Game.map.getRoomLinearDistance(o.pos.roomName, roomName) > 10)) {
+                    observer_queue.delete(roomName)
+                    observerCache[roomName] = {lazytime: Game.time}
+                }
             }
             if (used.size == Memory.observer.length) break
         } else {
-
             //可见
-            // console.log('getroom '+roomName)
             observer_queue.delete(roomName)
             observerCache[roomName] = {}
-            if (room.controller && !room.controller.my) {
-                const owner = room.controller.owner
-                if (owner) {
-                    observerCache[roomName] = {
-                        owner: owner.username,
-                        time: Game.time
-                    }
+            const controller = room.controller
+            if (controller && controller.owner && !controller.my) {
+                observerCache[roomName] = {
+                    owner: controller.owner.username,
+                    time: Game.time
                 }
-            }
-
-            if (room.controller && room.controller.reservation && !room.controller.reservation.username == 'Yuandiaodiaodiao') {
-                const reserv = room.controller.reservation.username
-                if (reserv) {
-                    observerCache[roomName] = {
-                        owner: reserv,
-                        time: Game.time
-                    }
+            } else if (controller && controller.reservation && !controller.reservation.username == 'Yuandiaodiaodiao') {
+                observerCache[roomName] = {
+                    owner: controller.reservation.username,
+                    time: Game.time
                 }
-            }
-            if (!room.controller) {
+            } else if (!controller) {
                 const pb = room.powerBanks[0]
                 if (pb) {
                     observerCache[roomName] = {
@@ -62,24 +54,68 @@ function work() {
                         time: Game.time,
                         pos: [pb.pos.x, pb.pos.y]
                     }
+                } else {
+                    observerCache[roomName] = {
+                        time: Game.time
+                    }
+                }
+            } else {
+                observerCache[roomName] = {
+                    time: Game.time
                 }
             }
-           {
-                const roomC = require('tools').roomCache[roomName]
+            {
                 const ttl = require('tools').roomCachettl[roomName]
-                if (!roomC || !ttl || Game.time - ttl > 500) {
+                if (!ttl || Game.time - ttl >= 500) {
                     const costs = new PathFinder.CostMatrix
-                    room.find(FIND_STRUCTURES).forEach(function (struct) {
+                    let cantgo = 0
+                    room.find(FIND_STRUCTURES).forEach(struct => {
                         if (struct.structureType === STRUCTURE_ROAD) {
-                            costs.set(struct.pos.x, struct.pos.y, 1);
+                            costs.set(struct.pos.x, struct.pos.y, 1)
+                            cantgo++
                         } else if (struct.structureType !== STRUCTURE_CONTAINER &&
                             (struct.structureType !== STRUCTURE_RAMPART ||
                                 !struct.my)) {
-                            costs.set(struct.pos.x, struct.pos.y, 0xff);
+                            if (struct.structureType != STRUCTURE_CONTROLLER ||struct.structureType!=STRUCTURE_EXTRACTOR) {
+                                cantgo++
+                            }
+                            costs.set(struct.pos.x, struct.pos.y, 0xff)
                         }
                     })
-                    require('tools').roomCache[roomName] = costs
+                    room.find(FIND_MY_CONSTRUCTION_SITES).forEach(struct => {
+                        if (struct.structureType !== STRUCTURE_CONTAINER &&
+                            (struct.structureType !== STRUCTURE_RAMPART ||
+                                !struct.my)) {
+                            if (struct.structureType != STRUCTURE_CONTROLLER || struct.structureType != STRUCTURE_EXTRACTOR) {
+                                cantgo++
+                            }
+                            costs.set(struct.pos.x, struct.pos.y, 0xff)
+                        }
+                    })
+                    if(require('tools').isCenterRoom(roomName)){
+                        room.find(FIND_HOSTILE_CREEPS).forEach(o=>{
+                            if(o.owner=='Source Keeper'){
+                                for(let a=-1;a<=1;++a){
+                                    for(let b=-1;b<=1;++b){
+                                        costs.set(o.pos.x+a,o.pos.y+b,0xff)
+                                    }
+                                }
+                            }
+                        })
+                    }
+                    if (cantgo == 0) {
+                        require('tools').roomCache[roomName] = undefined
+                    } else {
+                        require('tools').roomCache[roomName] = costs
+                    }
+
                     require('tools').roomCachettl[roomName] = Game.time
+                    if(require('tools').roomCacheUse[roomName]&&Game.time-require('tools').roomCacheUse[roomName]>4000){
+                        require('tools').roomCache[roomName]=undefined
+                        observerCache[roomName]['lazytime']=Game.time
+                        observerCache[roomName]['time']=undefined
+                    }
+
                 }
             }
 
@@ -101,22 +137,32 @@ function find() {
 
 function cache() {
     for (let roomName in observerCache) {
-        if (observerCache[roomName].time && Game.time - observerCache[roomName].time > 500) {
+        if (observerCache[roomName].time && Game.time - observerCache[roomName].time > 1000) {
+            observer_queue.add(roomName)
+        } else if (observerCache[roomName].lazytime && Game.time - observerCache[roomName].lazytime > 3000) {
             observer_queue.add(roomName)
         }
     }
-    if (Game.time % 3000 == 0) {
-        for (let roomName in observerCache) {
-            if (!observerCache[roomName].owner) {
-                delete observerCache[roomName]
-            }
+    for(let roomName in require('tools').roomCache){
+        if(require('tools').roomCacheUse[roomName]&&Game.time-require('tools').roomCacheUse[roomName]>4000){
+            require('tools').roomCache[roomName]=undefined
+            observerCache[roomName]['lazytime']=Game.time
+            observerCache[roomName]['time']=undefined
+        }else if(!require('tools').roomCacheUse[roomName]){
+            require('tools').roomCacheUse[roomName]=Game.time
         }
     }
 }
 
-function clearCache() {
-
+function observerCacheSet(val) {
+    if (val) {
+        observerCache = val
+        module.exports.observerCache = observerCache
+    } else {
+        return observerCache
+    }
 }
+
 
 module.exports = {
     'work': work,
@@ -124,5 +170,5 @@ module.exports = {
     'cache': cache,
     'observerCache': observerCache,
     'observer_queue': observer_queue,
-    'clearCache': clearCache
+    'observerCacheSet': observerCacheSet
 };

@@ -39,6 +39,8 @@ function work(creep) {
                 creep.moveTo(target)
             } else if (action == ERR_NO_BODYPART) {
                 creep.suicide()
+            }else if(!creep.pos.isEqualTo(container)){
+                creep.moveTo(container)
             }
         } else if(target.energy == 0){
             memory.sleep = target.ticksToRegeneration || 0
@@ -63,11 +65,12 @@ function work(creep) {
             memory.status = 'sleep'
         }
     } else if (memory.status == 'sleep') {
-        if (--memory.sleep <= 0) {
+        if (--memory.sleep <= 0 || (Game.time%10==0&&Game.getObjectById(memory.missionid).energy>0)) {
             memory.status = memory.link?'linking':memory.container?'mining':'dropping'
             memory.sleep = undefined
             memory._move=undefined
         }
+
     } else if (memory.status == 'dropping') {
         let container = Game.getObjectById(memory.container) || creep.pos.findInRange(FIND_CONSTRUCTION_SITES, 3, {
             filter: obj => obj.structureType == STRUCTURE_CONTAINER

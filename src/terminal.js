@@ -19,7 +19,7 @@ module.exports.work = function (room) {
     let mineral = room.find(FIND_MINERALS)[0]
     if (terminal && mineral) {
         let type = mineral.mineralType
-        if ((terminal.store[type] || 0) > 3000) {
+        if ((terminal.store[type] || 0) > 6000) {
             // console.log(room.name+' type='+type+' store='+ terminal.store[type])
             for (let roomNames in Memory.rooms) {
                 let rooms = Game.rooms[roomNames]

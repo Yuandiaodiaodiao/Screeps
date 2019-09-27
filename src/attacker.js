@@ -42,30 +42,44 @@ function work(creep) {
         if (Game.flags['pointing']) creep.memory.status = 'pointing'
         else if (Game.flags['fighting']) creep.memory.status = 'fighting'
     } else if (creep.memory.status == 'fighting') {
-        let target = creep.pos.findInRange(FIND_HOSTILE_CREEPS, 3)[0]
+        if (!Game.flags['fighting']) creep.memory.status = 'wait'
+        const goalx = creep.memory.goal
+        let goal = new RoomPosition(goalx[0], goalx[1], goalx[2])
+        if (creep.pos.roomName == goal.roomName) {
+            const exitDir = Game.map.findExit(creep.room, creep.memory.missionid)
+            const exit = creep.pos.findClosestByRange(exitDir)
+            creep.moveTo(exit)
+        }
+        let target = creep.pos.findClosestByRange(FIND_HOSTILE_CREEPS)
         if (target) {
             let act = creep.attack(target)
             creep.say('🗡', true)
             if (act == ERR_NOT_IN_RANGE)
                 creep.moveTo(target)
-            // creep.moveTo(new RoomPosition(25,25,'E29N38'))
-        } else {
-            let target = Game.getObjectById('ID: 5d474d21713d616445252c9f')
-            if (!target) {
-                target = Game.getObjectById('5d5d695658810a61c0be7d10')
-            }
-            if (!target) target = creep.pos.findClosestByPath(FIND_STRUCTURES, {filter: obj => obj.structureType != STRUCTURE_CONTROLLER})
-            if (creep.getActiveBodyparts('work')) {
-                creep.say('💪', true)
-                if (creep.dismantle(target) == ERR_NOT_IN_RANGE) creep.moveTo(target)
-            } else {
-                if (creep.attack(target) == ERR_NOT_IN_RANGE) creep.moveTo(target)
-            }
+            return
         }
-        if (!Game.flags['fighting']) creep.memory.status = 'wait'
+        target = Game.getObjectById('5d5d695658810a61c0be7d10')
+        if (!target) target = creep.pos.findClosestByPath(FIND_STRUCTURES, {filter: obj => obj.structureType != STRUCTURE_CONTROLLER})
+        if (target) {
+            creep.say('💪', true)
+            if (creep.dismantle(target) == ERR_NOT_IN_RANGE) creep.moveTo(target)
+            return
+        }
+        target = creep.pos.findClosestByRange(FIND_HOSTILE_CONSTRUCTION_SITES)
+        if (target&&(!(creep.pos.isEqualTo(target)))) {
+            creep.say('🐎')
+            creep.moveTo(target)
+            return
+        }
+        target = creep.pos.findClosestByRange(FIND_HOSTILE_CREEPS)
+        if (target) {
+            creep.attack(target)
+            creep.moveTo(target, {plainCost: 1})
+            return
+        }
     } else if (creep.memory.status == 'pointing') {
         const roomName = creep.name.split('_')[0]
-        const flag = Game.flags["he"]
+        const flag = Game.flags["pointing"]
         if (flag && creep.pos.getRangeTo(flag) > 1) {
             creep.moveTo(flag)
         }
@@ -73,8 +87,19 @@ function work(creep) {
         if (target) creep.attack(target)
         if (!target) {
             target = creep.pos.findInRange(FIND_STRUCTURES, 1)[0]
-            creep.dismantle(target)
         }
+        if (target) {
+            creep.dismantle(target)
+
+        }
+        if (!target) {
+            target = creep.pos.findInRange(FIND_HOSTILE_CONSTRUCTION_SITES, 1)[0]
+        }
+        if (target) {
+            creep.moveTo(target)
+
+        }
+
         if (!Game.flags['pointing']) creep.memory.status = 'wait'
     }
 

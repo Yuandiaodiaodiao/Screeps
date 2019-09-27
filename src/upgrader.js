@@ -3,10 +3,10 @@ function work(creep) {
     if (memory.status == 'going') {
         let target = Game.getObjectById(memory.missionid)
         if (creep.pos.getRangeTo(target) > 1) {
-            creep.moveTo(target,{reusePath: 10})
+            creep.moveTo(target, {reusePath: 10})
         } else {
             memory.status = 'upgrading'
-            creep.signController(creep.room.controller,'☕')
+            creep.signController(creep.room.controller, '☕')
         }
     } else if (memory.status == 'upgrading') {
         let target = Game.getObjectById(memory.missionid)
@@ -16,7 +16,7 @@ function work(creep) {
                 filter: obj => obj.structureType == STRUCTURE_CONTAINER
             })
             if (container) memory.container = container.id
-        } else if (creep.carry.energy<=40 && container.store.energy > 0) {
+        } else if (creep.carry.energy <= 40 && container.store.energy > 0) {
             creep.withdraw(container, RESOURCE_ENERGY)
         }
         const action = creep.upgradeController(target)
@@ -24,8 +24,8 @@ function work(creep) {
             creep.moveTo(target)
         } else if (action == ERR_NOT_ENOUGH_RESOURCES) {
             memory.status = 'getting'
-        }else if(action==OK){
-            memory._move=undefined
+        } else if (action == OK) {
+            memory._move = undefined
         }
     }
     if (memory.status == 'getting') {
@@ -65,11 +65,11 @@ function born(spawnnow, creepname, memory) {
             'carry': 4,
             'move': 5
         }
-    }else if(Game.getObjectById(memory.controller).level <=4){
-        body={
-            'work':16,
-            'move':8,
-            'carry':12
+    } else if (Game.getObjectById(memory.controller).level <= 4) {
+        body = {
+            'work': 16,
+            'move': 8,
+            'carry': 12
         }
     }
     let bodyarray = require('tools').generatebody(body, spawnnow)
@@ -87,6 +87,7 @@ function born(spawnnow, creepname, memory) {
 
 function miss(room) {
     let role_num_fix = require('main').role_num_fix
+    role_num_fix[room.name] = role_num_fix[room.name] || {}
     if (room.storage && room.controller.level >= 4) {
         if (room.storage.store[RESOURCE_ENERGY] / room.storage.storeCapacity < 0.4) {
             role_num_fix[room.name].upgrader = 0
@@ -104,6 +105,9 @@ function miss(room) {
         if (role_num_fix[room.name].upgrader >= 2) {
             role_num_fix[room.name].upgrader = 1
         }
+        if (room.controller.ticksToDowngrade && room.controller.ticksToDowngrade > 100000) {
+            role_num_fix[room.name].upgrader = 0
+        }
     }
     if (room.controller.ticksToDowngrade && room.controller.ticksToDowngrade < 3000 && role_num_fix[room.name].upgrader == 0) {
         role_num_fix[room.name].upgrader = 1
@@ -112,6 +116,7 @@ function miss(room) {
     // if (room.name == 'E29N38') {
     //     console.log('E29N38 upgrader=' + role_num_fix[room.name].upgrader)
     // }
+    return role_num_fix[room.name].upgrader
 }
 
 module.exports = {

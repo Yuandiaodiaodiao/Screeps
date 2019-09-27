@@ -1,4 +1,4 @@
-var canborn = false
+var canborn = true
 
 function born(spawnnow, creepname, memory) {
     if (Game.time % 1000 == 0) canborn = true
@@ -20,7 +20,7 @@ function born(spawnnow, creepname, memory) {
                     missionid: memory.roomName,
                     step: 0,
                     position: [],
-                    goal: [27, 34, 'E14N41'],
+                    goal: [5, 21, 'E17N39'],
                 }
             }
         )

@@ -90,97 +90,110 @@ function randomNum(minNum, maxNum) {
     }
 }
 
-var roomCache = {}
+var roomCache = undefined
 var roomCacheWithCreep = {}
 var roomCacheWithCreepttl = {}
-var roomCachettl = {}
+var roomCachettl = undefined
+var roomCacheUse = {}
 
 function roomc(roomName) {
-    const observer = require('observer')
-    if (observer.observerCache[roomName] && observer.observerCache[roomName].owner) {
-        return false
-    } else if (!observer.observerCache[roomName]) {
-        observer.observer_queue.add(roomName)
-    }
-    let room = Game.rooms[roomName];
-    let costs = null
-    const roomC = roomCache[roomName]
-    const ttl = roomCachettl[roomName]
-    if (roomC && ttl && Game.time - ttl < 1500) {
-        costs = roomC
-    } else {
-        //refreash cache
-        costs = new PathFinder.CostMatrix
-        if (room) {
-            room.find(FIND_STRUCTURES).forEach(function (struct) {
-                if (struct.structureType === STRUCTURE_ROAD) {
-                    // Favor roads over plain tiles
-                    costs.set(struct.pos.x, struct.pos.y, 1);
-                } else if (struct.structureType !== STRUCTURE_CONTAINER &&
-                    (struct.structureType !== STRUCTURE_RAMPART ||
-                        !struct.my)) {
-                    // Can't walk through non-walkable buildings
-                    costs.set(struct.pos.x, struct.pos.y, 0xff);
-                }
-            })
-        }
-        roomCache[roomName] = costs
-        roomCachettl[roomName] = Game.time
-    }
-    if (!room) {
-        return costs
-    }
     if (roomCacheWithCreep[roomName] && roomCacheWithCreepttl[roomName] && roomCacheWithCreepttl[roomName] == Game.time) {
-        return roomCacheWithCreep[roomName]
-    } else {
-        const copy = costs.clone()
+        return roomCacheWithCreep[roomName].clone()
+    }
+    const cost = roomc_nocreep(roomName)
+    const room = Game.rooms[roomName]
+    if (room) {
         room.find(FIND_CREEPS).forEach(function (creep) {
-            copy.set(creep.pos.x, creep.pos.y, 0xff);
+            cost.set(creep.pos.x, creep.pos.y, 0xff);
         })
         room.find(FIND_POWER_CREEPS).forEach(function (creep) {
-            copy.set(creep.pos.x, creep.pos.y, 0xff);
+            cost.set(creep.pos.x, creep.pos.y, 0xff);
         })
-        roomCacheWithCreep[roomName] = copy
+        roomCacheWithCreep[roomName] = cost.clone()
         roomCacheWithCreepttl[roomName] = Game.time
-        return copy
     }
-
-
+    return cost
 }
-
+function isCenterRoom(roomName){
+    const parsed = /^[WE]([0-9]+)[NS]([0-9]+)$/.exec(roomName);
+    const x=parsed[1]%10
+    const y=parsed[2]%10
+    return x>=4&&x<=6&&y>=4&&y<=6&& (!(x==5&&y==5))
+}
+function isCenter(roomName){
+    const parsed = /^[WE]([0-9]+)[NS]([0-9]+)$/.exec(roomName);
+    const x=parsed[1]%10
+    const y=parsed[2]%10
+    return x>=4&&x<=6&&y>=4&&y<=6
+}
 function roomc_nocreep(roomName) {
     const observer = require('observer')
     if (observer.observerCache[roomName] && observer.observerCache[roomName].owner) {
         return false
     } else if (!observer.observerCache[roomName]) {
         observer.observer_queue.add(roomName)
+        const parsed = /^[WE]([0-9]+)[NS]([0-9]+)$/.exec(roomName);
+        const isHighway = (parsed[1] % 10 === 0) ||
+            (parsed[2] % 10 === 0);
+        const controller = Game.rooms[roomName] ? Game.rooms[roomName].controller : undefined
+        const isMyRoom = controller &&
+            (controller.my || (controller.reservation && controller.reservation.username == 'Yuandiaodiaodiao'))
+        if (!(isHighway || isMyRoom || isCenter(roomName))) return false
     }
-    let room = Game.rooms[roomName];
-    let costs = null
+    const room = Game.rooms[roomName]
+    let costs = undefined
     const roomC = roomCache[roomName]
     const ttl = roomCachettl[roomName]
-    if (roomC && ttl && Game.time - ttl < 1500) {
+    if (ttl && Game.time - ttl < 1500) {
         costs = roomC
-    } else {
-        //refreash cache
+        roomCacheUse[roomName] = Game.time
+    } else if (room) {
         costs = new PathFinder.CostMatrix
-        if (room) {
-            room.find(FIND_STRUCTURES).forEach(function (struct) {
-                if (struct.structureType === STRUCTURE_ROAD) {
-                    // Favor roads over plain tiles
-                    costs.set(struct.pos.x, struct.pos.y, 1);
-                } else if (struct.structureType !== STRUCTURE_CONTAINER &&
-                    (struct.structureType !== STRUCTURE_RAMPART ||
-                        !struct.my)) {
-                    // Can't walk through non-walkable buildings
-                    costs.set(struct.pos.x, struct.pos.y, 0xff);
+        let cantgo = 0
+        room.find(FIND_STRUCTURES).forEach(struct => {
+            if (struct.structureType === STRUCTURE_ROAD) {
+                cantgo++
+                costs.set(struct.pos.x, struct.pos.y, 1)
+            } else if (struct.structureType !== STRUCTURE_CONTAINER &&
+                (struct.structureType !== STRUCTURE_RAMPART ||
+                    !struct.my)) {
+                if (struct.structureType != STRUCTURE_CONTROLLER || struct.structureType != STRUCTURE_EXTRACTOR) {
+                    cantgo++
+                }
+                costs.set(struct.pos.x, struct.pos.y, 0xff)
+            }
+        })
+        room.find(FIND_MY_CONSTRUCTION_SITES).forEach(struct => {
+            if (struct.structureType !== STRUCTURE_CONTAINER &&
+                (struct.structureType !== STRUCTURE_RAMPART ||
+                    !struct.my)) {
+                if (struct.structureType != STRUCTURE_CONTROLLER || struct.structureType != STRUCTURE_EXTRACTOR) {
+                    cantgo++
+                }
+                costs.set(struct.pos.x, struct.pos.y, 0xff)
+            }
+        })
+        if(isCenterRoom(roomName)){
+            room.find(FIND_HOSTILE_CREEPS).forEach(o=>{
+                if(o.owner=='Source Keeper'){
+                    for(let a=-1;a<=1;++a){
+                        for(let b=-1;b<=1;++b){
+                            costs.set(o.pos.x+a,o.pos.y+b,0xff)
+                        }
+                    }
                 }
             })
         }
-        roomCache[roomName] = costs
+        if (cantgo == 0) {
+            roomCache[roomName] = undefined
+            costs = undefined
+        } else {
+            roomCache[roomName] = costs
+        }
         roomCachettl[roomName] = Game.time
     }
-    return costs
+
+    return costs ? costs.clone() : new PathFinder.CostMatrix
 }
 
 function testmemory() {
@@ -242,6 +255,7 @@ function solveExtension(room) {
     // console.log(room.name+'solveExtension used='+(t2-t1))
 }
 
+
 function nearavailable(pos) {
     if (Game.rooms[pos.roomName]) {
         for (let a = -1; a <= 1; ++a) {
@@ -264,7 +278,7 @@ function walkable(pos) {
             return false
         }
         return true
-    })
+    }) && pos.lookFor(LOOK_TERRAIN) != 'wall'
 }
 
 if (!StructureSpawn.prototype._spawnCreep) {
@@ -308,21 +322,41 @@ if (!StructureSpawn.prototype._spawnCreep) {
 }
 
 function suicide(creep) {
-    let target=null
-    if (_.sum(creep.carry) > 0 &&( target=creep.room.storage)) {
-        for (let type of creep.carry) {
+    let target = null
+    if (_.sum(creep.carry) > 0 && (target = creep.room.storage)) {
+        for (let type in creep.carry) {
             creep.transfer(target, type)
         }
         if (!creep.pos.isNearTo(target)) {
             creep.moveTo(target)
         }
-    }else if(target=room.containers[0]){
+    } else if (creep.ticksToLive < 500) {
+        creep.suicide()
+    } else if (target = creep.room.spawns[0].pos.findClosestByRange(FIND_STRUCTURES, {filter: o => o.structureType == STRUCTURE_CONTAINER})) {
         creep.moveTo(target)
-        if(creep.pos.isEqualTo(target)){
+        if (creep.pos.isEqualTo(target)) {
             creep.suicide()
         }
-    }else{
+    } else {
         creep.suicide()
+    }
+}
+
+function roomCacheSet(val) {
+    if (val) {
+        roomCache = val
+        module.exports.roomCache = roomCache
+    } else {
+        return roomCache
+    }
+}
+
+function roomCachettlSet(val) {
+    if (val) {
+        roomCachettl = val
+        module.exports.roomCachettl = roomCachettl
+    } else {
+        return roomCachettl
     }
 }
 
@@ -340,5 +374,9 @@ module.exports = {
     'solveExtension': solveExtension,
     'nearavailable': nearavailable,
     'extensionList': extensionList,
-    'suicide': suicide
+    'suicide': suicide,
+    'roomCacheSet': roomCacheSet,
+    'roomCachettlSet': roomCachettlSet,
+    'roomCacheUse': roomCacheUse,
+    'isCenterRoom':isCenterRoom
 };

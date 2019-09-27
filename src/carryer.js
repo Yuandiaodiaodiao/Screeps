@@ -9,17 +9,27 @@ function work(creep) {
                 if (tomb) {
                     creep.withdraw(tomb, memory.type)
                 }
-            } else if (target.store[memory.type] >= creep.carryCapacity - (creep.carry[memory.type] || 0)) {
+            } else if (target.store[memory.type] >= creep.carryCapacity - (_.sum(creep.carry) || 0)) {
 
                 const action = creep.withdraw(target, memory.type)
                 if (action == ERR_NOT_IN_RANGE) {
                     creep.moveTo(target)
-                } else if (action == OK||action==ERR_FULL) {
+                } else if (action == OK || action == ERR_FULL) {
                     memory.status = 'carrying'
-                   if( Memory.rooms[creep.name.split('_')[0]].missions[creep.name.split('_')[1]][memory.missionid].carrycost>creep.ticksToLive){
-                       creep.cancelOrder()
-                       creep.suicide()
-                   }
+                    try {
+                        if ((Memory.rooms[creep.name.split('_')[0]].missions[creep.name.split('_')[1]][memory.missionid].carrycost || 0) > creep.ticksToLive) {
+                            creep.withdraw(target, memory.type,1)
+                            creep.suicide()
+                        }
+                    } catch (e) {
+                        console.log(`carryer suicide error ${e}`)
+                    }
+
+                }
+            } else if (memory.type != RESOURCE_ENERGY && target.store[RESOURCE_ENERGY] > 0) {
+                const action = creep.withdraw(target, RESOURCE_ENERGY)
+                if (action == ERR_NOT_IN_RANGE) {
+                    creep.moveTo(target)
                 }
             }
         }
@@ -35,22 +45,38 @@ function work(creep) {
                 }
             } else {
                 if (target.structureType == STRUCTURE_LINK && target.energy >= 800) return
+                if (memory.type != RESOURCE_ENERGY && creep.carry.energy > 0) {
+                    const act = creep.transfer(target, RESOURCE_ENERGY)
+                    if (act == ERR_NOT_IN_RANGE) {
+                        creep.moveTo(target)
+                    }
+                    return
+                }
                 const act = creep.transfer(target, memory.type)
                 if (act == ERR_NOT_IN_RANGE) {
                     creep.moveTo(target)
                 } else if (act == OK) {
                     if (target.structureType == STRUCTURE_LINK && target.energyCapacity - target.energy >= creep.carry[memory.type]
-                        ||(target.storeCapacity - _.sum(target.store) >= creep.carry[memory.type])) {
+                        || (target.storeCapacity - _.sum(target.store) >= creep.carry[memory.type])) {
                         memory.status = 'getting'
-                        if(Memory.rooms[creep.name.split('_')[0]].missions[creep.name.split('_')[1]][memory.missionid].carrycost*2>creep.ticksToLive){
-                            memory.status='suicide'
+                        try {
+                            if ((Memory.rooms[creep.name.split('_')[0]].missions[creep.name.split('_')[1]][memory.missionid].carrycost || 0) * 2 > creep.ticksToLive) {
+                                memory.status = 'suicide'
+                            }
+                        } catch (e) {
+                            console.log('carryer suicide error' + e)
                         }
+
                     }
                 }
             }
         }
-    }else if(memory.status=='suicide'){
-        require('tools').suicide(creep)
+    } else if (memory.status == 'suicide') {
+        try {
+            require('tools').suicide(creep)
+        } catch (e) {
+            console.log(`suicide error ${creep.name}`)
+        }
     }
 }
 
@@ -68,7 +94,7 @@ function born(spawnnow, creepname, memory) {
         body = {
 
             'carry': Math.max(16, 0.55 * memory.carrycost),
-            'move': (1 + Math.max(16, 0.55 * memory.carrycost) + 0.01) / 2,
+            'move': (1 + Math.max(16, 0.55 * memory.carrycost) + 0.5) / 2,
             'work': memory.type == RESOURCE_ENERGY ? 1 : 0,
         }
     } else if (spawnnum >= 3) {

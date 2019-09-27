@@ -83,7 +83,9 @@ function work(creep) {
             memory.step = undefined
         }
     } else if (memory.status == 'sleep' && Game.time % 5 == 0) {
-        if (creep.room.energyAvailable < creep.room.energyCapacityAvailable - 200) {
+        if (creep.ticksToLive < 100) {
+            memory.status = 'suicide'
+        } else if (creep.room.energyAvailable < creep.room.energyCapacityAvailable - 200) {
             memory.status = 'fillextension'
             memory.step = 0
         } else {
@@ -179,6 +181,12 @@ function work(creep) {
             creep.moveTo(target, {reusePath: 10})
         } else {
             memory.status = 'miss'
+        }
+    } else if (memory.status == 'suicide') {
+        try {
+            require('tools').suicide(creep)
+        } catch (e) {
+            console.log(`suicide error ${creep.name}`)
         }
     }
 

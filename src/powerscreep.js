@@ -1,3 +1,6 @@
+var sources = {}
+var minerals = {}
+
 function work(creep) {
     const room = creep.room
     let memory = creep.memory
@@ -6,12 +9,11 @@ function work(creep) {
         const ops = creep.carry[RESOURCE_OPS] || 0
         if (creep.ticksToLive && creep.ticksToLive < 200) {
             memory.status = 'renewing'
-        }else if(!creep.ticksToLive){
-            if(!creep.spawnCooldownTime){
+        } else if (!creep.ticksToLive) {
+            if (!creep.spawnCooldownTime) {
                 creep.spawn(Game.rooms[creep.name].find(FIND_STRUCTURES, {filter: obj => obj.structureType == STRUCTURE_POWER_SPAWN})[0])
             }
-        }
-        else if (creep.powers[PWR_OPERATE_EXTENSION] && !creep.powers[PWR_GENERATE_OPS].cooldown) {
+        } else if (creep.powers[PWR_OPERATE_EXTENSION] && !creep.powers[PWR_GENERATE_OPS].cooldown) {
             let act = creep.usePower(PWR_GENERATE_OPS)
             if (act == ERR_INVALID_ARGS) {
                 memory.status = 'enable'
@@ -39,6 +41,14 @@ function work(creep) {
                 target: room.storage.id,
                 status: 'gopower'
             }
+        } else if (creep.powers[PWR_REGEN_SOURCE] && !creep.powers[PWR_REGEN_SOURCE].cooldown && sources[creep.name] && sources[creep.name].some(o => Game.time - o[1] > 300)) {
+            const s = _.find(sources[creep.name], o => Game.time - o[1] > 300)
+            creep.memory = {
+                power: PWR_REGEN_SOURCE,
+                target: s[0],
+                status: 'gopower',
+                source: true
+            }
         } else if (ops < 100 && (room.terminal.store[RESOURCE_OPS] || 0) > (100 - ops)) {
             creep.memory = {
                 type: RESOURCE_OPS,
@@ -47,7 +57,7 @@ function work(creep) {
                 nexts: 'miss',
                 thor: 100 - ops
             }
-        } else if (ops >= 100 && creep.powers[PWR_OPERATE_SPAWN] && !creep.powers[PWR_OPERATE_EXTENSION].cooldown && room.spawns[0].spawning && (Game.time - (room.spawns[0].memory.power || 0) > 1000)) {
+        } else if (ops >= 100 && creep.powers[PWR_OPERATE_SPAWN] && !creep.powers[PWR_OPERATE_SPAWN].cooldown && room.spawns[0].spawning && (Game.time - (room.spawns[0].memory.power || 0) > 1000)) {
             //_.find(room.spawns, obj => obj.spawning && (Game.time - (obj.memory.power || 0)) > 1000)
             creep.memory = {
                 power: PWR_OPERATE_SPAWN,
@@ -85,6 +95,9 @@ function work(creep) {
                     break
                 }
             }
+            if (_.size(creep.memory) == 0) {
+                room.memory.reaction.status = 'miss'
+            }
         } else if (room.terminal.store[RESOURCE_GHODIUM] && room.nuker && room.nuker.ghodium < 5000) {
             const target = room.nuker
             creep.memory = {
@@ -97,21 +110,47 @@ function work(creep) {
             }
         } else if (!room.controller.isPowerEnabled) {
             memory.status = 'enable'
+        } else if (ops >= 10 && creep.powers[PWR_OPERATE_OBSERVER] && !creep.powers[PWR_OPERATE_OBSERVER].cooldown) {
+            creep.memory = {
+                power: PWR_OPERATE_OBSERVER,
+                target: room.observer.id,
+                status: 'gopower'
+            }
+        } else if (creep.powers[PWR_REGEN_MINERAL] && !creep.powers[PWR_REGEN_MINERAL].cooldown && minerals[creep.name]) {
+            creep.memory = {
+                power: PWR_REGEN_MINERAL,
+                target: minerals[creep.name],
+                status: 'gopower',
+            }
         } else {
-
             memory.status = 'sleep'
         }
         memory = creep.memory
-    } else if (memory.status == 'sleep') {
-        if (Game.time % 5 == 0)
+    } else if (memory.status === 'sleep') {
+        if (Game.time % 5 == 0) {
             memory.status = 'miss'
-        else return
+            if (!sources[creep.name]) {
+                sources[creep.name] = []
+                const source = creep.room.find(FIND_SOURCES)
+                for (let x of source) {
+                    sources[creep.name].push([x.id, 0])
+                }
+            }
+            if (!minerals[creep.name]) {
+                minerals[creep.name] = creep.room.find(FIND_MINERALS)[0].id
+            }
+            if (minerals[creep.name]) {
+                if (Game.getObjectById(minerals[creep.name]).ticksToRegeneration) {
+                    minerals[creep.name] = undefined
+                }
+            }
+        } else return
     }
     if (memory.status == 'filling') {
         let filltarget = Game.getObjectById(memory.filltarget)
         const act = creep.transfer(filltarget, memory.type, memory.fillthor)
         if (act == ERR_NOT_IN_RANGE) {
-            creep.moveTo(filltarget,{reusePath: 10})
+            creep.moveTo(filltarget, {reusePath: 10})
         } else if (act == OK) {
             if (!creep.carry[memory.type] || creep.carry[memory.type] == 0)
                 memory.status = 'miss'
@@ -129,7 +168,7 @@ function work(creep) {
             act = creep.withdraw(gettarget, memory.type)
         }
         if (act == ERR_NOT_IN_RANGE) {
-            creep.moveTo(gettarget,{reusePath: 10})
+            creep.moveTo(gettarget, {reusePath: 10})
         } else if (act == OK) {
             memory.status = memory.nexts
         } else if (act == ERR_NOT_ENOUGH_RESOURCES) {
@@ -146,6 +185,9 @@ function work(creep) {
             memory.status = 'miss'
             if (memory.memory) {
                 target.memory.power = Game.time
+            } else if (memory.source) {
+                const s = _.find(sources[creep.name], o => o[0] == memory.target)
+                s[1] = Game.time
             }
         }
     } else if (memory.status == 'enable') {
@@ -160,7 +202,7 @@ function work(creep) {
         let target = room.powerSpawn
         let act = creep.renew(target)
         if (act == ERR_NOT_IN_RANGE) {
-            creep.moveTo(target,{reusePath: 10})
+            creep.moveTo(target, {reusePath: 10})
         } else if (act == OK) {
             memory.status = 'miss'
         }
@@ -168,7 +210,10 @@ function work(creep) {
         if (!creep.ticksToLive) {
             creep.spawn(Game.rooms[creep.name].find(FIND_STRUCTURES, {filter: obj => obj.structureType == STRUCTURE_POWER_SPAWN})[0])
         }
-        memory.status = 'miss'
+        if (memory.status && memory.status == 'sleep') {
+
+        } else
+            memory.status = 'miss'
     }
 
 

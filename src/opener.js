@@ -37,16 +37,28 @@ function work(creep) {
         let target = creep.room.controller
         let act = creep.upgradeController(target)
         if (act == ERR_NOT_IN_RANGE) {
-            creep.moveTo(target)
+            creep.moveTo(target, {ignoreCreeps: false})
         } else if (act == ERR_NOT_ENOUGH_ENERGY) {
-            creep.memory.status = 'mining'
+            creep.memory.status = 'getting'
+        }
+    } else if (creep.memory.status == 'getting') {
+        let target=creep.pos.findClosestByRange(FIND_STRUCTURES,{filter:o=>o.structureType==STRUCTURE_CONTAINER&&o.store.energy>500})
+        if(!target)target=creep.room.storage
+        if(target&&target.store.energy>500){
+            creep.moveTo(target,{reusePath:20,ignoreCreeps:false})
+            creep.withdraw(target,RESOURCE_ENERGY)
+            if(_.sum(creep.carry)==creep.carryCapacity){
+                creep.memory.status='mining'
+            }
+        }else{
+            creep.memory.status='mining'
         }
     } else if (creep.memory.status == 'mining') {
-        let target = creep.pos.findClosestByPath(FIND_SOURCES_ACTIVE)
+        let target = creep.pos.findClosestByPath(FIND_SOURCES_ACTIVE, {ignoreCreeps: false})
         if (target) {
             let act = creep.harvest(target)
             if (act == ERR_NOT_IN_RANGE) {
-                creep.moveTo(target)
+                creep.moveTo(target, {reusePath: 20, ignoreCreeps: false})
             }
         }
 
@@ -73,7 +85,7 @@ function work(creep) {
         }
     } else if (creep.memory.status == 'filling') {
         let target = creep.room.storage
-        if (target) {
+        if (target && creep.room.controller.level >= 4) {
             let act = creep.transfer(target, RESOURCE_ENERGY)
             if (act == ERR_NOT_IN_RANGE) {
                 creep.moveTo(target)
@@ -118,7 +130,7 @@ function born(spawnnow, creepname, memory = {}) {
                 step: 0,
                 role: 'building',
                 missionid: spawnnow.room.name,
-                goal: [7, 44, 'E19N41'],
+                goal: [16, 47, 'E14N41'],
                 position: []
             }
         }

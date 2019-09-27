@@ -1,9 +1,7 @@
 function born(spawnnow, creepname, memory) {
     let bodyparts = require('tools').generatebody({
-        'tough': 4,
-        'attack': 5,
-        'ranged_attack': 5,
-        'move': 15,
+        'move': 7,
+        'ranged_attack': 6,
         'heal': 1
     }, spawnnow)
     return spawnnow.spawnCreep(
@@ -33,8 +31,14 @@ function work(creep) {
             }
         })[0]
         if (target) {
-            if (creep.attack(target) == ERR_NOT_IN_RANGE) {
+            creep.heal(creep)
+            if (creep.pos.getRangeTo(target)>3) {
                 creep.moveTo(target)
+            }else if(creep.pos.getRangeTo(target)<=2){
+                let ans = PathFinder.search(creep.pos, {pos: target.pos, range: 2}, {
+                    plainCost: 1, swampCost: 5, roomCallback: require('tools').roomc, maxRooms: 1, flee: true
+                })
+                creep.moveByPath(ans.path);
             }
             if (creep.pos.getRangeTo(target) <= 1) {
                 creep.rangedMassAttack()

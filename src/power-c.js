@@ -20,7 +20,11 @@ function born(spawnnow, creepname, memory) {
 function work(creep) {
     //rush
     const powerp = Memory.powerPlan[creep.memory.missionid]
-    powerp.timelock = Game.time
+    if (powerp) {
+        powerp.timelock = Game.time
+    }else{
+        creep.suicide()
+    }
     if (creep.memory.status == 'going') {
         const posx = powerp.position[creep.memory.step]
         let pos = new RoomPosition(posx[0], posx[1], posx[2])
@@ -34,6 +38,10 @@ function work(creep) {
         }
     } else if (creep.memory.status == 'get') {
         // console.log('poerpstatus=' + powerp.status)
+        let pb=creep.room.powerBanks[0]
+        if(!pb &&powerp.status<4){
+            powerp.status=4
+        }
         if (powerp.status >= 4) {
             let res = creep.room.find(FIND_DROPPED_RESOURCES)[0]
             if (res) {
@@ -45,17 +53,17 @@ function work(creep) {
                 }
             } else if (_.sum(creep.carry) == creep.carryCapacity) {
                 creep.memory.status = 'return'
-            } else if (res = creep.room.find(FIND_TOMBSTONES,{filter:o=>_.sum(o.store)>0})[0]) {
-                for(let type in res.store){
-                    creep.withdraw(res,type)
+            } else if (res = creep.room.find(FIND_TOMBSTONES, {filter: o => _.sum(o.store) > 0})[0]) {
+                for (let type in res.store) {
+                    creep.withdraw(res, type)
                     break
                 }
-                if(!creep.pos.isNearTo(res)){
-                    creep.moveTo(res,{plainCost: 1, swampCost: 5})
+                if (!creep.pos.isNearTo(res)) {
+                    creep.moveTo(res, {plainCost: 1, swampCost: 5})
                 }
-            }else{
+            } else {
                 creep.memory.status = 'return'
-                }
+            }
         }
 
     } else if (creep.memory.status == 'return') {
@@ -85,7 +93,7 @@ function work(creep) {
             }
         }
     } else if (creep.memory.status == 'suicide') {
-       require('tools').suicide(creep)
+        require('tools').suicide(creep)
     }
 
 
