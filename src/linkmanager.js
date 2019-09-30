@@ -4,15 +4,15 @@ function work(creep) {
     const container = Game.getObjectById(memory.container)
     const storage = creep.room.storage
     if (memory.status == 'miss') {
-        const upgrader = require('main').role_num_fix[creep.pos.roomName].upgrader || require('upgrader').miss(creep.room)
+        const upgrader = Game.time - (require('upgrader').upgradertime[creep.pos.roomName] || 0)
         memory._move = undefined
         if (link.energy > 0) {
             memory.status = 'getlink'
-        } else if (container.store.energy / container.storeCapacity < 0.5 && upgrader > 0) {
+        } else if (container.store.energy / container.storeCapacity < 0.5 && upgrader < 50) {
             memory.status = 'getstorage'
         } else if (creep.carry.energy > 0) {
             memory.status = 'fillstorage'
-        } else if (container.store.energy > 0 && upgrader == 0) {
+        } else if (container.store.energy > 0 && upgrader >= 50) {
             memory.status = 'getcontainer'
         }
     }

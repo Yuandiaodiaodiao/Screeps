@@ -117,10 +117,14 @@ function work(creep) {
                 status: 'gopower'
             }
         } else if (creep.powers[PWR_REGEN_MINERAL] && !creep.powers[PWR_REGEN_MINERAL].cooldown && minerals[creep.name]) {
-            creep.memory = {
-                power: PWR_REGEN_MINERAL,
-                target: minerals[creep.name],
-                status: 'gopower',
+            if (Game.getObjectById(minerals[creep.name]).ticksToRegeneration) {
+                delete minerals[creep.name]
+            } else {
+                creep.memory = {
+                    power: PWR_REGEN_MINERAL,
+                    target: minerals[creep.name],
+                    status: 'gopower',
+                }
             }
         } else {
             memory.status = 'sleep'
@@ -137,11 +141,11 @@ function work(creep) {
                 }
             }
             if (!minerals[creep.name]) {
-                minerals[creep.name] = creep.room.find(FIND_MINERALS)[0].id
-            }
-            if (minerals[creep.name]) {
-                if (Game.getObjectById(minerals[creep.name]).ticksToRegeneration) {
-                    minerals[creep.name] = undefined
+                const mine = creep.room.find(FIND_MINERALS)[0]
+                if (!mine.ticksToRegeneration) {
+                    minerals[creep.name] = mine
+                } else {
+                    delete minerals[creep.name]
                 }
             }
         } else return
@@ -189,6 +193,8 @@ function work(creep) {
                 const s = _.find(sources[creep.name], o => o[0] == memory.target)
                 s[1] = Game.time
             }
+        } else {
+            memory.status = 'miss'
         }
     } else if (memory.status == 'enable') {
         let act = creep.enableRoom(room.controller)

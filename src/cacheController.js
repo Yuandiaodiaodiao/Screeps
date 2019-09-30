@@ -5,13 +5,13 @@ var config = [
 ]
 var seg = [
     [8],
-    [10, 11, 12],
+    [10, 11, 12, 13, 14],
     [9]
 ]
 var serialize = new Set(['1'])
 module.exports.serialize = serialize
 var mission = new Set()
-var open=new Set()
+var open = new Set()
 var status = 'check'
 module.exports.Cache = Cache
 var frequency = 2
@@ -21,7 +21,7 @@ function Cache() {
     if (status == 'read') {
         for (let x of mission) {
             let strs = undefined
-            console.log(`start read${x}`)
+            // console.log(`start read${x}`)
             for (let segid of seg[x]) {
                 try {
                     if (strs) {
@@ -33,12 +33,12 @@ function Cache() {
                     console.log(`read seg error id=${segid} ${e}`)
                 }
             }
-            console.log(`len=${strs.length} readstr=${strs} `)
-            let reads={}
-            try{
+            // console.log(`len=${strs.length} readstr=${strs} `)
+            let reads = {}
+            try {
                 reads = JSON.parse(strs || '{}') || {}
-            }catch (e) {
-              console.log(`json.parse error ${e} \n str=${strs}`)
+            } catch (e) {
+                console.log(`json.parse error ${e} \n str=${strs}`)
             }
 
             if (serialize.has(x)) {
@@ -61,8 +61,8 @@ function Cache() {
         for (let x in config) {
             if (!config[x]()) {
                 mission.add(x)
-                console.log(`check x=${x}`)
-                for(let id of seg[x]){
+                // console.log(`check x=${x}`)
+                for (let id of seg[x]) {
                     open.add(id)
                 }
                 config[x]({})
@@ -90,13 +90,13 @@ function Cache() {
             const str = JSON.stringify(saves)
             for (let index in seg[x]) {
                 try {
-                    RawMemory.segments[seg[x][index]] = str.substr(index * 95000, (index + 1) * 95000)
+                    RawMemory.segments[seg[x][index]] = str.substr(index * 95000, 95000)
                     console.log(`segid=${seg[x][index]} savedlen=${RawMemory.segments[seg[x][index]].length}`)
                 } catch (e) {
                     console.log('seg save error' + e)
                 }
             }
-            console.log(`save id=${x} length=${str.length}`)
+            // console.log(`save id=${x} length=${str.length}`)
         }
         mission.clear()
         open.clear()
@@ -117,8 +117,8 @@ function Cache() {
         open.clear()
         for (let x in config) {
             if (config[x]()) {
-                    mission.add(x)
-                for(let id of seg[x]){
+                mission.add(x)
+                for (let id of seg[x]) {
                     open.add(id)
                 }
             }

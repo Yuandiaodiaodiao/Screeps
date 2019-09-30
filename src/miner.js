@@ -50,10 +50,13 @@ function work(creep) {
         const link = Game.getObjectById(memory.link)
         const target = Game.getObjectById(memory.missionid)
         if (target.energy > 0) {
-            const act = creep.harvest(target)
-            if (act == ERR_NOT_IN_RANGE) {
-                creep.moveTo(target)
+            if(creep.carryCapacity-creep.carry.energy>0){
+                const act = creep.harvest(target)
+                if (act == ERR_NOT_IN_RANGE) {
+                    creep.moveTo(target)
+                }
             }
+
             if (creep.carryCapacity - creep.carry.energy <= 24) {
                 const act = creep.transfer(link, RESOURCE_ENERGY)
                 if (act == ERR_NOT_IN_RANGE) {

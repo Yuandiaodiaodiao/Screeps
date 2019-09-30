@@ -100,13 +100,45 @@ function roomc(roomName) {
     if (roomCacheWithCreep[roomName] && roomCacheWithCreepttl[roomName] && roomCacheWithCreepttl[roomName] == Game.time) {
         return roomCacheWithCreep[roomName].clone()
     }
-    const cost = roomc_nocreep(roomName)
+    let cost = roomc_nocreep(roomName)
     const room = Game.rooms[roomName]
+    if (!cost) {
+        cost = new PathFinder.CostMatrix
+        if (room) {
+            const roomC = roomCache[roomName]
+            const ttl = roomCachettl[roomName]
+            if (roomC && ttl && Game.time - ttl < 1500) {
+                cost = roomC
+            } else {
+                room.find(FIND_STRUCTURES).forEach(struct => {
+                    if (struct.structureType === STRUCTURE_ROAD) {
+                        cost.set(struct.pos.x, struct.pos.y, 1)
+                    } else if (struct.structureType !== STRUCTURE_CONTAINER && (struct.structureType == STRUCTURE_RAMPART ? (!(struct.my || struct.isPublic)) : true)) {
+                        if (struct.structureType != STRUCTURE_CONTROLLER || struct.structureType != STRUCTURE_EXTRACTOR) {
+                        }
+                        cost.set(struct.pos.x, struct.pos.y, 0xff)
+                    }
+                })
+                room.find(FIND_MY_CONSTRUCTION_SITES).forEach(struct => {
+                        if (struct.structureType !== STRUCTURE_CONTAINER &&
+                            (struct.structureType !== STRUCTURE_RAMPART ||
+                                !struct.my)) {
+                            if (struct.structureType != STRUCTURE_CONTROLLER || struct.structureType != STRUCTURE_EXTRACTOR) {
+                            }
+                            cost.set(struct.pos.x, struct.pos.y, 0xff)
+                        }
+                    }
+                )
+                roomCache[roomName] = cost
+                roomCachettl[roomName] = Game.time
+            }
+        }
+    }
     if (room) {
-        room.find(FIND_CREEPS).forEach(function (creep) {
+        room.find(FIND_CREEPS).forEach(creep => {
             cost.set(creep.pos.x, creep.pos.y, 0xff);
         })
-        room.find(FIND_POWER_CREEPS).forEach(function (creep) {
+        room.find(FIND_POWER_CREEPS).forEach(creep => {
             cost.set(creep.pos.x, creep.pos.y, 0xff);
         })
         roomCacheWithCreep[roomName] = cost.clone()
@@ -114,23 +146,27 @@ function roomc(roomName) {
     }
     return cost
 }
-function isCenterRoom(roomName){
+
+function isCenterRoom(roomName) {
     const parsed = /^[WE]([0-9]+)[NS]([0-9]+)$/.exec(roomName);
-    const x=parsed[1]%10
-    const y=parsed[2]%10
-    return x>=4&&x<=6&&y>=4&&y<=6&& (!(x==5&&y==5))
+    const x = parsed[1] % 10
+    const y = parsed[2] % 10
+    return x >= 4 && x <= 6 && y >= 4 && y <= 6 && (!(x == 5 && y == 5))
 }
-function isCenter(roomName){
+
+function isCenter(roomName) {
     const parsed = /^[WE]([0-9]+)[NS]([0-9]+)$/.exec(roomName);
-    const x=parsed[1]%10
-    const y=parsed[2]%10
-    return x>=4&&x<=6&&y>=4&&y<=6
+    const x = parsed[1] % 10
+    const y = parsed[2] % 10
+    return x >= 4 && x <= 6 && y >= 4 && y <= 6
 }
+
 function roomc_nocreep(roomName) {
     const observer = require('observer')
-    if (observer.observerCache[roomName] && observer.observerCache[roomName].owner) {
+    const room = Game.rooms[roomName]
+    if (!room&&observer.observerCache[roomName] && observer.observerCache[roomName].owner) {
         return false
-    } else if (!observer.observerCache[roomName]) {
+    } else if (!room&&!observer.observerCache[roomName]) {
         observer.observer_queue.add(roomName)
         const parsed = /^[WE]([0-9]+)[NS]([0-9]+)$/.exec(roomName);
         const isHighway = (parsed[1] % 10 === 0) ||
@@ -140,7 +176,7 @@ function roomc_nocreep(roomName) {
             (controller.my || (controller.reservation && controller.reservation.username == 'Yuandiaodiaodiao'))
         if (!(isHighway || isMyRoom || isCenter(roomName))) return false
     }
-    const room = Game.rooms[roomName]
+
     let costs = undefined
     const roomC = roomCache[roomName]
     const ttl = roomCachettl[roomName]
@@ -154,9 +190,7 @@ function roomc_nocreep(roomName) {
             if (struct.structureType === STRUCTURE_ROAD) {
                 cantgo++
                 costs.set(struct.pos.x, struct.pos.y, 1)
-            } else if (struct.structureType !== STRUCTURE_CONTAINER &&
-                (struct.structureType !== STRUCTURE_RAMPART ||
-                    !struct.my)) {
+            } else if (struct.structureType !== STRUCTURE_CONTAINER && (struct.structureType == STRUCTURE_RAMPART ? (!(struct.my || struct.isPublic)) : true)) {
                 if (struct.structureType != STRUCTURE_CONTROLLER || struct.structureType != STRUCTURE_EXTRACTOR) {
                     cantgo++
                 }
@@ -164,21 +198,23 @@ function roomc_nocreep(roomName) {
             }
         })
         room.find(FIND_MY_CONSTRUCTION_SITES).forEach(struct => {
-            if (struct.structureType !== STRUCTURE_CONTAINER &&
-                (struct.structureType !== STRUCTURE_RAMPART ||
-                    !struct.my)) {
-                if (struct.structureType != STRUCTURE_CONTROLLER || struct.structureType != STRUCTURE_EXTRACTOR) {
-                    cantgo++
+                if (struct.structureType !== STRUCTURE_CONTAINER &&
+                    (struct.structureType !== STRUCTURE_RAMPART ||
+                        !struct.my)) {
+                    if (struct.structureType != STRUCTURE_CONTROLLER || struct.structureType != STRUCTURE_EXTRACTOR) {
+                        cantgo++
+                    }
+                    costs.set(struct.pos.x, struct.pos.y, 0xff)
                 }
-                costs.set(struct.pos.x, struct.pos.y, 0xff)
             }
-        })
-        if(isCenterRoom(roomName)){
-            room.find(FIND_HOSTILE_CREEPS).forEach(o=>{
-                if(o.owner=='Source Keeper'){
-                    for(let a=-1;a<=1;++a){
-                        for(let b=-1;b<=1;++b){
-                            costs.set(o.pos.x+a,o.pos.y+b,0xff)
+        )
+
+        if (isCenterRoom(roomName)) {
+            room.find(FIND_HOSTILE_CREEPS).forEach(o => {
+                if (o.owner == 'Source Keeper') {
+                    for (let a = -3; a <= 3; ++a) {
+                        for (let b = -3; b <= 3; ++b) {
+                            costs.set(o.pos.x + a, o.pos.y + b, 0xff)
                         }
                     }
                 }
@@ -359,7 +395,12 @@ function roomCachettlSet(val) {
         return roomCachettl
     }
 }
-
+if (!Creep.prototype._say) {
+    Creep.prototype._say = Creep.prototype.say
+    Creep.prototype.say = function (msg, pub = true) {
+        this._say(msg, pub)
+    }
+}
 module.exports = {
     'findrooms': findrooms,
     'generatebody': generatebody,
@@ -378,5 +419,5 @@ module.exports = {
     'roomCacheSet': roomCacheSet,
     'roomCachettlSet': roomCachettlSet,
     'roomCacheUse': roomCacheUse,
-    'isCenterRoom':isCenterRoom
+    'isCenterRoom': isCenterRoom
 };

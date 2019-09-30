@@ -1,3 +1,4 @@
+var upgradertime={}
 function work(creep) {
     const memory = creep.memory
     if (memory.status == 'going') {
@@ -18,6 +19,7 @@ function work(creep) {
             if (container) memory.container = container.id
         } else if (creep.carry.energy <= 40 && container.store.energy > 0) {
             creep.withdraw(container, RESOURCE_ENERGY)
+            upgradertime[creep.pos.roomName]=Game.time
         }
         const action = creep.upgradeController(target)
         if (action == ERR_NOT_IN_RANGE) {
@@ -29,6 +31,7 @@ function work(creep) {
         }
     }
     if (memory.status == 'getting') {
+        upgradertime[creep.pos.roomName]=Game.time
         let target = creep.pos.findClosestByPath(FIND_STRUCTURES, {
             filter: obj => {
                 if (creep.room.controller.level >= 6) {
@@ -123,4 +126,5 @@ module.exports = {
     'work': work,
     'born': born,
     'miss': miss,
+    'upgradertime':upgradertime
 };

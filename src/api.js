@@ -1,6 +1,6 @@
 
 function missionspawn(spawnnow, types, memory,isonly) {
-    let creepname = spawnnow.room.name + "_" + types + "_" + Game.time
+    let creepname = spawnnow.room.name + "_" + types + "_" + Game.time%10000
     try{
         let ans = require(types).born(spawnnow, creepname, memory, isonly)
         return ans

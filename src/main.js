@@ -3,27 +3,19 @@ require('prototype.Room.structures')
 var api = require('api');
 var tower = require('tower');
 var link = require('link')
-// require('creepMove')
 const profiler = require('screeps-profiler');
 
 function clearmem() {
     for (let name in Memory.creeps) {
         if (!Game.creeps[name]) {
-            delete Memory.creeps[name];
+            delete Memory.creeps[name]
+            delete require('prototype.Creep.move').lastMove[name]
         }
     }
     for (let name in Memory.powerCreeps) {
         if (!Game.powerCreeps[name] || !Game.powerCreeps[name].ticksToLive) {
-            delete Memory.powerCreeps[name];
-        }
-    }
-    if (Game.time % 100 == 0) {
-        const time = Game.time
-        let last = require('creepMove').lastMove
-        for (let x in last) {
-            if (time - last[x][3] > 100) {
-                delete last[x]
-            }
+            delete Memory.powerCreeps[name]
+            delete require('prototype.Creep.move').lastMove[name]
         }
     }
 }
@@ -66,7 +58,8 @@ var missions_ori = {
     healer: {},
     attacker: {},
     terminalmanager: {},
-    farcarryer: {}
+    farcarryer: {},
+    destroyer: {}
 }
 
 var role_num = {
@@ -94,7 +87,8 @@ var role_num = {
     'power-a': 0,
     'power-b': 0,
     'power-c': 0,
-    SEAL: 0
+    SEAL: 0,
+    destroyer: 0
 }
 
 var role_num_fix = {
@@ -443,29 +437,8 @@ function mission_generator(room) {
     missions['subprotecter'] = missions['subprotecter'] || {}
 }
 
-var MissionCache = {}
 var SpawnList = {}
 
-function mission_detector() {
-    MissionCache = {}
-    Object.values(Game.creeps).forEach(cep => {
-        try {
-            const namearray = cep.name.split('_')
-            const roomName = namearray[0]
-            const role = namearray[1]
-            let room = MissionCache[roomName] || (MissionCache[roomName] = {})
-            let missions = room[role] || (room[role] = {})
-            let mission = missions[cep.memory.missionid] || (missions[cep.memory.missionid] = [])
-            if (cep.id) {
-                mission.push(cep.id)
-            }
-        } catch (e) {
-            console.log('missioncache' + e)
-        }
-    })
-
-
-}
 
 function mission_spawner(room) {
 
@@ -740,7 +713,7 @@ module.exports.loop = function () {
         })
 
     }
-    if(Game.time%10==0){
+    if (Game.time % 10 == 0) {
         Game.war.miss()
     }
     // if(Game.time%100==0){

@@ -14,7 +14,7 @@ function work(creep) {
         }
     } else if (creep.memory.status == 'arrive') {
         if (creep.pos.getRangeTo(creep.room.controller) > 2) {
-            creep.moveTo(creep.room.controller, {reusePath: 20, plainCost: 1, swampCost: 5})
+            creep.moveTo(creep.room.controller, {reusePath: 40, plainCost: 1, swampCost: 5})
         } else if (creep.pos.roomName != creep.memory.missionid) {
             creep.memory.status = 'going'
         } else if (creep.pos.x <= 1) creep.move(RIGHT)

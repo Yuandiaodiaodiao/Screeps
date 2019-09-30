@@ -73,10 +73,8 @@ function work() {
                         if (struct.structureType === STRUCTURE_ROAD) {
                             costs.set(struct.pos.x, struct.pos.y, 1)
                             cantgo++
-                        } else if (struct.structureType !== STRUCTURE_CONTAINER &&
-                            (struct.structureType !== STRUCTURE_RAMPART ||
-                                !struct.my)) {
-                            if (struct.structureType != STRUCTURE_CONTROLLER ||struct.structureType!=STRUCTURE_EXTRACTOR) {
+                        } else if (struct.structureType !== STRUCTURE_CONTAINER && (struct.structureType == STRUCTURE_RAMPART ? (!(struct.my || struct.isPublic)) : true)) {
+                            if (struct.structureType != STRUCTURE_CONTROLLER || struct.structureType != STRUCTURE_EXTRACTOR) {
                                 cantgo++
                             }
                             costs.set(struct.pos.x, struct.pos.y, 0xff)
@@ -92,12 +90,12 @@ function work() {
                             costs.set(struct.pos.x, struct.pos.y, 0xff)
                         }
                     })
-                    if(require('tools').isCenterRoom(roomName)){
-                        room.find(FIND_HOSTILE_CREEPS).forEach(o=>{
-                            if(o.owner=='Source Keeper'){
-                                for(let a=-1;a<=1;++a){
-                                    for(let b=-1;b<=1;++b){
-                                        costs.set(o.pos.x+a,o.pos.y+b,0xff)
+                    if (require('tools').isCenterRoom(roomName)) {
+                        room.find(FIND_HOSTILE_CREEPS).forEach(o => {
+                            if (o.owner == 'Source Keeper') {
+                                for (let a = -3; a <= 3; ++a) {
+                                    for (let b = -3; b <= 3; ++b) {
+                                        costs.set(o.pos.x + a, o.pos.y + b, 0xff)
                                     }
                                 }
                             }
@@ -110,10 +108,10 @@ function work() {
                     }
 
                     require('tools').roomCachettl[roomName] = Game.time
-                    if(require('tools').roomCacheUse[roomName]&&Game.time-require('tools').roomCacheUse[roomName]>4000){
-                        require('tools').roomCache[roomName]=undefined
-                        observerCache[roomName]['lazytime']=Game.time
-                        observerCache[roomName]['time']=undefined
+                    if (require('tools').roomCacheUse[roomName] && Game.time - require('tools').roomCacheUse[roomName] > 4000) {
+                        require('tools').roomCache[roomName] = undefined
+                        observerCache[roomName]['lazytime'] = Game.time
+                        observerCache[roomName]['time'] = undefined
                     }
 
                 }
@@ -143,13 +141,14 @@ function cache() {
             observer_queue.add(roomName)
         }
     }
-    for(let roomName in require('tools').roomCache){
-        if(require('tools').roomCacheUse[roomName]&&Game.time-require('tools').roomCacheUse[roomName]>4000){
-            require('tools').roomCache[roomName]=undefined
-            observerCache[roomName]['lazytime']=Game.time
-            observerCache[roomName]['time']=undefined
-        }else if(!require('tools').roomCacheUse[roomName]){
-            require('tools').roomCacheUse[roomName]=Game.time
+    for (let roomName in require('tools').roomCache) {
+        if (require('tools').roomCacheUse[roomName] && Game.time - require('tools').roomCacheUse[roomName] > 4000) {
+            require('tools').roomCache[roomName] = undefined
+            observerCache[roomName]= observerCache[roomName]||{}
+            observerCache[roomName]['lazytime'] = Game.time
+            observerCache[roomName]['time'] = undefined
+        } else if (!require('tools').roomCacheUse[roomName]) {
+            require('tools').roomCacheUse[roomName] = Game.time
         }
     }
 }

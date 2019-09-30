@@ -2,9 +2,11 @@ module.exports.work = function (room) {
     room.visual.text('tick ' + Game.time % 100, 36, 21, {color: 'red', font: 0.5})
     room.visual.text(((Memory.cpu.uses / Memory.cpu.ticks).toFixed(1)) + "cpu", 36, 22, {color: 'red', font: 0.8})
     room.visual.text(Game.cpu.bucket + 'bucket', 36, 23, {color: 'red', font: 0.8})
-    // if (room.find(FIND_NUKES).length > 0) {
-    //     room.visual.text('FUCK!', 25, 25, {color: 'red', font: 5})
-    // }
+
+    if (Game.time%5==0&&room.find(FIND_NUKES).length > 0) {
+        // room.visual.text('FUCK!', 25, 25, {color: 'red', font: 5})
+        console.log('NUKE!!!!!!!!!!')
+    }
     let busy = room.memory.busy || 0
     let lazy = room.memory.lazy || 0
     room.visual.text(((busy / (busy + lazy) * 100).toFixed(1)) + '%spawn', 36, 24, {color: 'red', font: 0.5})
