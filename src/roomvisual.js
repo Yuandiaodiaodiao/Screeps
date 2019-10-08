@@ -3,7 +3,7 @@ module.exports.work = function (room) {
     room.visual.text(((Memory.cpu.uses / Memory.cpu.ticks).toFixed(1)) + "cpu", 36, 22, {color: 'red', font: 0.8})
     room.visual.text(Game.cpu.bucket + 'bucket', 36, 23, {color: 'red', font: 0.8})
 
-    if (Game.time%5==0&&room.find(FIND_NUKES).length > 0) {
+    if (Game.time % 5 == 0 && room.find(FIND_NUKES).length > 0) {
         // room.visual.text('FUCK!', 25, 25, {color: 'red', font: 5})
         console.log('NUKE!!!!!!!!!!')
     }
@@ -15,9 +15,18 @@ module.exports.work = function (room) {
     //     let pos=Game.getObjectById(ls[x]).pos
     //     room.visual.text(''+x,pos.x, pos.y, {color: 'red', font: 0.5})
     // }
-    if(require('tools').extensionList[room.name]){
-        room.visual.text('extension OK',36,25,{color:'red',font:0.5})
+    if (require('tools').extensionList[room.name]) {
+        room.visual.text('extension OK', 36, 25, {color: 'red', font: 0.5})
     }
+    let nukey = 1
+    Object.keys(Memory.rooms).forEach(roomName => {
+        const nuke = Game.rooms[roomName].nuker
+        if (nuke) {
+            room.visual.text(`nuke ${roomName} ${(nuke.cooldown || 0) == 0 ? 'OK' : "" + (100-nuke.cooldown / 100000 * 100).toFixed(1) + "%"}`,
+                5, nukey++, {color: 'red', font: 0.5}
+            )
+        }
+    })
 
 }
 module.exports.statistics = function () {
@@ -43,6 +52,9 @@ module.exports.statistics = function () {
     //     new RoomVisual('E31N41').rect(obj[0]-5.5, obj[1]-5.5, 11, 11)
     // })
 
+    Memory.cpu = Memory.cpu || {}
+    Memory.cpu.ticks = Memory.cpu.ticks || 0
+    Memory.cpu.uses = Memory.cpu.uses || 0
     if (Memory.cpu.ticks >= 1000) {
         Memory.cpu.ticks /= 2
         Memory.cpu.uses /= 2

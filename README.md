@@ -39,3 +39,23 @@
 2019/9/30 nuke E21N43 thdetdestro  
 2019/9/30 nuke E19N47 Devnix  
 2019/9/30 attack E12N41 ags131  
+2019/10/1 nuke E33N38 hackgpp    
+2019/10/2 nuke E16N38 TwelveBaud      
+2019/10/3 nuke E21N39 Devnix  
+2019/10/5 attack E11N39 ags131  
+2019/10/5 attack E33N36 hackgpp 
+2019/10/6 nuke E39N47 Armaos 
+2019/10/6 attack E33N38 hackgpp  
+Game.war.init(['E12N41',[39,2,'E12N40'],{SEAL:1},['E14N41'],{SEAL:{smallattack:true}}])  
+Game.war.init(['E11N38',[24,47,'E11N39'],{SEAL:1},['E14N41'],{SEAL:{smallattack:true}}])  
+
+
+# 其他  
+刷墙效率=刷墙数量Q/(刷墙时间+路程时间 * 2)  
+刷墙时间=容量carry/刷墙work数=carry * 50/work  
+刷墙量Q=carry * 100  
+move=(carry+work)/2  
+carry+work+move=48  
+carry+work=32  
+work=32-carry   
+F=carry*100/(carry*50/(32-carry)+dist*2)

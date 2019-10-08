@@ -8,7 +8,7 @@ var tools = require('tools')
 function work(creep) {
     //fill
     const memory = creep.memory
-    if (creep.carry.energy == 0) {
+    if (creep.carry.energy == 0&&memory.status!='suicide') {
         memory.status = 'getting'
     }
     if (memory.status == 'fillextension') {
@@ -63,7 +63,7 @@ function work(creep) {
                 target = creep.room.terminal
             } else if (creep.room.nuker && creep.room.nuker.energy < creep.room.nuker.energyCapacity && creep.room.storage.store[RESOURCE_ENERGY] / creep.room.storage.storeCapacity > 0.5) {
                 target = creep.room.nuker
-            } else if (creep.room.powerSpawn && creep.room.powerSpawn.energy / creep.room.powerSpawn.energyCapacity < 0.65 && creep.room.storage.store[RESOURCE_ENERGY] / creep.room.storage.storeCapacity > 0.6) {
+            } else if (creep.room.powerSpawn && creep.room.powerSpawn.energy <5000-1600 && creep.room.storage.store[RESOURCE_ENERGY] / creep.room.storage.storeCapacity > 0.6) {
                 target = creep.room.powerSpawn
             }
         } else if (!target) {
@@ -79,11 +79,15 @@ function work(creep) {
             memory.status = 'getting'
         } else {
             memory.status = 'sleep'
+            if (creep.ticksToLive <= 40) {
+                memory.status = 'suicide'
+                Game.tools.suicide(creep)
+            }
             memory.target = undefined
             memory.step = undefined
         }
     } else if (memory.status == 'sleep' && Game.time % 5 == 0) {
-        if (creep.ticksToLive < 100) {
+        if (creep.ticksToLive < 20) {
             memory.status = 'suicide'
         } else if (creep.room.energyAvailable < creep.room.energyCapacityAvailable - 200) {
             memory.status = 'fillextension'
@@ -92,8 +96,11 @@ function work(creep) {
             memory.status = 'miss'
         }
     }
-
     if (memory.status == 'getting') {
+        if (creep.ticksToLive < 40) {
+            memory.status = 'suicide'
+            return
+        }
         let target = Game.getObjectById(memory.missionid)
         if (target && target.store[RESOURCE_ENERGY] > 0) {
             const action = creep.withdraw(target, RESOURCE_ENERGY)

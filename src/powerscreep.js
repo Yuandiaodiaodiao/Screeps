@@ -3,6 +3,7 @@ var minerals = {}
 
 function work(creep) {
     const room = creep.room
+    if (!room) return
     let memory = creep.memory
     if (memory.status == 'miss') {
         memory = creep.memory = {}
@@ -143,7 +144,7 @@ function work(creep) {
             if (!minerals[creep.name]) {
                 const mine = creep.room.find(FIND_MINERALS)[0]
                 if (!mine.ticksToRegeneration) {
-                    minerals[creep.name] = mine
+                    minerals[creep.name] = mine.id
                 } else {
                     delete minerals[creep.name]
                 }

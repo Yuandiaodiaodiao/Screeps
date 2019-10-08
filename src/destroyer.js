@@ -1,9 +1,13 @@
 function born(spawnnow, creepname, memory) {
-    const body = {
-        'tough':5,
-        'claim': 1,
-        'move': 6
+    let body = memory.body
+    if(!body){
+        body = {
+            'tough':5,
+            'claim': 1,
+            'move': 6
+        }
     }
+
     memory.cost=undefined
     const bodyparts = require('tools').generatebody(body, spawnnow)
     return spawnnow.spawnCreep(
@@ -51,8 +55,8 @@ function work(creep) {
             const controller = Game.rooms[creep.memory.missionid].controller
             const act = creep.claimController(controller)
             if (act == ERR_NOT_IN_RANGE) {
-                creep.moveTo(controller)
-            } else if (act == OK) {
+                    creep.moveTo(controller,{ignoreCreeps:false})
+            } else if (act == OK||controller.my) {
                 creep.memory.status = 'destroy'
             }else{
                 creep.attackController(controller)
@@ -63,7 +67,7 @@ function work(creep) {
             creep.moveTo(exit)
         }
     } else if (creep.memory.status == 'destroy') {
-        const structs = creep.room.find(FIND_STRUCTURES, {filter: o => o.structureType != STRUCTURE_CONTROLLER})
+        const structs = creep.room.find(FIND_STRUCTURES, {filter: o => o.structureType != STRUCTURE_CONTROLLER&&o.pos.x>0&&o.pos.x<49&&o.pos.y>0&&o.pos.y<49})
         structs.forEach(o => o.destroy())
         const structs1 = creep.room.find(FIND_CONSTRUCTION_SITES)
         structs1.forEach(o => o.remove())

@@ -89,7 +89,7 @@ function born(spawnnow, creepname, memory) {
 }
 
 function miss(room) {
-    let role_num_fix = require('main').role_num_fix
+    let role_num_fix = Game.config.role_num_fix
     role_num_fix[room.name] = role_num_fix[room.name] || {}
     if (room.storage && room.controller.level >= 4) {
         if (room.storage.store[RESOURCE_ENERGY] / room.storage.storeCapacity < 0.4) {
@@ -113,6 +113,9 @@ function miss(room) {
         }
     }
     if (room.controller.ticksToDowngrade && room.controller.ticksToDowngrade < 3000 && role_num_fix[room.name].upgrader == 0) {
+        role_num_fix[room.name].upgrader = 1
+    }
+    if (room.storage.store[RESOURCE_ENERGY] / room.storage.storeCapacity >= 0.95) {
         role_num_fix[room.name].upgrader = 1
     }
 

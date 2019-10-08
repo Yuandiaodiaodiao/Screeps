@@ -81,7 +81,10 @@ function work() {
                         }
                     })
                     room.find(FIND_MY_CONSTRUCTION_SITES).forEach(struct => {
-                        if (struct.structureType !== STRUCTURE_CONTAINER &&
+                        if (struct.structureType === STRUCTURE_ROAD) {
+                            costs.set(struct.pos.x, struct.pos.y, 1)
+                            cantgo++
+                        } else if (struct.structureType !== STRUCTURE_CONTAINER &&
                             (struct.structureType !== STRUCTURE_RAMPART ||
                                 !struct.my)) {
                             if (struct.structureType != STRUCTURE_CONTROLLER || struct.structureType != STRUCTURE_EXTRACTOR) {
@@ -142,13 +145,15 @@ function cache() {
         }
     }
     for (let roomName in require('tools').roomCache) {
-        if (require('tools').roomCacheUse[roomName] && Game.time - require('tools').roomCacheUse[roomName] > 4000) {
+        if (!require('tools').roomCacheUse[roomName]) {
+            require('tools').roomCacheUse[roomName] = Game.time
+        } else if (Game.time - require('tools').roomCacheUse[roomName] > 8000) {
+            delete observerCache[roomName]
+        } else if (Game.time - require('tools').roomCacheUse[roomName] > 4000) {
             require('tools').roomCache[roomName] = undefined
-            observerCache[roomName]= observerCache[roomName]||{}
+            observerCache[roomName] = observerCache[roomName] || {}
             observerCache[roomName]['lazytime'] = Game.time
             observerCache[roomName]['time'] = undefined
-        } else if (!require('tools').roomCacheUse[roomName]) {
-            require('tools').roomCacheUse[roomName] = Game.time
         }
     }
 }

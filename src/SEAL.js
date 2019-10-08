@@ -29,39 +29,25 @@ function born(spawnnow, creepname, memory) {
 function work(creep) {
 
     if (creep.memory.status == 'going') {
-        let config=null
-        try{
-            config= Memory.army[creep.memory.missionid].from[creep.name.split('_')[0]]
+        let config = null
+        try {
+            config = Memory.army[creep.memory.missionid].from[creep.name.split('_')[0]]
 
-        }
-        catch (e) {
-            console.log('seal.work.config'+e)
-            creep.memory.status='fighting'
+        } catch (e) {
+            console.log('seal.work.config' + e)
+            creep.memory.status = 'fighting'
             return
         }
-
-        const posx = config.path[creep.memory.step]
-        let pos = new RoomPosition(posx[0], posx[1], posx[2])
-        if (creep.pos.isEqualTo(pos)) {
-            creep.memory.step++
-            const posx = config.path[creep.memory.step]
-            pos = new RoomPosition(posx[0], posx[1], posx[2])
-        }
-        if (creep.pos.isNearTo(pos)) {
-            creep.memory.step++
-            creep.move(creep.pos.getDirectionTo(pos))
-        } else {
-            creep.moveTo(pos, {plainCost: 1, swampCost: 5, reusePath: 20})
-        }
-
-        if (creep.memory.step >= config.path.length - 1) {
+        const act = Game.tools.moveByLongPath(config.path, creep)
+        if (act == OK) {
             creep.memory.status = 'fighting'
-            delete creep.memory.step
         }
         if (creep.hits < creep.hitsMax) {
             creep.heal(creep)
         }
     } else if (creep.memory.status == 'fighting') {
+
+
         creep.heal(creep)
         let goal = new RoomPosition(...creep.memory.goal)
         const target = creep.pos.findClosestByRange(FIND_HOSTILE_CREEPS)
@@ -83,6 +69,8 @@ function work(creep) {
                 creep.memory.status = "testing"
             } else if (Game.flags['point' + creep.memory.missionid]) {
                 creep.memory.status = "point"
+            } else if (Game.flags['this' + creep.memory.missionid]) {
+                creep.memory.status = "this"
             }
             if (creep.pos.roomName == goal.roomName) {
                 const exitDir = Game.map.findExit(creep.room, creep.memory.missionid)
@@ -109,13 +97,12 @@ function work(creep) {
 
     }
     if (creep.memory.status == 'rush') {
-        creep.heal(creep)
-        let target = creep.pos.findClosestByRange(FIND_HOSTILE_CREEPS)
-        if (!target) target = creep.pos.findClosestByRange(FIND_HOSTILE_STRUCTURES, {filter: obj => obj.structureType != STRUCTURE_RAMPART && (!obj.pos.lookFor(LOOK_STRUCTURES).some(obj => obj.structureType == STRUCTURE_RAMPART)) && obj.structureType != STRUCTURE_CONTROLLER})
-        if (!target) target = creep.pos.findClosestByRange(FIND_HOSTILE_CONSTRUCTION_SITES)
-        if (!target) target = creep.pos.findClosestByRange(FIND_STRUCTURES, {filter: obj => obj.structureType != STRUCTURE_CONTROLLER})
-        if (creep.hits / creep.hitsMax < 0.97) {
+        if (Game.time % 20 == 0) {
+            require('tools').roomCachettl[creep.pos.roomName] = 0
+        }
+        if (creep.hits / creep.hitsMax < 0.95) {
             creep.memory.status = 'fighting'
+            creep.heal(creep)
             let goal = new RoomPosition(...creep.memory.goal)
             if (creep.pos.roomName == goal.roomName && target && target.pos.getRangeTo(creep.pos) <= 2) {
                 let ans = PathFinder.search(creep.pos, {pos: target.pos, range: 4}, {
@@ -125,6 +112,7 @@ function work(creep) {
             } else if (creep.pos.getRangeTo(goal) > 1) {
                 creep.moveTo(goal, {plainCost: 1, swampCost: 5, ignoreCreeps: false})
             }
+            const target = Game.war.getEnemy(creep)[0]
             if (target) {
                 if (creep.pos.getRangeTo(target) <= 1) {
                     creep.rangedMassAttack()
@@ -133,35 +121,42 @@ function work(creep) {
                 }
             }
         } else if (creep.pos.roomName == creep.memory.missionid) {
-            if (target) {
-                if (!target.ticksToLive && creep.pos.getRangeTo(target) <= 1 && !target.progressTotal && (target.structureType ? target.structureType != STRUCTURE_ROAD && target.structureType != STRUCTURE_CONTAINER : true)) {
-                    creep.rangedMassAttack()
-                    creep.say('⚡')
+            const enemys = Game.war.getEnemy(creep)
+            if (enemys.length > 0) {
+                if (enemys[3]) {
+                    Game.war.fightDangerous(creep, enemys)
                 } else {
-                    let act = null
-                    if (target.ticksToLive&&target.pos.getRangeTo(creep.pos) <= 1) {
-                        act = creep.rangedMassAttack()
+                    Game.war.fightNormal(creep, enemys)
+                }
+            } else {
+                let target = creep.pos.findClosestByRange(FIND_HOSTILE_STRUCTURES, {filter: obj => obj.structureType != STRUCTURE_RAMPART && (!obj.pos.lookFor(LOOK_STRUCTURES).some(obj => obj.structureType == STRUCTURE_RAMPART)) && obj.structureType != STRUCTURE_CONTROLLER})
+                if (!target) target = creep.pos.findClosestByRange(FIND_HOSTILE_CONSTRUCTION_SITES)
+                if (!target) target = creep.pos.findClosestByRange(FIND_STRUCTURES, {filter: obj => obj.structureType != STRUCTURE_CONTROLLER})
+                if (target) {
+                    creep.moveTo(target, {ignoreCreep: false, reusePath: 10})
+                    if (!target.ticksToLive && creep.pos.getRangeTo(target) <= 1 && !target.progressTotal && (target.structureType ? target.structureType != STRUCTURE_ROAD && target.structureType != STRUCTURE_CONTAINER : true)) {
+                        creep.rangedMassAttack()
                         creep.say('⚡')
-
                     } else {
-                        let act = creep.rangedAttack(target)
-                        if (act == OK) {
-                            creep.say('🏹')
-                        } else {
-                            creep.say('🚀')
-                        }
-                    }
+                        let act = null
+                        if (target.ticksToLive && target.pos.getRangeTo(creep.pos) <= 1) {
+                            act = creep.rangedMassAttack()
+                            creep.say('⚡')
 
-                    if (creep.pos.getRangeTo(target) >= (target.progressTotal ? 0 : 3)) {
-                        creep.moveTo(target)
-                    } else if (target.ticksToLive && target.pos.getRangeTo(creep.pos) <= 2) {
-                        let ans = PathFinder.search(creep.pos, {pos: target.pos, range: 4}, {
-                            plainCost: 1, swampCost: 5, roomCallback: require('tools').roomc, maxRooms: 1, flee: true
-                        })
-                        creep.moveByPath(ans.path)
+                        } else {
+                            let act = creep.rangedAttack(target)
+                            if (act == OK) {
+                                creep.say('🏹')
+                            } else {
+                                creep.say('🚀')
+                            }
+                        }
+
+
                     }
                 }
             }
+
         } else {
             const exitDir = Game.map.findExit(creep.room, creep.memory.missionid)
             const exit = creep.pos.findClosestByRange(exitDir)
@@ -213,7 +208,7 @@ function work(creep) {
         }
     } else if (creep.memory.status == 'point') {
 
-        let target = creep.pos.findInRange(FIND_HOSTILE_CREEPS, 3)[0]
+        let target = creep.pos.findInRange(FIND_HOSTILE_CREEPS, creep.getActiveBodyparts(RANGED_ATTACK) ? 3 : 1)[0]
         if (target) {
             if (creep.pos.getRangeTo(target) <= 1) {
                 if (creep.getActiveBodyparts('attack')) {
@@ -223,27 +218,29 @@ function work(creep) {
             } else {
                 creep.rangedAttack(target)
             }
+        } else {
+            target = undefined
         }
         if (!target) {
-            target = creep.pos.findInRange(FIND_HOSTILE_STRUCTURES, 3)[0]
+            target = creep.pos.findInRange(FIND_HOSTILE_STRUCTURES, creep.getActiveBodyparts(RANGED_ATTACK) ? 3 : 1)[0]
             if (target) {
                 if (creep.getActiveBodyparts('work')) {
                     creep.dismantle(target)
                 } else if (creep.getActiveBodyparts('attack')) {
                     creep.attack(target)
                 }
-                creep.rangedMassAttack()
+                creep.rangedAttack(target)
             }
         }
 
         if (!target) {
-            target = creep.pos.findInRange(FIND_HOSTILE_CONSTRUCTION_SITES, 1)[0]
+            target = creep.pos.findInRange(FIND_HOSTILE_CONSTRUCTION_SITES, creep.getActiveBodyparts(RANGED_ATTACK) ? 3 : 1)[0]
             if (target) {
                 creep.moveTo(target)
             }
         }
         if (!target) {
-            target = creep.pos.findInRange(FIND_STRUCTURES, 1)[0]
+            target = creep.pos.findInRange(FIND_STRUCTURES, creep.getActiveBodyparts(RANGED_ATTACK) ? 3 : 1)[0]
             if (target) {
                 creep.rangedAttack(target)
                 creep.dismantle(target)
@@ -261,6 +258,30 @@ function work(creep) {
             creep.heal(creep)
         }
     } else if (creep.memory.status == 'round') {
+
+    } else if (creep.memory.status == 'this') {
+        if (!Game.flags['this' + creep.memory.missionid]) {
+            creep.memory.status = 'fighting'
+            return
+        }
+        const newRoomName = Game.flags['this' + creep.memory.missionid].pos.roomName
+        if (Game.time % 20 == 0) {
+            require('tools').roomCachettl[newRoomName] = 0
+        }
+        if (creep.pos.roomName == newRoomName) {
+
+            let target = creep.pos.findClosestByRange(FIND_HOSTILE_STRUCTURES, {filter: obj => obj.structureType != STRUCTURE_RAMPART && (!obj.pos.lookFor(LOOK_STRUCTURES).some(obj => obj.structureType == STRUCTURE_RAMPART)) && obj.structureType != STRUCTURE_CONTROLLER})
+            if (!target) target = creep.pos.findClosestByRange(FIND_STRUCTURES, {filter: obj => obj.structureType != STRUCTURE_CONTROLLER})
+            if (!target) target = creep.pos.findClosestByRange(FIND_HOSTILE_CONSTRUCTION_SITES)
+            if (target) {
+                creep.moveTo(target, {ignoreCreep: false, reusePath: 10})
+                creep.dismantle(target)
+                }
+        } else {
+            const exitDir = Game.map.findExit(creep.room,newRoomName)
+            const exit = creep.pos.findClosestByRange(exitDir)
+            creep.moveTo(exit)
+        }
 
     }
 

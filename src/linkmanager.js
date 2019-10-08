@@ -42,7 +42,7 @@ function work(creep) {
             memory.status = 'miss'
         }
     } else if (memory.status == 'fillstorage') {
-        if (_.sum(storage.store) / storage.storeCapacity < 0.95) {
+        if (_.sum(storage.store) / storage.storeCapacity < 0.98) {
             const act = creep.transfer(storage, RESOURCE_ENERGY)
             if (act == ERR_NOT_IN_RANGE) {
                 creep.moveTo(storage)

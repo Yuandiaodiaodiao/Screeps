@@ -22,25 +22,19 @@ function work(creep) {
     const powerp = Memory.powerPlan[creep.memory.missionid]
     if (powerp) {
         powerp.timelock = Game.time
-    }else{
+    } else {
         creep.suicide()
     }
     if (creep.memory.status == 'going') {
-        const posx = powerp.position[creep.memory.step]
-        let pos = new RoomPosition(posx[0], posx[1], posx[2])
-        creep.moveTo(pos, {reusePath: 25, plainCost: 1, swampCost: 5})
-        if (creep.pos.getRangeTo(pos) <= 3) {
-            creep.memory.step++
-        }
-        if (creep.memory.step == powerp.position.length) {
+        const act = Game.tools.moveByLongPath(powerp.position, creep)
+        if (act == OK) {
             creep.memory.status = 'get'
-
         }
     } else if (creep.memory.status == 'get') {
         // console.log('poerpstatus=' + powerp.status)
-        let pb=creep.room.powerBanks[0]
-        if(!pb &&powerp.status<4){
-            powerp.status=4
+        let pb = creep.room.powerBanks[0]
+        if (!pb && powerp.status < 4) {
+            powerp.status = 4
         }
         if (powerp.status >= 4) {
             let res = creep.room.find(FIND_DROPPED_RESOURCES)[0]
@@ -50,9 +44,11 @@ function work(creep) {
                     creep.moveTo(res, {plainCost: 1, swampCost: 5})
                 } else if (act == ERR_FULL) {
                     creep.memory.status = 'return'
+                    creep.memory.step = powerp.position.length - 1
                 }
             } else if (_.sum(creep.carry) == creep.carryCapacity) {
                 creep.memory.status = 'return'
+                creep.memory.step = powerp.position.length - 1
             } else if (res = creep.room.find(FIND_TOMBSTONES, {filter: o => _.sum(o.store) > 0})[0]) {
                 for (let type in res.store) {
                     creep.withdraw(res, type)
@@ -63,17 +59,25 @@ function work(creep) {
                 }
             } else {
                 creep.memory.status = 'return'
+                creep.memory.step = powerp.position.length - 1
             }
         }
 
     } else if (creep.memory.status == 'return') {
-        const posx = powerp.position[creep.memory.step - 1]
-        let pos = new RoomPosition(posx[0], posx[1], posx[2])
-        creep.moveTo(pos, {reusePath: 20})
-        if (creep.pos.getRangeTo(pos) <= 3) {
+        creep.memory.step =creep.memory.step|| powerp.position.length - 1
+        let pos = new RoomPosition(...powerp.position[creep.memory.step])
+        if (creep.pos.isEqualTo(pos)) {
             creep.memory.step--
+            pos = new RoomPosition(...powerp.position[creep.memory.step])
         }
-        if (creep.memory.step == 2) {
+        if (creep.pos.isNearTo(pos)) {
+            creep.memory.step--
+            creep.move(creep.pos.getDirectionTo(pos))
+        } else {
+            creep.moveTo(pos, {plainCost: 1, swampCost: 5, reusePath: 20})
+        }
+        if (creep.memory.step <= 5) {
+            delete creep.memory.step
             creep.memory.status = 'fill'
         }
     } else if (creep.memory.status == 'fill') {

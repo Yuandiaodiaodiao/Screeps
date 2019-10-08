@@ -91,7 +91,6 @@ function work(creep) {
                 creep.rangedHeal(target)
             } else {
                 try {
-                    creep._stand()
                 } catch (e) {
                     console.log('creep.prototype.stand erro' + e)
                 }

@@ -94,7 +94,7 @@ var roomCache = undefined
 var roomCacheWithCreep = {}
 var roomCacheWithCreepttl = {}
 var roomCachettl = undefined
-var roomCacheUse = {}
+var roomCacheUse = undefined
 
 function roomc(roomName) {
     if (roomCacheWithCreep[roomName] && roomCacheWithCreepttl[roomName] && roomCacheWithCreepttl[roomName] == Game.time) {
@@ -164,9 +164,9 @@ function isCenter(roomName) {
 function roomc_nocreep(roomName) {
     const observer = require('observer')
     const room = Game.rooms[roomName]
-    if (!room&&observer.observerCache[roomName] && observer.observerCache[roomName].owner) {
+    if (!room && observer.observerCache[roomName] && observer.observerCache[roomName].owner) {
         return false
-    } else if (!room&&!observer.observerCache[roomName]) {
+    } else if (!room && !observer.observerCache[roomName]) {
         observer.observer_queue.add(roomName)
         const parsed = /^[WE]([0-9]+)[NS]([0-9]+)$/.exec(roomName);
         const isHighway = (parsed[1] % 10 === 0) ||
@@ -174,7 +174,7 @@ function roomc_nocreep(roomName) {
         const controller = Game.rooms[roomName] ? Game.rooms[roomName].controller : undefined
         const isMyRoom = controller &&
             (controller.my || (controller.reservation && controller.reservation.username == 'Yuandiaodiaodiao'))
-        if (!(isHighway || isMyRoom || isCenter(roomName))) return false
+        if (!(isMyRoom || isCenter(roomName))) return false
     }
 
     let costs = undefined
@@ -198,7 +198,10 @@ function roomc_nocreep(roomName) {
             }
         })
         room.find(FIND_MY_CONSTRUCTION_SITES).forEach(struct => {
-                if (struct.structureType !== STRUCTURE_CONTAINER &&
+                if (struct.structureType === STRUCTURE_ROAD) {
+                    cantgo++
+                    costs.set(struct.pos.x, struct.pos.y, 1)
+                } else if (struct.structureType !== STRUCTURE_CONTAINER &&
                     (struct.structureType !== STRUCTURE_RAMPART ||
                         !struct.my)) {
                     if (struct.structureType != STRUCTURE_CONTROLLER || struct.structureType != STRUCTURE_EXTRACTOR) {
@@ -357,9 +360,9 @@ if (!StructureSpawn.prototype._spawnCreep) {
     }
 }
 
-function suicide(creep) {
-    let target = null
-    if (_.sum(creep.carry) > 0 && (target = creep.room.storage)) {
+function suicide(creep, target) {
+    if (!target) target = creep.room.storage
+    if (_.sum(creep.carry) > 0 && target) {
         for (let type in creep.carry) {
             creep.transfer(target, type)
         }
@@ -395,12 +398,42 @@ function roomCachettlSet(val) {
         return roomCachettl
     }
 }
+
+function roomCacheUseSet(val) {
+    if (val) {
+        roomCacheUse = val
+        module.exports.roomCacheUse = roomCacheUse
+    } else {
+        return roomCacheUse
+    }
+}
+
 if (!Creep.prototype._say) {
     Creep.prototype._say = Creep.prototype.say
     Creep.prototype.say = function (msg, pub = true) {
         this._say(msg, pub)
     }
 }
+
+function moveByLongPath(pathArray, creep) {
+    let pos = new RoomPosition(...pathArray[creep.memory.step])
+    if (creep.pos.isEqualTo(pos)) {
+        creep.memory.step++
+        pos = new RoomPosition(...pathArray[creep.memory.step])
+    }
+    if (creep.pos.isNearTo(pos)) {
+        creep.memory.step++
+        creep.move(creep.pos.getDirectionTo(pos))
+    } else {
+        creep.moveTo(pos, {plainCost: 1, swampCost: 5, reusePath: 20})
+    }
+    if (creep.memory.step >= pathArray.length - 1) {
+        delete creep.memory.step
+        return OK
+    }
+    return ERR_NOT_IN_RANGE
+}
+
 module.exports = {
     'findrooms': findrooms,
     'generatebody': generatebody,
@@ -419,5 +452,7 @@ module.exports = {
     'roomCacheSet': roomCacheSet,
     'roomCachettlSet': roomCachettlSet,
     'roomCacheUse': roomCacheUse,
-    'isCenterRoom': isCenterRoom
+    'isCenterRoom': isCenterRoom,
+    'roomCacheUseSet': roomCacheUseSet,
+    'moveByLongPath': moveByLongPath
 };

@@ -20,33 +20,31 @@ function born(spawnnow, creepname, memory) {
 function work(creep) {
     //rush
     const powerp = Memory.powerPlan[creep.memory.missionid]
+    if (!powerp) creep.suicide()
     if (creep.memory.status == 'going') {
-        const posx = powerp.position[creep.memory.step]
-        let pos = new RoomPosition(posx[0], posx[1], posx[2])
-        creep.moveTo(pos, {reusePath: 25,plainCost: 1, swampCost: 5})
-        if (creep.pos.getRangeTo(pos) <= 3) {
-            creep.memory.step++
-        }
-        if (creep.memory.step == powerp.position.length) {
+        const act = Game.tools.moveByLongPath(powerp.position, creep)
+        if (act == OK) {
             creep.memory.status = 'heal'
-            delete creep.memory.step
         }
         if (creep.hits < creep.hitsMax) {
             creep.heal(creep)
         }
     } else if (creep.memory.status == 'heal') {
         const target = Game.getObjectById(creep.memory.target) || creep.pos.findClosestByRange(FIND_MY_CREEPS, {filter: obj => obj.name.split('_')[1] == 'power-a'})
-        if (!target) return
-        creep.memory.target = target.id
-        const act = creep.heal(target)
-        if (act == ERR_NOT_IN_RANGE) {
-            creep.moveTo(target, {
-                ignoreCreeps: false, costCallback: require('tools').roomc, plainCost: 1, swampCost: 5
-            })
+        if (creep.hits / creep.hitsMax < 0.99) {
+            creep.heal(creep)
+            return
         }
         if (powerp.status == 4) {
             creep.suicide()
         }
+        if (!target) return
+        creep.memory.target = target.id
+        const act = creep.heal(target)
+        if (act == ERR_NOT_IN_RANGE) {
+            creep.moveTo(target, {ignoreCreeps: false,serializeMemory:false})
+        }
+
     }
 
 }

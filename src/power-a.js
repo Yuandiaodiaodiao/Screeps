@@ -20,18 +20,27 @@ function born(spawnnow, creepname, memory) {
 function work(creep) {
     //rush
     const powerp = Memory.powerPlan[creep.memory.missionid]
+    if (!powerp) creep.suicide()
     if (creep.memory.status == 'going') {
-        const posx = powerp.position[creep.memory.step]
-        let pos = new RoomPosition(posx[0], posx[1], posx[2])
-        creep.moveTo(pos, {reusePath: 25, plainCost: 1, swampCost: 5})
-        if (creep.pos.getRangeTo(pos) <= 1) {
-            creep.memory.step++
-        }
-        if (creep.memory.step == powerp.position.length) {
+        const act = Game.tools.moveByLongPath(powerp.position, creep)
+        if (act == OK) {
             creep.memory.status = 'dig'
-            delete creep.memory.step
         }
+
     } else if (creep.memory.status == 'dig') {
+        if(Game.time%5==0){
+            let target = creep.pos.findClosestByRange(FIND_HOSTILE_CREEPS)
+            if (target && creep.pos.getRangeTo(target) <= 5) {
+                creep.memory.status='fight'
+                const act = creep.attack(target)
+                if (act == ERR_NOT_IN_RANGE) {
+                    creep.moveTo(target, {ignoreCreeps: false, serializeMemory: false})
+                }
+                return
+            }
+        }
+
+
         if (creep.memory.sleep && --creep.memory.sleep > 0) return
         const pb = creep.room.powerBanks[0]
         if (pb && pb.hits < 1000 && pb.ticksToDecay > 10 && creep.ticksToLive > 10 && creep.room.find(FIND_MY_CREEPS, {filter: obj => obj.name.split('_')[1] == 'power-c'}).length < powerp.carry) {
@@ -57,11 +66,24 @@ function work(creep) {
             creep.suicide()
         }
         if (pb && pb.hits > creep.ticksToLive * 750) {
-            powerp.status=1
+            powerp.status = 1
         }
 
 
+    }else if(creep.memory.status=='fight'){
+        let target = creep.pos.findClosestByRange(FIND_HOSTILE_CREEPS)
+        if (target && creep.pos.getRangeTo(target) <= 5) {
+            creep.memory.status='fight'
+            const act = creep.attack(target)
+            if (act == ERR_NOT_IN_RANGE) {
+                creep.moveTo(target, {ignoreCreeps: false, serializeMemory: false})
+            }
+        }
+        if(!target){
+            creep.memory.status = 'dig'
+        }
     }
+
 
 }
 

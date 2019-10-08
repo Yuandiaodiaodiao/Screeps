@@ -15,6 +15,7 @@ function gen_reaction() {
 const reaction = gen_reaction()
 module.exports.reaction = reaction
 module.exports.work = function (room) {
+
     const terminal = room.terminal
     if (!terminal || room.controller.level != 8 || !room.memory.lab.ok) return
     if (!room.memory.reaction) {
@@ -63,6 +64,15 @@ module.exports.work = function (room) {
         ) {
             room.memory.reaction.status = 'miss'
         }
+    } else {
+        if (room.labs.every(obj => {
+            return obj.mineralAmount == 0
+        })
+        ) {
+            room.memory.reaction.status = 'miss'
+        } else {
+            room.memory.reaction.status = 'collect'
+        }
     }
 
 }
@@ -78,3 +88,10 @@ module.exports.doreaction = function (room) {
         }
     }
 }
+
+
+// if(room.name==='E29N38'){
+//     room.memory.reaction.status ='boost'
+//     room.memory.reaction.boostList=['XKHO2','XLHO2','XGHO2','XZH2O','XZHO2']
+//     return
+// }

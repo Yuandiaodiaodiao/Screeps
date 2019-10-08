@@ -1,23 +1,26 @@
-var lodash = require('lodash-my')
+let lodash = require('lodash-my')
 
 module.exports.work = function (room) {
     let terminal = room.terminal
     if (!terminal || !terminal.my) return
-    if (terminal && room.storage && room.storage.store[RESOURCE_ENERGY] / room.storage.storeCapacity > 0.9) {
-        for (let roomNames in Memory.rooms) {
-            let rooms = Game.rooms[roomNames]
-            if (rooms.storage && rooms.storage.store[RESOURCE_ENERGY] / rooms.storage.storeCapacity < 0.7) {
-                let terminals = rooms.terminal
-                if (terminals && terminals.my && terminals.store[RESOURCE_ENERGY] < 100000) {
-                    terminal.send(RESOURCE_ENERGY, 6000, rooms.name)
-                    break
-                }
-            }
+    if (terminal && room.storage && room.storage.store[RESOURCE_ENERGY] / room.storage.storeCapacity > 0.88) {
+        const helpRoomNameList = _.filter(Object.keys(Memory.rooms), roomName => {
+            let room2 = Game.rooms[roomName]
+            return room2.storage && room2.storage.store[RESOURCE_ENERGY] / room2.storage.storeCapacity < 0.7
+                && room2.terminal && room2.terminal.my && room2.terminal.store[RESOURCE_ENERGY] <= 90000
+        })
+        const targetRoomName = lodash.minBy(helpRoomNameList, roomName => {
+            return Game.rooms[roomName].storage.store[RESOURCE_ENERGY]
+        })
+        if (targetRoomName && targetRoomName !== Infinity) {
+            terminal.send(RESOURCE_ENERGY, 6000, targetRoomName)
+            // console.log(`${room.name} help ${targetRoomName} ${RESOURCE_ENERGY} 6000`)
+            return
         }
     }
     // console.log('findminerals')
     let mineral = room.find(FIND_MINERALS)[0]
-    if (terminal && mineral) {
+    if (mineral) {
         let type = mineral.mineralType
         if ((terminal.store[type] || 0) > 6000) {
             // console.log(room.name+' type='+type+' store='+ terminal.store[type])
@@ -26,7 +29,7 @@ module.exports.work = function (room) {
                 if (rooms.controller.level == 8) {
                     let terminals = rooms.terminal
                     // console.log('send='+ rooms.name+' last='+(terminals.storeCapacity - _.sum(terminals.store) ))
-                    if (terminals && (terminals.store[type] ? terminals.store[type] < 100 : true) && terminals.storeCapacity - _.sum(terminals.store) > 3000) {
+                    if (terminals && (terminals.store[type] || 0) < 3000 && terminals.storeCapacity - _.sum(terminals.store) > 3000) {
                         terminal.send(type, 3000, rooms.name)
                         break
                     }
@@ -35,13 +38,28 @@ module.exports.work = function (room) {
         }
     }
 
-    if ((terminal.store[RESOURCE_POWER] || 0) > 6000) {
+    if ((terminal.store[RESOURCE_POWER] || 0) > 4000) {
+        const powerHave=terminal.store[RESOURCE_POWER]
         for (let roomNames in Memory.rooms) {
             let rooms = Game.rooms[roomNames]
             if (rooms.controller.level == 8) {
                 let terminals = rooms.terminal
-                if ((terminals.store[RESOURCE_POWER] || 0) < 3000) {
-                    terminal.send(RESOURCE_POWER, 3000, rooms.name)
+                const powerLast=(terminals.store[RESOURCE_POWER] || 0)
+                if ( powerLast< 1500) {
+                    terminal.send(RESOURCE_POWER,Math.max(0, 2000-powerLast), rooms.name)
+                    break
+                }
+            }
+        }
+    }
+
+    if ((terminal.store[RESOURCE_GHODIUM] || 0) >= 3000) {
+        for (let roomNames in Memory.rooms) {
+            let rooms = Game.rooms[roomNames]
+            if (rooms.controller.level == 8) {
+                let terminals = rooms.terminal
+                if ((terminals.store[RESOURCE_GHODIUM] || 0) < 1500) {
+                    terminal.send(RESOURCE_GHODIUM, 1000, rooms.name)
                     break
                 }
             }

@@ -2,11 +2,13 @@ var config = [
     require('observer').observerCacheSet,
     require('tools').roomCacheSet,
     require('tools').roomCachettlSet,
+    require('tools').roomCacheUseSet
 ]
 var seg = [
     [8],
     [10, 11, 12, 13, 14],
-    [9]
+    [9],
+    [7]
 ]
 var serialize = new Set(['1'])
 module.exports.serialize = serialize
@@ -72,6 +74,7 @@ function Cache() {
             status = 'read'
         }
     } else if (status == 'save') {
+        let savestr=""
         for (let x of mission) {
             let saves = (config[x]() || {})
             if (serialize.has(x)) {
@@ -91,7 +94,7 @@ function Cache() {
             for (let index in seg[x]) {
                 try {
                     RawMemory.segments[seg[x][index]] = str.substr(index * 95000, 95000)
-                    console.log(`segid=${seg[x][index]} savedlen=${RawMemory.segments[seg[x][index]].length}`)
+                   savestr+=`segid=${seg[x][index]} savedlen=${RawMemory.segments[seg[x][index]].length} `
                 } catch (e) {
                     console.log('seg save error' + e)
                 }
@@ -101,6 +104,7 @@ function Cache() {
         mission.clear()
         open.clear()
         status = 'check'
+        console.log(savestr)
     }
     //
     /*

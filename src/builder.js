@@ -1,4 +1,3 @@
-
 function getting(room, creep, next_status, baseline = 0) {
     let target = room.storage
     if (target && target.store[RESOURCE_ENERGY] > baseline) {
@@ -34,8 +33,13 @@ function work(creep) {
             const act = creep.build(target)
             if (act == ERR_NOT_IN_RANGE) {
                 creep.moveTo(target, {reusePath: 10})
+                if(Game.time%10==0){
+                    require('tools').roomCachettl[creep.pos.roomName]=0
+                }
             } else if (act == ERR_NOT_ENOUGH_RESOURCES) {
                 creep.memory.status = 'getting'
+            } else if (act == ERR_INVALID_TARGET) {
+                creep.memory.buildtarget = ""
             }
         } else {
             target = require('tools').findrooms(room, FIND_CONSTRUCTION_SITES)[0]
@@ -61,8 +65,8 @@ function work(creep) {
 function born(spawnnow, creepname, memory) {
 
     let body = {
-        'work': 16,
-        'carry': 17,
+        'work': 23,
+        'carry': 10,
         'move': 17
     }
     let bodyarray = require('tools').generatebody(body, spawnnow)
@@ -78,18 +82,20 @@ function born(spawnnow, creepname, memory) {
         }
     )
 }
-function miss(room){
-    room.memory.missions.builder={}
-    if (require('tools').findrooms(room, FIND_CONSTRUCTION_SITES).length > 0&&(!(room.storage && room.storage.store[RESOURCE_ENERGY] / room.storage.storeCapacity < 0.1))) {
-            room.memory.missions.builder[room.name] = {
-                roomName: room.name
-            }
-    }else{
-        room.memory.missions.builder=undefined
+
+function miss(room) {
+    room.memory.missions.builder = {}
+    if (require('tools').findrooms(room, FIND_CONSTRUCTION_SITES).length > 0 && (!(room.storage && room.storage.store[RESOURCE_ENERGY] / room.storage.storeCapacity < 0.1))) {
+        room.memory.missions.builder[room.name] = {
+            roomName: room.name
+        }
+    } else {
+        room.memory.missions.builder = undefined
     }
 }
+
 module.exports = {
     'work': work,
     'born': born,
-    'miss':miss,
+    'miss': miss,
 };
