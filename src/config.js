@@ -1,20 +1,20 @@
 var role_num_fix = {
-    'E28N46': {},
-    'E25N43': {
+    'E28N46': {
         opener: 0,
+    },
+    'E25N43': {
+        opener: 1,
         // rattacker: 2,
     },
     'E27N38': {
+        opener:2,
         rattacker: 0,
         healer: 0,
-        opener: 0,
     },
     'E27N42': {
-        healer: 0,
-        opener: 0,
+        opener:1
     },
     'E29N41': {
-        opener: 0,
         farcarryer: 0,
     },
     'E29N38': {
@@ -42,10 +42,7 @@ var role_num = {
     flagworker: 0,
     mineraler: 1,
     opener: 0,
-    healer: 1,
-    attacker: 1,
     rattacker: 0,
-    controllerattack: 0,
     centerminer: 0,
     coreminer: 0,
     subprotecter: 1,

@@ -78,6 +78,13 @@ if (config.changemoveTo) {
             } else {
                 ops = opts || {}
             }
+            if (!ops.reusePath) {
+                ops.reusePath = 10
+            }
+            if (ops.ignoreRoads) {
+                ops.plainCost = 1
+                ops.swampCost = 5
+            }
             if (ops.ignoreCreeps == undefined || ops.ignoreCreeps == true) {
                 ops.ignoreCreeps = true
                 ops.costCallback = config.roomCallbackWithoutCreep

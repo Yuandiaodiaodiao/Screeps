@@ -32,7 +32,6 @@ module.exports.roomjson = {
 var missions_ori = {
     filler: {},
     watcher: {},
-    controllerattack: {},
     centerminer: {},
     subprotecter: {},
     miner: {//挖矿&修复附近的建筑物
@@ -54,23 +53,9 @@ var missions_ori = {
     collecter: {},
     mineraler: {},
     opener: {},
-    healer: {},
-    attacker: {},
     terminalmanager: {},
     farcarryer: {},
-    destroyer: {}
-}
-
-
-var hostile = {
-    // 'E17N39': {
-    //     next: [42, 46, 'E17N39'],
-    //     stage: ['attacker'],
-    // },
-    // 'E11N39': {
-    //     next: [39, 47, 'E11N40'],
-    //     stage: ['healer'],
-    // }
+    destroyer: {},
 }
 
 
@@ -247,13 +232,7 @@ function mission_generator(room) {
 
 
     //opener
-    if (room.controller.level >= 5) {
-        missions.opener[room.name] = {
-            roomName: room.name
-        }
-    }
-
-
+    missions.opener = {}
     //mineraler
     for (let source of minerals) {
 
@@ -295,10 +274,10 @@ function mission_generator(room) {
     // missions.farcarryer[room.name] = {
     //     roomName: room.name
     // }
-    // controllerattack
-    missions.controllerattack[room.name] = {
-        roomName: room.name
-    }
+    // // controllerattack
+    // missions.controllerattack[room.name] = {
+    //     roomName: room.name
+    // }
 
 
     //linkmanager
@@ -320,55 +299,13 @@ function mission_generator(room) {
             }
         }
     }
-
-
-    //healer
-    if (room.controller.level >= 6) {
-        for (let roomName in hostile) {
-            if (hostile[roomName].stage.indexOf('healer') == -1 && hostile[roomName].stage.indexOf('attacker') == -1) continue
-            let goal = hostile[roomName].next
-            goal = new RoomPosition(goal[0], goal[1], goal[2])
-            let ans = PathFinder.search(room.find(FIND_MY_SPAWNS)[0].pos, {pos: goal, range: 2}, {
-                plainCost: 1,
-                swampCost: 5,
-                roomCallback: require('tools').roomc_nocreep,
-                maxOps: 20000,
-                maxRooms: 64,
-                maxCost: 300,
-            })
-            console.log('room' + room.name + 'complete' + ans.incomplete + ' ops' + ans.ops + ' cost' + ans.cost)
-            if (ans.incomplete) continue
-            let position = []
-            let leng = ans.cost
-            for (let a in ans.path) {
-                if (a % 20 == 0) {
-                    position.push([ans.path[a].x, ans.path[a].y, ans.path[a].roomName])
-                }
-            }
-            position.push(hostile[roomName].next)
-            if (hostile[roomName].stage.indexOf('healer') != -1) {
-                let pos = require('tools').deepcopy(position)
-                missions.healer[roomName] = {
-                    roomName: roomName,
-                    goal: hostile[roomName].next,
-                    position: pos,
-                    cost: leng
-                }
-            }
-            if (hostile[roomName].stage.indexOf('attacker') != -1) {
-                let pos = require('tools').deepcopy(position)
-                missions.attacker[roomName] = {
-                    roomName: roomName,
-                    goal: hostile[roomName].next,
-                    position: pos,
-                    cost: leng
-                }
-            }
-
-        }
-
-
+    try {
+        require('wallWorker').miss(room)
+    } catch (e) {
+        console.log('wallWorker.miss error' + e)
     }
+
+
     for (let miss in missions) {
         if (_.isEmpty(missions[miss])) {
             delete missions[miss]
@@ -435,7 +372,12 @@ module.exports.loop = function () {
 
         for (let roomName in Memory.rooms) {
             const room = Game.rooms[roomName]
-            require('subprotecter').miss(room)
+            try {
+                require('subprotecter').miss(room)
+
+            } catch (e) {
+                console.log('subprotecter error' + e)
+            }
         }
     }
     if (Game.time % 10 == 0) {
@@ -534,6 +476,8 @@ module.exports.loop = function () {
         }
     }
     if (Game.time % 50 == 0) {
+
+
         try {
             require('powerBank').miss()
         } catch (e) {
@@ -547,17 +491,35 @@ module.exports.loop = function () {
             }
         }
     }
+    if (Game.time % 10 == 0) {
+        for (let roomName in Memory.rooms) {
+            let room = Game.rooms[roomName]
+            let ticks = 100
+            if (room.storage && room.storage.store[RESOURCE_ENERGY] / room.storage.storeCapacity > 0.95) {
+                ticks = 10
+            }
+            if (Game.time % ticks === 0) {
+                try {
+                    require('terminal').work(room)
+                } catch (e) {
+                    console.log('terminal' + roomName + e)
+                }
+            }
+
+        }
+    }
+
     if (Game.time % 100 == 0) {
+        try {
+            require('opener').miss()
+        } catch (e) {
+            console.log('opener.miss ' + e)
+        }
+
         //terminal
         for (let roomName in Memory.rooms) {
             let room = Game.rooms[roomName]
-            try {
-                if (true) {
-                    require('terminal').work(room)
-                }
-            } catch (e) {
-                console.log('terminal' + roomName + e)
-            }
+
             try {
                 require('reaction').work(room)
             } catch (e) {
@@ -565,8 +527,9 @@ module.exports.loop = function () {
             }
             try {
                 require('upgrader').miss(room)
+
             } catch (e) {
-                console.log('upgrader miss' + e)
+                console.log('upgrader miss' + roomName + e)
             }
             try {
                 require('builder').miss(room)
@@ -597,19 +560,24 @@ module.exports.loop = function () {
         }
     }
 
-
-    if (!(Game.cpu.bucket < 1000 && Game.time % 3 == 0)) {
-        Object.values(Game.creeps).forEach(obj => {
-            try {
-                if (!obj.spawning) {
-                    require(obj.name.split('_')[1]).work(obj)
+    Object.values(Game.creeps).forEach(obj => {
+        try {
+            if (!obj.spawning) {
+                const type = obj.name.split('_')[1]
+                if (type == 'boostAttack' || type == 'boostHeal' || type == 'subprotecter') {
+                    require(type).work(obj)
+                } else {
+                    if (!(Game.cpu.bucket < 1000 && Game.time % 3 == 0)) {
+                        require(type).work(obj)
+                    }
                 }
-            } catch (e) {
-                console.log('role=' + obj.name + 'error' + e)
             }
-        })
+        } catch (e) {
+            console.log('role=' + obj.name + 'error' + e)
+        }
+    })
 
-    }
+
     if (Game.time % 10 == 0) {
         Game.war.miss()
     }

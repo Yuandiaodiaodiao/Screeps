@@ -1,11 +1,19 @@
-function getting(room, creep, next_status, baseline = 0) {
+function getting(creep) {
+    let room = Game.rooms[creep.memory.missionid]
     let target = room.storage
-    if (target && target.store[RESOURCE_ENERGY] > baseline) {
+    if (target && target.store[RESOURCE_ENERGY] > 1e5) {
         const act = creep.withdraw(target, RESOURCE_ENERGY)
         if (act == ERR_NOT_IN_RANGE) {
             creep.moveTo(target)
-        } else if (act == OK || act == ERR_FULL) {
-            creep.memory.status = next_status
+            if(Game.time%20==0){
+                require('tools').roomCachettl[creep.pos.roomName] = 0
+            }
+
+        } else if (act === OK || act === ERR_FULL) {
+            creep.memory.status = 'building'
+            creep.carry.energy = 1600
+            require('tools').roomCachettl[creep.pos.roomName] = 0
+            building(creep)
         }
     } else {
         target = creep.pos.findClosestByPath(FIND_STRUCTURES, {
@@ -18,7 +26,37 @@ function getting(room, creep, next_status, baseline = 0) {
             }
         }
         if (creep.carry.energy >= creep.carryCapacity) {
-            creep.memory.status = next_status;
+            creep.memory.status = 'building'
+        }
+    }
+
+}
+
+
+function building(creep) {
+    let target = Game.getObjectById(creep.memory.buildtarget)
+    if (target) {
+        const act = creep.build(target)
+        if (act == ERR_NOT_IN_RANGE) {
+            creep.moveTo(target, {reusePath: 10})
+        } else if (act == ERR_NOT_ENOUGH_RESOURCES) {
+            creep.memory.status = 'getting'
+        } else if (act == ERR_INVALID_TARGET) {
+            creep.memory.buildtarget = ""
+        } else if (act == OK) {
+            if (creep.carry.energy <= creep.getActiveBodyparts('work') * 5) {
+                creep.memory.status = 'getting'
+                getting(creep)
+            }
+        }
+    } else {
+        require('tools').roomCachettl[creep.pos.roomName] = 0
+        let room = Game.rooms[creep.memory.missionid]
+        target = require('tools').findrooms(room, FIND_CONSTRUCTION_SITES)[0]
+        if (target) {
+            creep.memory.buildtarget = target.id
+        } else {
+            creep.memory.status = 'sleep'
         }
     }
 
@@ -26,35 +64,11 @@ function getting(room, creep, next_status, baseline = 0) {
 
 function work(creep) {
     //build
-    let room = Game.rooms[creep.memory.missionid]
     if (creep.memory.status == 'building') {
-        let target = Game.getObjectById(creep.memory.buildtarget)
-        if (target) {
-            const act = creep.build(target)
-            if (act == ERR_NOT_IN_RANGE) {
-                creep.moveTo(target, {reusePath: 10})
-                if(Game.time%10==0){
-                    require('tools').roomCachettl[creep.pos.roomName]=0
-                }
-            } else if (act == ERR_NOT_ENOUGH_RESOURCES) {
-                creep.memory.status = 'getting'
-            } else if (act == ERR_INVALID_TARGET) {
-                creep.memory.buildtarget = ""
-            }
-        } else {
-            target = require('tools').findrooms(room, FIND_CONSTRUCTION_SITES)[0]
-            if (target) {
-                creep.memory.buildtarget = target.id
-            } else {
-                creep.memory.status = 'sleep'
-            }
-        }
-
-    }
-    if (creep.memory.status == 'getting') {
-        getting(room, creep, 'building', 4e4)
-    }
-    if (creep.memory.status == 'sleep') {
+        building(creep)
+    } else if (creep.memory.status == 'getting') {
+        getting(creep)
+    } else if (creep.memory.status == 'sleep') {
         if (Game.time % 10 == 0) {
             creep.memory.status = 'building'
         }
@@ -65,8 +79,8 @@ function work(creep) {
 function born(spawnnow, creepname, memory) {
 
     let body = {
-        'work': 23,
-        'carry': 10,
+        'work': 24,
+        'carry': 9,
         'move': 17
     }
     let bodyarray = require('tools').generatebody(body, spawnnow)

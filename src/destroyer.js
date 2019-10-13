@@ -1,14 +1,14 @@
 function born(spawnnow, creepname, memory) {
     let body = memory.body
-    if(!body){
+    if (!body) {
         body = {
-            'tough':5,
+            'tough': 5,
             'claim': 1,
             'move': 6
         }
     }
 
-    memory.cost=undefined
+    memory.cost = undefined
     const bodyparts = require('tools').generatebody(body, spawnnow)
     return spawnnow.spawnCreep(
         bodyparts,
@@ -26,8 +26,8 @@ function born(spawnnow, creepname, memory) {
 
 
 function work(creep) {
-    if(Game.flags['go'+creep.memory.missionid]){
-        creep.moveTo(Game.flags['go'+creep.memory.missionid].pos)
+    if (Game.flags['go' + creep.memory.missionid]) {
+        creep.moveTo(Game.flags['go' + creep.memory.missionid].pos)
         return
     }
     if (creep.memory.status == 'going') {
@@ -55,10 +55,10 @@ function work(creep) {
             const controller = Game.rooms[creep.memory.missionid].controller
             const act = creep.claimController(controller)
             if (act == ERR_NOT_IN_RANGE) {
-                    creep.moveTo(controller,{ignoreCreeps:false})
-            } else if (act == OK||controller.my) {
+                creep.moveTo(controller, {ignoreCreeps: false})
+            } else if (act == OK || controller.my) {
                 creep.memory.status = 'destroy'
-            }else{
+            } else {
                 creep.attackController(controller)
             }
         } else if (creep.pos.roomName == creep.memory.goal[2]) {
@@ -67,7 +67,15 @@ function work(creep) {
             creep.moveTo(exit)
         }
     } else if (creep.memory.status == 'destroy') {
-        const structs = creep.room.find(FIND_STRUCTURES, {filter: o => o.structureType != STRUCTURE_CONTROLLER&&o.pos.x>0&&o.pos.x<49&&o.pos.y>0&&o.pos.y<49})
+        const structs = creep.room.find(FIND_STRUCTURES, {
+            filter: o => {
+                if (o.structureType === STRUCTURE_WALL) {
+                    return o.hits
+                } else {
+                    return o.structureType !== STRUCTURE_CONTROLLER && o.pos.x > 0 && o.pos.x < 49 && o.pos.y > 0 && o.pos.y < 49
+                }
+            }
+        })
         structs.forEach(o => o.destroy())
         const structs1 = creep.room.find(FIND_CONSTRUCTION_SITES)
         structs1.forEach(o => o.remove())
@@ -102,9 +110,9 @@ function work(creep) {
             }
         }
         const tot = wall + swamp + plain
-        const strsign= `☕ mine:${mine} sources:${source}\n\n plain:${(plain / tot*100).toFixed(0)}% swamp:${(swamp / tot*100).toFixed(0)}% wall:${(wall / tot*100).toFixed(0)}%  `
-        creep.signController(creep.room.controller,strsign)
-        console.log('sign=' +strsign)
+        const strsign = `☕ mine:${mine} sources:${source}\n\n plain:${(plain / tot * 100).toFixed(0)}% swamp:${(swamp / tot * 100).toFixed(0)}% wall:${(wall / tot * 100).toFixed(0)}%  `
+        creep.signController(creep.room.controller, strsign)
+        console.log('sign=' + strsign)
         creep.suicide()
     }
 

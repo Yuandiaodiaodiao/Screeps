@@ -1,9 +1,16 @@
 var towerCache = {}
+let enemy={}
 
 function work(room) {
     if(room.memory.mineral)delete room.memory.mineral
     let target = room.find(FIND_HOSTILE_CREEPS)[0]
+    if(target){
+        enemy[room.name]=true
+    }else{
+        enemy[room.name]=false
+    }
     if (target) {
+
         for (let tower of room.towers) {
             tower.attack(tower.pos.findClosestByRange(FIND_HOSTILE_CREEPS))
         }
@@ -28,9 +35,9 @@ function work(room) {
                 if (obj.structureType == STRUCTURE_WALL) return obj.hits < 1e5
                 else if (obj.structureType == STRUCTURE_RAMPART) {
                     if (obj.pos.getRangeTo(room.storage) <= 10) {
-                        return obj.hits < 1e7
-                    } else {
                         return obj.hits < 1e6
+                    } else {
+                        return obj.hits < 1e5
                     }
                 } else {
                     return obj.hits < obj.hitsMax
@@ -44,7 +51,7 @@ function work(room) {
         let target1 = null
         const twc = towerCache[room.name] = []
         for (let target1 of target) {
-            if ((target1.structureType == STRUCTURE_WALL || target1.structureType == STRUCTURE_RAMPART) && roomenergy < 0.5) continue
+            if ((target1.structureType == STRUCTURE_WALL || target1.structureType == STRUCTURE_RAMPART) && roomenergy < 0.4) continue
             twc.push(target1.id)
             const tower = room.towers[num]
             if (tower) tower.repair(target1)
@@ -75,5 +82,6 @@ function work(room) {
 }
 
 module.exports = {
-    'work': work
+    'work': work,
+    'enemy':enemy
 };

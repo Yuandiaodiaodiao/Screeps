@@ -25,6 +25,13 @@ module.exports.work = function (room) {
         }
     }
     if (room.memory.reaction.status == 'miss') {
+        if (room.memory.reaction.preBoost && room.memory.reaction.preBoost.length > 0) {
+            room.memory.reaction.status = 'boost'
+            room.memory.reaction.boostList = [
+                'XKHO2', 'XLHO2', 'XZH2O', 'XZHO2', 'XGHO2'
+            ]
+            return
+        }
         for (let output in reaction) {
             const outputnum = terminal.store[output] ? terminal.store[output] : 0
             if (outputnum < 3000) {
@@ -63,6 +70,28 @@ module.exports.work = function (room) {
         })
         ) {
             room.memory.reaction.status = 'miss'
+        }
+    } else if (room.memory.reaction.status == 'boost') {
+        const boostList = room.memory.reaction.boostList
+        let ok = false
+        for (let index in boostList) {
+            const type = boostList[index]
+            const lab = room.labs[index]
+            if (lab.mineralAmount < lab.mineralCapacity) {
+                ok = true
+                break
+            }
+        }
+        for (let lab of room.labs) {
+            if (lab.energy < lab.energyCapacity) {
+                ok = true
+                break
+            }
+        }
+        if (ok == false) {
+            room.memory.reaction.boostReady = true
+        } else {
+            room.memory.reaction.boostReady = false
         }
     } else {
         if (room.labs.every(obj => {

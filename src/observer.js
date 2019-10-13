@@ -34,12 +34,13 @@ function work() {
             observer_queue.delete(roomName)
             observerCache[roomName] = {}
             const controller = room.controller
-            if (controller && controller.owner && !controller.my) {
+            const spawn = room.spawns.length
+            if (controller && controller.owner && controller.level > 2 && !controller.my && spawn !== 0) {
                 observerCache[roomName] = {
                     owner: controller.owner.username,
                     time: Game.time
                 }
-            } else if (controller && controller.reservation && !controller.reservation.username == 'Yuandiaodiaodiao') {
+            } else if (controller && controller.reservation && !(controller.reservation.username === 'Yuandiaodiaodiao')) {
                 observerCache[roomName] = {
                     owner: controller.reservation.username,
                     time: Game.time

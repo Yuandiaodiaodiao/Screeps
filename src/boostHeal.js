@@ -3,9 +3,9 @@ function born(spawnnow, creepname, memory) {
     if (!body) {
         body = {
             'tough': 12,
-            'ranged_attack': 3,
+            'ranged_attack': 6,
             'move': 10,
-            'heal': 25
+            'heal': 23
         }
     }
 
@@ -47,7 +47,8 @@ function work(creep) {
             creep.memory.status = 'pair'
         }
     } else if (creep.memory.status === 'pair') {
-        const targetCreep = creep.room.find(FIND_CREEPS, {filter: o => o.name.split('_')[1] === 'boostAttack'})
+        const targetCreep = creep.room.find(FIND_MY_CREEPS, {filter: o => o.name.split('_')[1] === 'boostAttack' && o.memory.missionid == creep.memory.missionid})[0]
+        console.log('targetCreep=' + targetCreep.name)
         if (!targetCreep.memory.pair) {
             targetCreep.memory.pair = creep.id
         }
@@ -71,15 +72,23 @@ function work(creep) {
         }
 
     } else if (creep.memory.status == 'fighting') {
+
         let goal = new RoomPosition(...creep.memory.goal)
         const target = Game.getObjectById(creep.memory.pair)
-        creep.moveTo(target, {serializeMemory: false, ignoreCreeps: false})
-        creep.memory.healTarget = creep.id
-        if (creep.hits < creep.hitsMax) {
-            creep.memory.healTarget = creep.id
-        } else if (target.hits < target.hitsMax) {
-            creep.memory.healTarget = target.id
+        if (!creep.pos.isNearTo(target)) {
+            creep.moveTo(target, {serializeMemory: false, ignoreCreeps: false})
         }
+        if (target) {
+
+            if (creep.hits<target.hits) {
+                creep.memory.healTarget = creep.id
+            } else if (target.hits<creep.hits) {
+                creep.memory.healTarget = target.id
+            }
+        } else {
+            creep.heal(creep)
+        }
+
         creep.heal(Game.getObjectById(creep.memory.healTarget))
         let enemy = creep.pos.findInRange(FIND_HOSTILE_CREEPS, 3)[0]
         if (enemy) {
@@ -90,7 +99,12 @@ function work(creep) {
             }
         } else {
             enemy = creep.pos.findInRange(FIND_HOSTILE_STRUCTURES, 3)[0]
+            if(!enemy)creep.pos.findInRange(FIND_STRUCTURES,3)[0]
             creep.rangedAttack(enemy)
+        }
+        const fix = Game.flags['fix' + creep.memory.missionid]
+        if (fix) {
+            creep.moveTo(fix,{ignoreCreeps:false})
         }
     }
 

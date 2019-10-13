@@ -3,17 +3,20 @@ var minerals = {}
 
 function work(creep) {
     const room = creep.room
-    if (!room) return
+    if (!room) {
+        if (!creep.ticksToLive) {
+            if (!creep.spawnCooldownTime) {
+                creep.spawn(Game.rooms[creep.name].powerSpawn)
+            }
+        }
+        return
+    }
     let memory = creep.memory
     if (memory.status == 'miss') {
         memory = creep.memory = {}
         const ops = creep.carry[RESOURCE_OPS] || 0
         if (creep.ticksToLive && creep.ticksToLive < 200) {
             memory.status = 'renewing'
-        } else if (!creep.ticksToLive) {
-            if (!creep.spawnCooldownTime) {
-                creep.spawn(Game.rooms[creep.name].find(FIND_STRUCTURES, {filter: obj => obj.structureType == STRUCTURE_POWER_SPAWN})[0])
-            }
         } else if (creep.powers[PWR_OPERATE_EXTENSION] && !creep.powers[PWR_GENERATE_OPS].cooldown) {
             let act = creep.usePower(PWR_GENERATE_OPS)
             if (act == ERR_INVALID_ARGS) {
@@ -99,6 +102,42 @@ function work(creep) {
             if (_.size(creep.memory) == 0) {
                 room.memory.reaction.status = 'miss'
             }
+        } else if (room.memory.reaction && room.memory.reaction.status === 'boost'&&(!room.memory.reaction.boostReady)&&room.labs.some(lab => {
+            return lab.energy < lab.energyCapacity
+        })) {
+            for (let lab of room.labs) {
+                if (lab.energy < lab.energyCapacity) {
+                    memory.type = RESOURCE_ENERGY
+                    memory.gettarget = room.storage.id
+                    memory.filltarget = lab.id
+                    memory.status = 'getting'
+                    memory.nexts = 'filling'
+                    memory.thor = lab.energyCapacity - lab.energy
+                    break
+                }
+            }
+        } else if (room.memory.reaction && room.memory.reaction.status === 'boost' && (!room.memory.reaction.boostReady)) {
+            const boostList = room.memory.reaction.boostList
+            let ok = false
+            for (let index in boostList) {
+                const type = boostList[index]
+                const lab = room.labs[index]
+                if (lab.mineralAmount < lab.mineralCapacity) {
+                    memory.type = type
+                    memory.gettarget = room.terminal.id
+                    memory.filltarget = lab.id
+                    memory.status = 'getting'
+                    memory.nexts = 'filling'
+                    memory.thor = lab.mineralCapacity - lab.mineralAmount
+                    ok = true
+                    break
+                }
+            }
+            if (ok === false) {
+                room.memory.reaction.boostReady = true
+            } else {
+                room.memory.reaction.boostReady = false
+            }
         } else if (room.terminal.store[RESOURCE_GHODIUM] && room.nuker && room.nuker.ghodium < 5000) {
             const target = room.nuker
             creep.memory = {
@@ -128,6 +167,7 @@ function work(creep) {
                 }
             }
         } else {
+
             memory.status = 'sleep'
         }
         memory = creep.memory
@@ -214,9 +254,6 @@ function work(creep) {
             memory.status = 'miss'
         }
     } else {
-        if (!creep.ticksToLive) {
-            creep.spawn(Game.rooms[creep.name].find(FIND_STRUCTURES, {filter: obj => obj.structureType == STRUCTURE_POWER_SPAWN})[0])
-        }
         if (memory.status && memory.status == 'sleep') {
 
         } else

@@ -11,6 +11,7 @@ function work(creep) {
     if (creep.carry.energy == 0&&memory.status!='suicide') {
         memory.status = 'getting'
     }
+
     if (memory.status == 'fillextension') {
         let step = memory.step || 0
         let extensionList = require('tools').extensionList[creep.room.name] || require('tools').solveExtension(creep.room)
@@ -61,9 +62,9 @@ function work(creep) {
         if (!target && creep.room.energyAvailable / creep.room.energyCapacityAvailable > 0.9) {
             if (creep.room.terminal && creep.room.terminal.my && creep.room.terminal.store[RESOURCE_ENERGY] < 1e4) {
                 target = creep.room.terminal
-            } else if (creep.room.nuker && creep.room.nuker.energy < creep.room.nuker.energyCapacity && creep.room.storage.store[RESOURCE_ENERGY] / creep.room.storage.storeCapacity > 0.5) {
+            } else if (creep.room.nuker && creep.room.nuker.energy < creep.room.nuker.energyCapacity && creep.room.storage.store[RESOURCE_ENERGY] / creep.room.storage.storeCapacity > 0.4) {
                 target = creep.room.nuker
-            } else if (creep.room.powerSpawn && creep.room.powerSpawn.energy <5000-1600 && creep.room.storage.store[RESOURCE_ENERGY] / creep.room.storage.storeCapacity > 0.6) {
+            } else if (creep.room.powerSpawn && creep.room.powerSpawn.energy <5000-1600 && creep.room.storage.store[RESOURCE_ENERGY] / creep.room.storage.storeCapacity > 0.5) {
                 target = creep.room.powerSpawn
             }
         } else if (!target) {
@@ -107,7 +108,8 @@ function work(creep) {
             if (action == ERR_NOT_IN_RANGE) {
                 creep.moveTo(target)
             } else if (action == OK || action == ERR_FULL) {
-                if (memory.step) {
+
+                if (memory.step&&(!require('tower').enemy[creep.room.name])) {
                     memory.status = 'fillextension'
                     let extensionList = require('tools').extensionList[creep.room.name] || require('tools').solveExtension(creep.room)
                     if (target = Game.getObjectById(extensionList[0])) {
@@ -160,9 +162,9 @@ function work(creep) {
                     if (structure.structureType == STRUCTURE_TERMINAL && structure.my) {
                         return structure.store[RESOURCE_ENERGY] < 1e4
                     } else if (structure.structureType == STRUCTURE_NUKER) {
-                        return structure.energy < structure.energyCapacity && creep.room.storage.store[RESOURCE_ENERGY] / creep.room.storage.storeCapacity > 0.5
+                        return structure.energy < structure.energyCapacity && creep.room.storage.store[RESOURCE_ENERGY] / creep.room.storage.storeCapacity > 0.4
                     } else if (structure.structureType == STRUCTURE_POWER_SPAWN) {
-                        return structure.energy / structure.energyCapacity < 0.5 && creep.room.storage.store[RESOURCE_ENERGY] / creep.room.storage.storeCapacity > 0.6
+                        return structure.energy / structure.energyCapacity < 0.5 && creep.room.storage.store[RESOURCE_ENERGY] / creep.room.storage.storeCapacity > 0.5
                     }
                 }
                 return false

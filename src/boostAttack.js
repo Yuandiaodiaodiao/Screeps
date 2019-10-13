@@ -2,8 +2,8 @@ function born(spawnnow, creepname, memory) {
     let body = memory.body
     if (!body) {
         body = {
-            'tough': 12,
-            'work': 28,
+            'tough': 10,
+            'work': 30,
             'move': 10,
         }
     }
@@ -47,7 +47,7 @@ function work(creep) {
         }
     } else if (creep.memory.status === 'pair') {
         if (creep.memory.pair) {
-            Game.getObjectById(creep.memory.pair).memory.pair=creep.id
+            Game.getObjectById(creep.memory.pair).memory.pair = creep.id
             creep.memory.status = 'going'
         }
     } else if (creep.memory.status === 'going') {
@@ -66,9 +66,10 @@ function work(creep) {
         }
 
     } else if (creep.memory.status == 'fighting') {
-        let goal = new RoomPosition(...creep.memory.goal)
         if (Game.flags['rush' + creep.memory.missionid]) {
             creep.memory.status = 'rush'
+        } else if (Game.flags['realrush' + creep.memory.missionid]) {
+            creep.memory.status = 'realrush'
         }
     } else if (creep.memory.status == 'rush') {
         if (Game.time % 5 == 0) {
@@ -79,24 +80,53 @@ function work(creep) {
             creep.memory.status = 'fighting'
             return
         }
+        let pair = Game.getObjectById(creep.memory.pair)
         if (creep.hits === creep.hitsMax) {
-            if (creep.pos.isNearTo(flag.pos)) {
-                let target = creep.pos.findInRange(FIND_HOSTILE_STRUCTURES, 1)[0]
-                if (!target) target = creep.pos.findInRange(FIND_STRUCTURES, 1)[0]
-                if (target) {
-                    creep.dismantle(target)
-                }
-            } else {
-                const structures = flag.pos.lookFor(LOOK_STRUCTURES)
-                const rampart = structures.find(struct => struct.structureType = STRUCTURE_RAMPART)
-                if (rampart) {
-                    creep.dismantle(rampart)
+            if(creep.pos.roomName===flag.pos.roomName){
+                if (creep.pos.isNearTo(flag.pos)) {
+                    let target = creep.pos.findInRange(FIND_HOSTILE_STRUCTURES, 1)[0]
+                    if (!target) target = creep.pos.findInRange(FIND_STRUCTURES, 1)[0]
+                    if (target) {
+                        creep.dismantle(target)
+                    }
                 } else {
-                    creep.dismantle(structures[0])
+                    const structures = flag.pos.lookFor(LOOK_STRUCTURES)
+                    const rampart = structures.find(struct => struct.structureType = STRUCTURE_RAMPART)
+                    if (rampart) {
+                        creep.dismantle(rampart)
+                    } else {
+                        creep.dismantle(structures[0])
+                    }
                 }
             }
-            creep.moveTo(flag.pos)
+            if (creep.pos.isNearTo(pair) || creep.pos.x <= 1 || creep.pos.x >= 48 || creep.pos.y <= 1 || creep.pos.y >= 48) {
+                creep.moveTo(flag, {ignoreCreeps: false})
+                pair.moveTo(creep)
+            }
+            const fix = Game.flags['fix2' + creep.memory.missionid]
+            if (fix) {
+                creep.moveTo(fix)
+            }
         }
+    } else if (creep.memory.status == 'realrush') {
+        const flag = Game.flags['realrush' + creep.memory.missionid]
+        if (!flag) {
+            creep.memory.status = 'fighting'
+            return
+        }
+        let pair = Game.getObjectById(creep.memory.pair)
+        if (creep.hits === creep.hitsMax) {
+            let target = creep.pos.findClosestByPath(FIND_HOSTILE_STRUCTURES, {filter: o => o.structureType != STRUCTURE_CONTROLLER&&o.structureType!=STRUCTURE_RAMPART&&o.structureType!=STRUCTURE_EXTRACTOR})
+            if (!target) target = creep.pos.findClosestByPath(FIND_STRUCTURES,{filter:o=>o.structureType!=STRUCTURE_WALL&&o.structureType!=STRUCTURE_RAMPART})
+            if (target) {
+                creep.dismantle(target)
+            }
+            if (creep.pos.isNearTo(pair) || creep.pos.x <= 1 || creep.pos.x >= 48 || creep.pos.y <= 1 || creep.pos.y >= 48) {
+                creep.moveTo(target, {ignoreCreeps: false})
+                pair.moveTo(creep)
+            }
+        }
+
     }
 }
 

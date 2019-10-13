@@ -97,6 +97,9 @@ function work(creep) {
 
     }
     if (creep.memory.status == 'rush') {
+        if(creep.getActiveBodyparts(ATTACK)===0&&creep.getActiveBodyparts(HEAL)===0&&creep.getActiveBodyparts(RANGED_ATTACK)==0){
+            return Game.war.workRush(creep)
+        }
         if (Game.time % 20 == 0) {
             require('tools').roomCachettl[creep.pos.roomName] = 0
         }
@@ -133,7 +136,7 @@ function work(creep) {
                 if (!target) target = creep.pos.findClosestByRange(FIND_HOSTILE_CONSTRUCTION_SITES)
                 if (!target) target = creep.pos.findClosestByRange(FIND_STRUCTURES, {filter: obj => obj.structureType != STRUCTURE_CONTROLLER})
                 if (target) {
-                    creep.moveTo(target, {ignoreCreep: false, reusePath: 10})
+                    creep.moveTo(target, {ignoreCreeps: false, reusePath: 10})
                     if (!target.ticksToLive && creep.pos.getRangeTo(target) <= 1 && !target.progressTotal && (target.structureType ? target.structureType != STRUCTURE_ROAD && target.structureType != STRUCTURE_CONTAINER : true)) {
                         creep.rangedMassAttack()
                         creep.say('⚡')

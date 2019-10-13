@@ -48,6 +48,23 @@
 2019/10/6 attack E33N38 hackgpp  
 Game.war.init(['E12N41',[39,2,'E12N40'],{SEAL:1},['E14N41'],{SEAL:{smallattack:true}}])  
 Game.war.init(['E11N38',[24,47,'E11N39'],{SEAL:1},['E14N41'],{SEAL:{smallattack:true}}])  
+2019/10/8 nuke E37N38 IC4U  
+Game.war.init(['E12N41',[39,2,'E12N40'],{SEAL:1},['E14N41'],{SEAL:{smallattack:true}}])  
+Game.war.init(['E14N39',[24,46,'E14N40'],{SEAL:1},['E14N41'],{SEAL:{smallattack:true}}])  
+Game.war.init(['E12N38',[30,46,'E12N39'],{SEAL:1},['E14N41'],{SEAL:{smallattack:true}}])  
+Game.war.init(['E11N37',[4,31,'E12N37'],{SEAL:1},['E14N41'],{SEAL:{smallattack:true}}])  
+Game.war.init(['E12N36',[4,31,'E12N37'],{SEAL:1},['E14N41'],{SEAL:{smallattack:true}}])  
+Game.war.init(['E8N41',[4,6,'E9N41'],{SEAL:1},['E14N41'],{SEAL:{smallattack:true}}])  
+Game.war.init(['E7N41',[41,2,'E7N40'],{SEAL:1},['E14N41'],{SEAL:{smallattack:true}}])  
+Game.war.init(['E9N45',[4,26,'E10N45'],{SEAL:1},['E14N41'],{SEAL:{smallattack:true}}])  
+Game.war.init(['E31N45',[48,25,'E30N45'],{SEAL:1},['E28N46'],{SEAL:{wall:true}}])  
+Game.war.init(['E41N39',[43,24,'E40N39'],{boostAttack:1,boostHeal:1},['E27N38'],{},['boost']])  
+Game.war.init(['E30N35',[25,25,'E30N35'],{boostAttack:1,boostHeal:1},['E27N38'],{},['boost','keep']])  
+Game.war.init(['E43N39',[40,47,'E43N40'],{boostAttack:1,boostHeal:1},['E27N38'],{},['boost']])  
+Game.war.init(['E40N38',[25,25,'E40N38'],{boostAttack:1,boostHeal:1},['E27N38'],{},['boost']])  
+Game.war.init(['E42N34',[25,25,'E40N39'],{SEAL:1},['E27N38'],{SEAL:{heal:true}}])  
+Game.war.init(['E18N44',[11,27,'E19N44'],{SEAL:1},['E19N41'],{SEAL:{smallattack:true}}])
+Game.war.init(['E33N38',[29,46,'E33N39'],{SEAL:1},['E29N38'],{SEAL:{smallattack:true}}])
 
 
 # 其他  

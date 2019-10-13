@@ -66,15 +66,30 @@ function miss(filterName) {
         const goal = new RoomPosition(wait[0], wait[1], wait[2])
         const creeps = plan.creep
         for (let fromRoomName in from) {
+            const fromRoom = Game.rooms[fromRoomName]
+            if (plan.boost) {
+                const reaction = fromRoom.memory.reaction
+                if (!reaction.preBoost || reaction.preBoost.indexOf(targetRoomName) < 0) {
+                    if (!reaction.preBoost) {
+                        reaction.preBoost = [targetRoomName]
+                        reaction.status = 'collect'
+                    } else {
+                        reaction.preBoost.push(targetRoomName)
+                    }
+                }
+                if (!reaction.boostReady) {
+                    continue
+                }
+            }
             const config = from[fromRoomName]
-            if ((!config.pathttl || Game.time - config.pathttl > 1000) && (config.failedtimes ? config.failedtimes <= 30 : true)) {
-                const ans = PathFinder.search(Game.rooms[fromRoomName].spawns[0].pos, {pos: goal, range: 2}, {
+            if ((!config.pathttl) && (config.failedtimes ? config.failedtimes <= 30 : true)) {
+                const ans = PathFinder.search(fromRoom.spawns[0].pos, {pos: goal, range: 2}, {
                     plainCost: 1,
                     swampCost: 5,
                     roomCallback: require('tools').roomc_nocreep,
-                    maxOps: 20000,
+                    maxOps: 100000,
                     maxRooms: 64,
-                    maxCost: config.maxCost || 1000,
+                    maxCost: config.maxCost || 1300,
                 })
                 if (ans.pos <= 1 && ans.incomplete) {
                     console.log(`search failed from${fromRoomName}to${targetRoomName}use ops${ans.ops} cost${ans.cost}`)
@@ -84,7 +99,7 @@ function miss(filterName) {
                 if (ans.incomplete) {
                     console.log(`search failed from${fromRoomName}to${targetRoomName}use ops${ans.ops} cost${ans.cost}`)
                     config.failedtimes = (config.failedtimes || 0) + 1
-                    config.path = undefined
+                    // config.path = undefined
                     if (config.failedtimes && config.failedtimes > 30) {
                         console.log(`from${fromRoomName}to${targetRoomName}failed${config.failedtimes}times`)
                     }
@@ -99,12 +114,14 @@ function miss(filterName) {
                 console.log(`pathstr=${JSON.stringify(path)}`)
                 config.pathttl = Game.time
                 config.cost = ans.cost
+
+
             }
             if (config.path) {
                 for (let role in creeps) {
                     const body = genbody(plan.body ? plan.body[role] : undefined)
-                    Memory.rooms[fromRoomName].missions[role] = Memory.rooms[fromRoomName].missions[role] || {}
-                    Memory.rooms[fromRoomName].missions[role][targetRoomName] = {
+                    fromRoom.memory.missions[role] = Memory.rooms[fromRoomName].missions[role] || {}
+                    fromRoom.memory.missions[role][targetRoomName] = {
                         goal: wait,
                         cost: config.cost,
                         targetRoomName: targetRoomName,
@@ -139,6 +156,22 @@ function miss(filterName) {
 
 }
 
+module.exports.stop=stop
+function stop(targetRoomName) {
+    const army = Memory.army
+    const plan = army[targetRoomName]
+    const from = plan.from
+    const creeps = plan.creep
+    plan.safeMode=true
+    for (let fromRoomName in from) {
+        const config = from[fromRoomName]
+        for (let role in creeps) {
+            if (Memory.rooms[fromRoomName].missions[role]) {
+                Memory.rooms[fromRoomName].missions[role][targetRoomName] = undefined
+            }
+        }
+    }
+}
 module.exports.remove = remove
 
 function remove(targetRoomName) {
@@ -147,6 +180,16 @@ function remove(targetRoomName) {
     const from = plan.from
     const creeps = plan.creep
     for (let fromRoomName in from) {
+        if (plan.boost) {
+            const fromRoom = Game.rooms[fromRoomName]
+            const reaction = fromRoom.memory.reaction
+            reaction.preBoost.splice(reaction.preBoost.indexOf(targetRoomName), 1)
+            if (reaction.preBoost.length == 0) {
+                reaction.preBoost = undefined
+                reaction.status = 'collect'
+                reaction.boostReady = undefined
+            }
+        }
         const config = from[fromRoomName]
         for (let role in creeps) {
             if (Memory.rooms[fromRoomName].missions[role]) {
@@ -194,7 +237,12 @@ function init(input) {
         plan.body = input[4]
     }
     if (input[5]) {
-        plan.keep = true
+        if (input[5].indexOf('keep') >= 0) {
+            plan.keep = true
+        }
+        if (input[5].indexOf('boost') >= 0) {
+            plan.boost = true
+        }
     }
 }
 
@@ -470,6 +518,32 @@ function howDangerous(creep) {
         level = Math.max(dangerousLevel[type], level)
     })
     return level
+}
+
+module.exports.workRush = workRush
+
+function workRush(creep) {
+    if (Game.time % 20 == 0) {
+        require('tools').roomCachettl[creep.pos.roomName] = 0
+    }
+    if (creep.pos.roomName == creep.memory.missionid) {
+        let target = creep.pos.findClosestByPath(FIND_HOSTILE_STRUCTURES, {filter: obj => obj.structureType != STRUCTURE_RAMPART && (!obj.pos.lookFor(LOOK_STRUCTURES).some(obj => obj.structureType == STRUCTURE_RAMPART)) && obj.structureType != STRUCTURE_CONTROLLER})
+        if (!target) target = creep.pos.findClosestByPath(FIND_HOSTILE_STRUCTURES, {filter: obj => obj.structureType == STRUCTURE_RAMPART})
+        if (!target) target = creep.pos.findClosestByPath(FIND_HOSTILE_CONSTRUCTION_SITES)
+        if (!target) target = creep.pos.findClosestByPath(FIND_STRUCTURES, {filter: obj => obj.structureType != STRUCTURE_CONTROLLER})
+        if (target) {
+            creep.moveTo(target, {ignoreCreeps: false, reusePath: 10})
+            creep.dismantle(target)
+        }
+
+    } else {
+        const exitDir = Game.map.findExit(creep.room, creep.memory.missionid)
+        const exit = creep.pos.findClosestByRange(exitDir)
+        creep.moveTo(exit)
+    }
+    if (!Game.flags['rush' + creep.memory.missionid]) {
+        creep.memory.status = 'fighting'
+    }
 }
 
 /*

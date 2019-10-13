@@ -65,6 +65,11 @@ function work(creep) {
                         break
                     }
                 }
+                if(ok==false){
+                    room.memory.reaction.boostReady=true
+                }else{
+                    room.memory.reaction.boostReady=false
+                }
             }
             if (!ok && room.memory.reaction && room.memory.reaction.status === 'collect') {
                 const labs = room.labs
@@ -192,7 +197,7 @@ function miss(room) {
 
 
 }
-
+// Game.rooms['E29N38'].memory.missions.terminalmanager={}; Game.rooms['E29N38'].memory.missions.terminalmanager['E29N38'] = {roomName:'E29N38'};
 module.exports = {
     'work': work,
     'born': born,
