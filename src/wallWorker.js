@@ -1,13 +1,16 @@
 function work(creep) {
-    //build
     if (creep.carry.energy === 0) {
         creep.memory.status = 'getting'
+        if (creep.ticksToLive < 10) {
+            creep.suicide()
+        }
     }
     if (creep.memory.status === 'repair') {
         let target = Game.getObjectById(creep.memory.repairtarget)
         if (target) {
             const act = creep.repair(target)
-            if (act === ERR_NOT_IN_RANGE) {
+            let repairPos = new RoomPosition(...creep.memory.repairPos)
+            if (!creep.pos.isEqualTo(repairPos)) {
                 if (!creep.memory.repairPos) {
                     const ans = PathFinder.search(Game.rooms[creep.memory.missionid].storage.pos, {
                         pos: target.pos,
@@ -17,10 +20,9 @@ function work(creep) {
                         swampCost: 10,
                         roomCallback: require('tools').roomc_nocreep,
                     })
-                    const targetPos = _.last(ans.path)
+                    const targetPos = _.last(ans.path) || creep.pos
                     creep.memory.repairPos = [targetPos.x, targetPos.y, targetPos.roomName]
                 }
-                let repairPos = new RoomPosition(...creep.memory.repairPos)
                 if (repairPos.lookFor(LOOK_CREEPS).length > 0) {
                     const ans = PathFinder.search(Game.rooms[creep.memory.missionid].storage.pos, {
                         pos: target.pos,
@@ -30,7 +32,7 @@ function work(creep) {
                         swampCost: 10,
                         roomCallback: require('tools').roomc,
                     })
-                    const targetPos = _.last(ans.path)
+                    const targetPos = _.last(ans.path) || creep.pos
                     creep.memory.repairPos = [targetPos.x, targetPos.y, targetPos.roomName]
                     repairPos = new RoomPosition(...creep.memory.repairPos)
                 }
@@ -64,6 +66,9 @@ function born(spawnnow, creepname, memory) {
         swampCost: 10,
         roomCallback: require('tools').roomc_nocreep,
     })
+    if (ans.incomplete) {
+        console.log(`${spawnnow.room.name} wallWorker.born ans.incom=${ans.incomplete} to ${target.pos} path=${JSON.stringify(ans.path)}`)
+    }
     const dist = ans.cost
     let bestF = 0
     let bestCarry = 1
@@ -80,7 +85,10 @@ function born(spawnnow, creepname, memory) {
         'carry': bestCarry,
         'move': 17
     }
-    const targetPos = _.last(ans.path)
+    let targetPos = _.last(ans.path)
+    if (!targetPos) {
+        targetPos = Game.tools.nearavailable(target.pos)
+    }
     let bodyarray = require('tools').generatebody(body, spawnnow)
     return spawnnow.spawnCreep(
         bodyarray,
@@ -101,7 +109,7 @@ function miss(room) {
     if (room.controller.level === 8 && room.storage && room.storage.store[RESOURCE_ENERGY] / room.storage.storeCapacity > 0.7) {
         room.memory.missions.wallWorker[room.name] = {
             roomName: room.name,
-            numfix: Math.min(3, Math.ceil((room.storage.store[RESOURCE_ENERGY] / room.storage.storeCapacity - 0.7) / 0.1))
+            numfix: Math.min(4, Math.ceil((room.storage.store[RESOURCE_ENERGY] / room.storage.storeCapacity - 0.7) / 0.07))
         }
     } else {
         room.memory.missions.wallWorker = undefined

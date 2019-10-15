@@ -454,5 +454,5 @@ module.exports = {
     'roomCacheUse': roomCacheUse,
     'isCenterRoom': isCenterRoom,
     'roomCacheUseSet': roomCacheUseSet,
-    'moveByLongPath': moveByLongPath
+    'moveByLongPath': moveByLongPath,
 };
