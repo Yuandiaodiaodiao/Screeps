@@ -515,7 +515,7 @@ function howDangerous(creep) {
     let level = 0
     creep.body.forEach(bodypart => {
         const type = bodypart.type
-        level = Math.max(dangerousLevel[type], level)
+        level = Math.max(dangerousLevel[type]||-1, level)
     })
     return level
 }
