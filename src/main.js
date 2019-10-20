@@ -299,11 +299,7 @@ function mission_generator(room) {
             }
         }
     }
-    try {
-        require('wallWorker').miss(room)
-    } catch (e) {
-        console.log('wallWorker.miss error' + e)
-    }
+
 
 
     for (let miss in missions) {
@@ -340,6 +336,7 @@ function load() {
     Game.missionController = require('missionController')
     Game.tools = require('tools')
     Game.terminal = require('terminal')
+    Game.factory = require('factory')
 }
 
 var missionController = require('missionController')
@@ -412,6 +409,9 @@ module.exports.loop = function () {
     for (let roomName in Memory.rooms) {
         let room = Game.rooms[roomName]
         if (!room) continue
+        if(Game.time%2===0){
+            Game.factory.doReact(room)
+        }
         try {
             missionController.spawn(room)
         } catch (e) {
@@ -495,7 +495,7 @@ module.exports.loop = function () {
         for (let roomName in Memory.rooms) {
             let room = Game.rooms[roomName]
             let ticks = 100
-            if (room.storage && room.storage.store[RESOURCE_ENERGY] / room.storage.storeCapacity > 0.95) {
+            if (room.storage && room.storage.store[RESOURCE_ENERGY] / room.storage.store.getCapacity() > 0.95) {
                 ticks = 10
             }
             if (Game.time % ticks === 0) {
@@ -510,6 +510,8 @@ module.exports.loop = function () {
     }
 
     if (Game.time % 100 == 0) {
+
+
         try {
             require('opener').miss()
         } catch (e) {
@@ -519,7 +521,16 @@ module.exports.loop = function () {
         //terminal
         for (let roomName in Memory.rooms) {
             let room = Game.rooms[roomName]
-
+            try {
+                require('wallWorker').miss(room)
+            } catch (e) {
+                console.log('wallWorker.miss error' + e)
+            }
+            try {
+                Game.factory.miss(room)
+            } catch (e) {
+                console.log('Game.factory.miss error' + e)
+            }
             try {
                 require('reaction').work(room)
             } catch (e) {

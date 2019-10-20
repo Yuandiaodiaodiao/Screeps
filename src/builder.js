@@ -99,7 +99,7 @@ function born(spawnnow, creepname, memory) {
 
 function miss(room) {
     room.memory.missions.builder = {}
-    if (require('tools').findrooms(room, FIND_CONSTRUCTION_SITES).length > 0 && (!(room.storage && room.storage.store[RESOURCE_ENERGY] / room.storage.storeCapacity < 0.1))) {
+    if (require('tools').findrooms(room, FIND_CONSTRUCTION_SITES).length > 0 && (!(room.storage && room.storage.store[RESOURCE_ENERGY] / room.storage.store.getCapacity() < 0.1))) {
         room.memory.missions.builder[room.name] = {
             roomName: room.name
         }

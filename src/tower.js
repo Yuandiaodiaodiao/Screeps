@@ -27,17 +27,17 @@ function work(room) {
     } else if (Game.time % 20 == 0) {
         let roomenergy = 0
         if (room.storage) {
-            roomenergy = room.storage.store[RESOURCE_ENERGY] / room.storage.storeCapacity
+            roomenergy = room.storage.store[RESOURCE_ENERGY] / room.storage.store.getCapacity()
         }
 
         target = room.find(FIND_STRUCTURES, {
             filter: obj => {
-                if (obj.structureType == STRUCTURE_WALL) return obj.hits < 1e5
+                if (obj.structureType == STRUCTURE_WALL) return obj.hits < (roomenergy>0.9?1e7:1e5)
                 else if (obj.structureType == STRUCTURE_RAMPART) {
                     if (obj.pos.getRangeTo(room.storage) <= 10) {
-                        return obj.hits < 1e6
+                        return obj.hits < (roomenergy>0.9?1e8:1e6)
                     } else {
-                        return obj.hits < 1e5
+                        return obj.hits < (roomenergy>0.9?1e7:1e5)
                     }
                 } else {
                     return obj.hits < obj.hitsMax

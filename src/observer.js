@@ -40,7 +40,7 @@ function work() {
                     owner: controller.owner.username,
                     time: Game.time
                 }
-            } else if (controller && controller.reservation && !(controller.reservation.username === 'Yuandiaodiaodiao')) {
+            } else if (controller && controller.reservation && !(controller.reservation.username==='Invader'||controller.reservation.username === 'Yuandiaodiaodiao')) {
                 observerCache[roomName] = {
                     owner: controller.reservation.username,
                     time: Game.time

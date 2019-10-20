@@ -35,7 +35,7 @@ function work(creep) {
         }
     } else if (memory.status == 'carrying') {
         const target = Game.getObjectById(memory.fill)
-        if (target.structureType == STRUCTURE_STORAGE && _.sum(target.store) / target.storeCapacity > 0.95) return
+        if (target.structureType == STRUCTURE_STORAGE && _.sum(target.store) / target.store.getCapacity() > 0.95) return
         if (target) {
             if (creep.pos.getRangeTo(target) > 6) {
                 creep.moveTo(target, {reusePath: 50})
@@ -57,7 +57,7 @@ function work(creep) {
                     creep.moveTo(target)
                 } else if (act == OK) {
                     if (target.structureType == STRUCTURE_LINK && target.energyCapacity - target.energy >= creep.carry[memory.type]
-                        || (target.storeCapacity - _.sum(target.store) >= creep.carry[memory.type])) {
+                        || (target.store.getFreeCapacity('memory.type')>= creep.carry[memory.type])) {
                         memory.status = 'getting'
                         try {
                             if ((Memory.rooms[creep.name.split('_')[0]].missions[creep.name.split('_')[1]][memory.missionid].carrycost || 0) * 2 > creep.ticksToLive) {

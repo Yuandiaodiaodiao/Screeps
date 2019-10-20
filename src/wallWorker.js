@@ -19,6 +19,7 @@ function work(creep) {
                         plainCost: 2,
                         swampCost: 10,
                         roomCallback: require('tools').roomc_nocreep,
+                        maxRooms:1
                     })
                     const targetPos = _.last(ans.path) || creep.pos
                     creep.memory.repairPos = [targetPos.x, targetPos.y, targetPos.roomName]
@@ -31,6 +32,7 @@ function work(creep) {
                         plainCost: 2,
                         swampCost: 10,
                         roomCallback: require('tools').roomc,
+                        maxRooms:1
                     })
                     const targetPos = _.last(ans.path) || creep.pos
                     creep.memory.repairPos = [targetPos.x, targetPos.y, targetPos.roomName]
@@ -65,6 +67,7 @@ function born(spawnnow, creepname, memory) {
         plainCost: 2,
         swampCost: 10,
         roomCallback: require('tools').roomc_nocreep,
+        maxRooms:1
     })
     if (ans.incomplete) {
         console.log(`${spawnnow.room.name} wallWorker.born ans.incom=${ans.incomplete} to ${target.pos} path=${JSON.stringify(ans.path)}`)
@@ -106,10 +109,10 @@ function born(spawnnow, creepname, memory) {
 
 function miss(room) {
     room.memory.missions.wallWorker = {}
-    if (room.controller.level === 8 && room.storage && room.storage.store[RESOURCE_ENERGY] / room.storage.storeCapacity > 0.7) {
+    if (room.controller.level === 8 && room.storage && room.storage.store[RESOURCE_ENERGY] / room.storage.store.getCapacity() > 0.5&&Game.cpu.bucket>8000) {
         room.memory.missions.wallWorker[room.name] = {
             roomName: room.name,
-            numfix: Math.min(4, Math.ceil((room.storage.store[RESOURCE_ENERGY] / room.storage.storeCapacity - 0.7) / 0.07))
+            numfix:Math.min( Math.max(Game.cpu.bucket-8000,0)/500,Math.min(3, Math.ceil((room.storage.store[RESOURCE_ENERGY] / room.storage.store.getCapacity() - 0.5) / 0.04)))
         }
     } else {
         room.memory.missions.wallWorker = undefined

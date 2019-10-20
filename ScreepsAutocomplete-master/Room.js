@@ -44,6 +44,7 @@ Room.prototype =
     labs:[],
     containers:[],
     observer:null,
+    factory:null,
     /**
      * The Controller structure of this room, if present, otherwise undefined.
      *

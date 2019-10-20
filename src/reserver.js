@@ -4,6 +4,8 @@ function work(creep) {
         const action=creep.reserveController(room.controller)
         if (action== ERR_NOT_IN_RANGE) {
             creep.moveTo(room.controller)
+        }else if(action==ERR_NOT_OWNER){
+            creep.attackController(room.controller)
         }
     }else{
         const room = Game.rooms[creep.memory.missionid]

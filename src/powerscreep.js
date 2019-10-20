@@ -102,7 +102,7 @@ function work(creep) {
             if (_.size(creep.memory) == 0) {
                 room.memory.reaction.status = 'miss'
             }
-        } else if (room.memory.reaction && room.memory.reaction.status === 'boost'&&(!room.memory.reaction.boostReady)&&room.labs.some(lab => {
+        } else if (room.memory.reaction && room.memory.reaction.status === 'boost' && (!room.memory.reaction.boostReady) && room.labs.some(lab => {
             return lab.energy < lab.energyCapacity
         })) {
             for (let lab of room.labs) {
@@ -166,7 +166,31 @@ function work(creep) {
                     status: 'gopower',
                 }
             }
-        } else {
+        } else if (room.memory.factory&&room.memory.factory.status === 'fill' && room.memory.factory.thor > 0) {
+            const target = room.factory
+            creep.memory = {
+                type: room.memory.factory.fillType,
+                gettarget: room.terminal.id,
+                status: 'getting',
+                nexts: 'filling',
+                filltarget: target.id,
+                thor: room.memory.factory.thor,
+            }
+            Game.factory.miss(room)
+        }
+        else if (room.memory.factory&&room.memory.factory.status === 'get' && room.memory.factory.thor > 0) {
+            const target = room.factory
+            Game.factory.miss(room)
+            creep.memory = {
+                type: room.memory.factory.fillType,
+                gettarget: target.id,
+                status: 'getting',
+                nexts: 'filling',
+                filltarget:room.terminal.id,
+                thor: room.memory.factory.thor,
+            }
+        }
+        else {
 
             memory.status = 'sleep'
         }
@@ -196,12 +220,13 @@ function work(creep) {
         const act = creep.transfer(filltarget, memory.type, memory.fillthor)
         if (act == ERR_NOT_IN_RANGE) {
             creep.moveTo(filltarget, {reusePath: 10})
-        } else if (act == OK) {
-            if (!creep.carry[memory.type] || creep.carry[memory.type] == 0)
+        } else if (act === OK) {
                 memory.status = 'miss'
         } else if (act == ERR_NOT_ENOUGH_RESOURCES) {
             memory.status = 'miss'
         } else if (act == ERR_FULL) {
+            memory.status = 'miss'
+        }else{
             memory.status = 'miss'
         }
     } else if (memory.status == 'getting') {
@@ -220,6 +245,8 @@ function work(creep) {
             memory.status = 'miss'
         } else if (act == ERR_FULL) {
             memory.status = memory.nexts
+        }else{
+            memory.status = 'miss'
         }
     } else if (memory.status == 'gopower') {
         const target = Game.getObjectById(memory.target)

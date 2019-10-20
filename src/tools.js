@@ -93,7 +93,7 @@ function randomNum(minNum, maxNum) {
 var roomCache = undefined
 var roomCacheWithCreep = {}
 var roomCacheWithCreepttl = {}
-var roomCachettl = undefined
+    var roomCachettl = undefined
 var roomCacheUse = undefined
 
 function roomc(roomName) {
@@ -173,7 +173,7 @@ function roomc_nocreep(roomName) {
             (parsed[2] % 10 === 0);
         const controller = Game.rooms[roomName] ? Game.rooms[roomName].controller : undefined
         const isMyRoom = controller &&
-            (controller.my || (controller.reservation && controller.reservation.username == 'Yuandiaodiaodiao'))
+            (controller.my || (controller.reservation && controller.reservation.username === 'Yuandiaodiaodiao'))
         if (!(isMyRoom || isCenter(roomName))) return false
     }
 
@@ -435,6 +435,7 @@ function moveByLongPath(pathArray, creep) {
 }
 
 module.exports = {
+    'bodycost':bodycost,
     'findrooms': findrooms,
     'generatebody': generatebody,
     'deepcopy': deepcopy,

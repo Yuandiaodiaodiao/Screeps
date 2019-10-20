@@ -331,12 +331,6 @@ const FIND_SOURCES = 105;
  * @constant
  * @type {number}
  */
-const FIND_DROPPED_ENERGY = 106;
-
-/**
- * @constant
- * @type {number}
- */
 const FIND_DROPPED_RESOURCES = 106;
 
 /**
@@ -2083,12 +2077,6 @@ const LOOK_TOMBSTONES = "tombstone";
  * @constant
  * @type {string}
  */
-const LOOK_POWER_CREEPS = "powerCreep";
-
-/**
- * @constant
- * @type {string}
- */
 const SYSTEM_USERNAME = 'Screeps';
 
 /**
@@ -2157,9 +2145,7 @@ const POWER_CREEP_LIFE_TIME = 5000;
  * @constant
  * @type {object}
  */
-const POWER_CLASS = {
-        OPERATOR: 'operator'
-    };
+const POWER_CLASS = { OPERATOR: 'operator' };
 
 /**
  * @constant

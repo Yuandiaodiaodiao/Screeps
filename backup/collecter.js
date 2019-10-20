@@ -58,7 +58,7 @@ function work(creep) {
         } else {
             let target = creep.pos.findClosestByPath(FIND_STRUCTURES, {
                 filter: obj => obj.structureType == STRUCTURE_CONTAINER &&
-                    _.sum(obj.store) < obj.storeCapacity
+                    _.sum(obj.store) < obj.store.getCapacity()
             })
             for (const resourceType in creep.carry) {
                 creep.transfer(target, resourceType)

@@ -17,7 +17,7 @@ function work(creep) {
                 memory.nexts = 'filling'
                 memory.thor = 100
             }
-        } else if (terminal.store[RESOURCE_ENERGY] > 14000 && _.sum(room.storage.store) / room.storage.storeCapacity < 0.95) {
+        } else if (terminal.store[RESOURCE_ENERGY] > 14000 && _.sum(room.storage.store) / room.storage.store.getCapacity() < 0.95) {
             memory.type = RESOURCE_ENERGY
             memory.gettarget = room.terminal.id
             memory.filltarget = room.storage.id
@@ -30,6 +30,24 @@ function work(creep) {
             memory.status = 'getting'
             memory.nexts = 'filling'
             memory.thor = 5000 - room.nuker.ghodium
+        } else if (room.memory.factory && room.memory.factory.status === 'fill' && room.memory.factory.thor > 0) {
+            const target = room.factory
+            Game.factory.miss(room)
+            memory.type = room.memory.factory.fillType
+            memory.gettarget = room.terminal.id
+            memory.status = 'getting'
+            memory.nexts = 'filling'
+            memory.filltarget = target.id
+            memory.thor = room.memory.factory.thor
+        } else if (room.memory.factory && room.memory.factory.status === 'get' && room.memory.factory.thor > 0) {
+            const target = room.factory
+            Game.factory.miss(room)
+            memory.type = room.memory.factory.fillType
+            memory.gettarget = target.id
+            memory.status = 'getting'
+            memory.nexts = 'filling'
+            memory.filltarget = room.terminal.id
+            memory.thor = room.memory.factory.thor
         } else {
             if (creep.ticksToLive < 50) {
                 creep.memory.status = 'suicide'
@@ -65,10 +83,10 @@ function work(creep) {
                         break
                     }
                 }
-                if(ok==false){
-                    room.memory.reaction.boostReady=true
-                }else{
-                    room.memory.reaction.boostReady=false
+                if (ok == false) {
+                    room.memory.reaction.boostReady = true
+                } else {
+                    room.memory.reaction.boostReady = false
                 }
             }
             if (!ok && room.memory.reaction && room.memory.reaction.status === 'collect') {
@@ -178,14 +196,16 @@ function miss(room) {
     room.memory.missions.terminalmanager = {}
     const terminal = room.terminal
     if (terminal) {
-        if (!room.controller.isPowerEnabled && terminal.store[RESOURCE_POWER] > 1400 && room.storage.store[RESOURCE_ENERGY] / room.storage.storeCapacity > 0.65 && room.powerSpawn) {
+        if (!room.controller.isPowerEnabled && terminal.store[RESOURCE_POWER] > 1400 && room.storage.store[RESOURCE_ENERGY] / room.storage.store.getCapacity() > 0.65 && room.powerSpawn) {
             room.memory.missions.terminalmanager[room.name] = {
                 roomName: room.name,
                 capacity: 100,
                 role: 'power',
             }
         }
-        if (terminal.store[RESOURCE_ENERGY] > 90000 || (!room.controller.isPowerEnabled && terminal.store[RESOURCE_GHODIUM] && terminal.store[RESOURCE_GHODIUM] >= 1000 && room.nuker && room.nuker.ghodium < 5000)) {
+        if (terminal.store[RESOURCE_ENERGY] > 90000 || (!room.controller.isPowerEnabled && terminal.store[RESOURCE_GHODIUM] && terminal.store[RESOURCE_GHODIUM] >= 1000 && room.nuker && room.nuker.ghodium < 5000)
+        ||(!room.controller.isPowerEnabled&&(room.memory.factory.status==='fill'||room.memory.factory.status==='get'))
+        ) {
             room.memory.missions.terminalmanager[room.name] = {
                 roomName: room.name,
             }
@@ -197,6 +217,7 @@ function miss(room) {
 
 
 }
+
 // Game.rooms['E29N38'].memory.missions.terminalmanager={}; Game.rooms['E29N38'].memory.missions.terminalmanager['E29N38'] = {roomName:'E29N38'};
 module.exports = {
     'work': work,

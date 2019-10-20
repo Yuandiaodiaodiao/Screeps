@@ -94,13 +94,13 @@ function miss(room) {
     role_num_fix[room.name] = role_num_fix[room.name] || {}
     if (room.storage && room.controller.level >= 4 && room.controller.level <= 7) {
 
-        if (room.storage.store[RESOURCE_ENERGY] / room.storage.storeCapacity < 0.3) {
+        if (room.storage.store[RESOURCE_ENERGY] / room.storage.store.getCapacity() < 0.3) {
             role_num_fix[room.name].upgrader = 0
-        } else if (room.storage.store[RESOURCE_ENERGY] / room.storage.storeCapacity < 0.4) {
+        } else if (room.storage.store[RESOURCE_ENERGY] / room.storage.store.getCapacity() < 0.4) {
             role_num_fix[room.name].upgrader = 1
-        } else if (room.storage.store[RESOURCE_ENERGY] / room.storage.storeCapacity < 0.5) {
+        } else if (room.storage.store[RESOURCE_ENERGY] / room.storage.store.getCapacity() < 0.5) {
             role_num_fix[room.name].upgrader = 2
-        } else if (room.storage.store[RESOURCE_ENERGY] / room.storage.storeCapacity >= 0.6) {
+        } else if (room.storage.store[RESOURCE_ENERGY] / room.storage.store.getCapacity() >= 0.6) {
             role_num_fix[room.name].upgrader = 3
         }
     }
@@ -120,7 +120,7 @@ function miss(room) {
     if (room.controller.ticksToDowngrade && room.controller.ticksToDowngrade < 3000 && role_num_fix[room.name].upgrader == 0) {
         role_num_fix[room.name].upgrader = 1
     }
-    if (room.storage && room.storage.store[RESOURCE_ENERGY] / room.storage.storeCapacity >= 0.98) {
+    if (room.storage && room.storage.store[RESOURCE_ENERGY] / room.storage.store.getCapacity() >= 0.98) {
         role_num_fix[room.name].upgrader = 1
     }
 

@@ -47,7 +47,8 @@ function work(creep) {
             creep.memory.status = 'pair'
         }
     } else if (creep.memory.status === 'pair') {
-        const targetCreep = creep.room.find(FIND_MY_CREEPS, {filter: o => o.name.split('_')[1] === 'boostAttack' && o.memory.missionid == creep.memory.missionid})[0]
+        const targetCreep = creep.room.find(FIND_MY_CREEPS, {filter: o => o.name.split('_')[1] === 'boostAttack' && o.memory.missionid === creep.memory.missionid})[0]
+        if (!targetCreep) return
         console.log('targetCreep=' + targetCreep.name)
         if (!targetCreep.memory.pair) {
             targetCreep.memory.pair = creep.id
@@ -79,10 +80,9 @@ function work(creep) {
             creep.moveTo(target, {serializeMemory: false, ignoreCreeps: false})
         }
         if (target) {
-
-            if (creep.hits<target.hits) {
+            if (creep.hits < target.hits) {
                 creep.memory.healTarget = creep.id
-            } else if (target.hits<creep.hits) {
+            } else if (target.hits < creep.hits) {
                 creep.memory.healTarget = target.id
             }
         } else {
@@ -90,7 +90,7 @@ function work(creep) {
         }
 
         creep.heal(Game.getObjectById(creep.memory.healTarget))
-        let enemy = creep.pos.findInRange(FIND_HOSTILE_CREEPS, 3)[0]
+        let enemy = creep.pos.findInRange(FIND_HOSTILE_CREEPS, 3,{filter:o=>o.pos.lookFor(LOOK_STRUCTURES).every(o=>o.structureType!==STRUCTURE_RAMPART)})[0]
         if (enemy) {
             if (enemy.pos.isNearTo(creep)) {
                 creep.rangedMassAttack()
@@ -99,12 +99,12 @@ function work(creep) {
             }
         } else {
             enemy = creep.pos.findInRange(FIND_HOSTILE_STRUCTURES, 3)[0]
-            if(!enemy)creep.pos.findInRange(FIND_STRUCTURES,3)[0]
+            if (!enemy) creep.pos.findInRange(FIND_STRUCTURES, 3)[0]
             creep.rangedAttack(enemy)
         }
         const fix = Game.flags['fix' + creep.memory.missionid]
         if (fix) {
-            creep.moveTo(fix,{ignoreCreeps:false})
+            creep.moveTo(fix, {ignoreCreeps: false})
         }
     }
 

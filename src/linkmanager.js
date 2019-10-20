@@ -8,7 +8,7 @@ function work(creep) {
         memory._move = undefined
         if (link.energy > 0) {
             memory.status = 'getlink'
-        } else if (container.store.energy / container.storeCapacity < 0.5 && upgrader < 50) {
+        } else if (container.store.energy / container.store.getCapacity() < 0.5 && upgrader < 50) {
             memory.status = 'getstorage'
         } else if (creep.carry.energy > 0) {
             memory.status = 'fillstorage'
@@ -32,7 +32,7 @@ function work(creep) {
         }
     } else if (memory.status == 'getstorage') {
         if (storage.store.energy > 1e5) {
-            const act = creep.withdraw(storage, RESOURCE_ENERGY, Math.min(creep.carryCapacity, (container.storeCapacity - _.sum(container.store))))
+            const act = creep.withdraw(storage, RESOURCE_ENERGY, Math.min(creep.carryCapacity, (container.store.getCapacity() - _.sum(container.store))))
             if (act == ERR_NOT_IN_RANGE) {
                 creep.moveTo(storage)
             } else if (act == OK || act == ERR_FULL) {
@@ -42,7 +42,7 @@ function work(creep) {
             memory.status = 'miss'
         }
     } else if (memory.status == 'fillstorage') {
-        if (_.sum(storage.store) / storage.storeCapacity < 0.98) {
+        if (_.sum(storage.store) / storage.store.getCapacity() < 0.98) {
             const act = creep.transfer(storage, RESOURCE_ENERGY)
             if (act == ERR_NOT_IN_RANGE) {
                 creep.moveTo(storage)

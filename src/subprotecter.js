@@ -1,9 +1,14 @@
 function born(spawnnow, creepname, memory) {
+
     let bodyparts = require('tools').generatebody({
         'move': 12,
         'ranged_attack': 10,
         'heal': 2
     }, spawnnow)
+    if (memory.body) {
+        bodyparts = require('tools').generatebody(memory.body, spawnnow)
+
+    }
     return spawnnow.spawnCreep(
         bodyparts,
         creepname,
@@ -33,8 +38,21 @@ function work(creep) {
             if (a.pos.roomName != b.pos.roomName) return a.pos.roomName > b.pos.roomName ? 1 : -1
             else return a.pos.x - b.pos.x
         })
+
         if (!targets[0]) {
-            creep.memory.status = 'heal'
+            const structure = require('tools').findroomselse(Game.rooms[creep.memory.missionid], FIND_HOSTILE_STRUCTURES, {
+                filter: obj => {
+                    return obj.structureType === STRUCTURE_INVADER_CORE
+                }
+            })[0]
+            if (structure) {
+                creep.memory.targetpos = [structure.pos.x, structure.pos.y, structure.pos.roomName]
+                creep.memory.target = structure.id
+                creep.memory.status = 'go'
+            }else{
+                creep.memory.status = 'heal'
+            }
+
             return
         }
         const pos = targets[0].pos
@@ -54,15 +72,21 @@ function work(creep) {
             creep.memory.status = 'heal'
         }
     }
-    if (creep.memory.status == 'go') {
+    if (creep.memory.status === 'go') {
         if (creep.pos.roomName == creep.memory.targetpos[2]) {
-            creep.memory.status = 'fight'
+            let target = Game.getObjectById(creep.memory.target)
+
+            if (target.ticksToLive) {
+                creep.memory.status = 'fight'
+            } else {
+                creep.memory.status = 'wall'
+            }
         } else {
             const pos = new RoomPosition(...creep.memory.targetpos)
             creep.moveTo(pos, {reusePath: 20})
         }
     }
-    if (creep.memory.status == 'fight') {
+    if (creep.memory.status === 'fight') {
         let target = Game.getObjectById(creep.memory.target)
         if (target) {
             creep.heal(creep)
@@ -82,7 +106,7 @@ function work(creep) {
         } else {
             creep.memory.status = 'miss'
         }
-    } else if (creep.memory.status == 'heal' && creep.getActiveBodyparts('heal')) {
+    } else if (creep.memory.status === 'heal' && creep.getActiveBodyparts('heal')) {
         const target = creep.pos.findClosestByPath(FIND_MY_CREEPS, {filter: obj => obj.hits < obj.hitsMax})
         if (target) {
             const act = creep.heal(target)
@@ -101,21 +125,59 @@ function work(creep) {
             creep.memory.status = 'sleep'
         }
 
+    } else if (creep.memory.status === 'wall') {
+        const target = Game.getObjectById(creep.memory.target)
+        if (!target) {
+            creep.memory.status = 'miss'
+        }
+        if (!creep.pos.isNearTo(target)) {
+           creep.moveTo(target)
+        }
+        creep.rangedAttack(target)
+        creep.attack(target)
+        if (Game.time % 20 === 0) {
+            creep.memory.status = 'miss'
+        }
     }
 
 
 }
+/*
 
+let x=require('tools').findroomselse(Game.rooms['E27N38'], FIND_HOSTILE_STRUCTURES, {
+        filter: obj => {
+           return obj.structureType === STRUCTURE_INVADER_CORE
+        }
+    });
+    console.log(x[0].owner)
+
+
+
+ */
 function miss(room) {
     if (!room.memory.missions) return
     room.memory.missions.subprotecter = {}
-    if (require('tools').findroomselse(room, FIND_HOSTILE_CREEPS, {
+    if (require('tools').findroomselse(room, FIND_HOSTILE_STRUCTURES, {
+        filter: obj => {
+            return obj.structureType === STRUCTURE_INVADER_CORE
+        }
+    }).length > 0) {
+        room.memory.missions.subprotecter[room.name] = {
+            roomName: room.name,
+            body: {
+                'attack': 13,
+                'move': 25,
+                'ranged_attack': 10,
+                'heal': 2
+
+            }
+        }
+    } else if (require('tools').findroomselse(room, FIND_HOSTILE_CREEPS, {
         filter: obj => {
             return require('whitelist').whitelist.indexOf(obj.owner.username) == -1
         }
     }).length > 0) {
         room.memory.missions.subprotecter[room.name] = {
-            creeps: [],
             roomName: room.name
         }
     } else {

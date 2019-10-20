@@ -22,7 +22,7 @@ if (!Creep.prototype._dismantle) {
     Creep.prototype._dismantle = Creep.prototype.dismantle
     Creep.prototype.dismantle = function (target) {
         const ans = this._dismantle(target)
-        if (ans == OK) {
+        if (ans === OK) {
             this.say('💪')
         }
         return ans
@@ -82,7 +82,7 @@ function miss(filterName) {
                 }
             }
             const config = from[fromRoomName]
-            if ((!config.pathttl) && (config.failedtimes ? config.failedtimes <= 30 : true)) {
+            if ((!config.pathttl || Game.time - config.pathttl > 3000) && (config.failedtimes ? config.failedtimes <= 30 : true)) {
                 const ans = PathFinder.search(fromRoom.spawns[0].pos, {pos: goal, range: 2}, {
                     plainCost: 1,
                     swampCost: 5,
@@ -156,13 +156,14 @@ function miss(filterName) {
 
 }
 
-module.exports.stop=stop
+module.exports.stop = stop
+
 function stop(targetRoomName) {
     const army = Memory.army
     const plan = army[targetRoomName]
     const from = plan.from
     const creeps = plan.creep
-    plan.safeMode=true
+    plan.safeMode = true
     for (let fromRoomName in from) {
         const config = from[fromRoomName]
         for (let role in creeps) {
@@ -172,6 +173,7 @@ function stop(targetRoomName) {
         }
     }
 }
+
 module.exports.remove = remove
 
 function remove(targetRoomName) {
@@ -515,7 +517,7 @@ function howDangerous(creep) {
     let level = 0
     creep.body.forEach(bodypart => {
         const type = bodypart.type
-        level = Math.max(dangerousLevel[type]||-1, level)
+        level = Math.max(dangerousLevel[type] || -1, level)
     })
     return level
 }
@@ -527,13 +529,13 @@ function workRush(creep) {
         require('tools').roomCachettl[creep.pos.roomName] = 0
     }
     if (creep.pos.roomName == creep.memory.missionid) {
-        let target = creep.pos.findClosestByPath(FIND_HOSTILE_STRUCTURES, {filter: obj => obj.structureType != STRUCTURE_RAMPART && (!obj.pos.lookFor(LOOK_STRUCTURES).some(obj => obj.structureType == STRUCTURE_RAMPART)) && obj.structureType != STRUCTURE_CONTROLLER})
-        if (!target) target = creep.pos.findClosestByPath(FIND_HOSTILE_STRUCTURES, {filter: obj => obj.structureType == STRUCTURE_RAMPART})
+        let target = creep.pos.findClosestByPath(FIND_HOSTILE_STRUCTURES, {filter: obj => obj.hits && obj.structureType != STRUCTURE_RAMPART && (!obj.pos.lookFor(LOOK_STRUCTURES).some(obj => obj.structureType == STRUCTURE_RAMPART)) && obj.structureType != STRUCTURE_CONTROLLER})
+        if (!target) target = creep.pos.findClosestByPath(FIND_HOSTILE_STRUCTURES, {filter: obj => obj.hits && obj.structureType == STRUCTURE_RAMPART})
         if (!target) target = creep.pos.findClosestByPath(FIND_HOSTILE_CONSTRUCTION_SITES)
-        if (!target) target = creep.pos.findClosestByPath(FIND_STRUCTURES, {filter: obj => obj.structureType != STRUCTURE_CONTROLLER})
+        if (!target) target = creep.pos.findClosestByPath(FIND_STRUCTURES, {filter: obj => obj.hits && obj.structureType != STRUCTURE_CONTROLLER})
         if (target) {
             creep.moveTo(target, {ignoreCreeps: false, reusePath: 10})
-            creep.dismantle(target)
+            const act=creep.dismantle(target)
         }
 
     } else {
