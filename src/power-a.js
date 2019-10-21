@@ -46,6 +46,7 @@ function work(creep) {
         if (pb && pb.hits < 1000 && pb.ticksToDecay > 10 && creep.ticksToLive > 10 && creep.room.find(FIND_MY_CREEPS, {filter: obj => obj.name.split('_')[1] == 'power-c'}).length < powerp.carry) {
             creep.memory.sleep = 5
         } else {
+            creep.memory.sleep=undefined
             const act = creep.attack(pb)
             if (act == ERR_NOT_IN_RANGE) {
                 creep.moveTo(pb)

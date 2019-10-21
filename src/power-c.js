@@ -38,6 +38,7 @@ function work(creep) {
         }
         if (powerp.status >= 4) {
             let res = creep.room.find(FIND_DROPPED_RESOURCES)[0]
+
             if (res) {
                 const act = creep.pickup(res)
                 if (act == ERR_NOT_IN_RANGE) {
@@ -57,6 +58,14 @@ function work(creep) {
                 if (!creep.pos.isNearTo(res)) {
                     creep.moveTo(res, {plainCost: 1, swampCost: 5})
                 }
+            } else if ((res = creep.room.find(FIND_RUINS, {filter: o => o.store.getUsedCapacity('power') > 0})[0])) {
+                const act = creep.withdraw(res, 'power')
+                if (act === ERR_NOT_IN_RANGE) {
+                    creep.moveTo(res, {plainCost: 1, swampCost: 5})
+                } else if (act === ERR_FULL) {
+                    creep.memory.status = 'return'
+                    creep.memory.step = powerp.position.length - 1
+                }
             } else {
                 creep.memory.status = 'return'
                 creep.memory.step = powerp.position.length - 1
@@ -64,7 +73,7 @@ function work(creep) {
         }
 
     } else if (creep.memory.status == 'return') {
-        creep.memory.step =creep.memory.step|| powerp.position.length - 1
+        creep.memory.step = creep.memory.step || powerp.position.length - 1
         let pos = new RoomPosition(...powerp.position[creep.memory.step])
         if (creep.pos.isEqualTo(pos)) {
             creep.memory.step--

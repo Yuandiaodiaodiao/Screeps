@@ -12,7 +12,7 @@ var powerRoom = {
     'E25N43': ['E23N40', 'E24N40', 'E25N40', 'E26N40', 'E27N40'],
     'E27N42': ['E28N40', 'E29N40'],
     'E19N41': ['E18N40', 'E19N40', 'E20N40', 'E20N41', 'E20N39'],
-    'E14N41': ['E13N40', 'E14N40', 'E15N40']
+    // 'E14N41': ['E13N40', 'E14N40', 'E15N40']
 }
 
 function miss() {
@@ -24,16 +24,14 @@ function miss() {
             continue
         }
         const terminal = room.terminal
-
         if(!terminal){
             continue
         }
-        if ((terminal.store[RESOURCE_POWER] || 0) > 50000) continue
+        if ((terminal.store[RESOURCE_POWER] || 0) > 20e3) continue
         const rooms = powerRoom[roomName]
         for (let roomn of rooms) {
-            continue
             const roomc = require('observer').observerCache[roomn]
-            if (false&& roomc && roomc.powerBank && roomc.power >= 1000 && Game.time - roomc.startTime <= 500 && !Memory.powerPlan[roomn] && Game.rooms[roomName].storage.store[RESOURCE_ENERGY] > 300000) {
+            if (Game.cpu.bucket>5000&&roomc && roomc.powerBank && roomc.power >= 1000 && Game.time - roomc.startTime <= 500 && !Memory.powerPlan[roomn] && Game.rooms[roomName].storage.store[RESOURCE_ENERGY] > 300000) {
                 const targetpos = new RoomPosition(roomc.pos[0], roomc.pos[1], roomn)
                 const ans = PathFinder.search(Game.rooms[roomName].spawns[0].pos, {pos: targetpos, range: 3}, {
                     plainCost: 1, swampCost: 5, roomCallback: require('tools').roomc_nocreep, maxOps: 10000

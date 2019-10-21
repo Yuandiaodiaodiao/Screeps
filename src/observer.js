@@ -40,13 +40,14 @@ function work() {
                     owner: controller.owner.username,
                     time: Game.time
                 }
-            } else if (controller && controller.reservation && !(controller.reservation.username==='Invader'||controller.reservation.username === 'Yuandiaodiaodiao')) {
+            } else if (controller && controller.reservation && !(controller.reservation.username === 'Invader' || controller.reservation.username === 'Yuandiaodiaodiao')) {
                 observerCache[roomName] = {
                     owner: controller.reservation.username,
                     time: Game.time
                 }
             } else if (!controller) {
                 const pb = room.powerBanks[0]
+                // const newWall = room.find(FIND_STRUCTURES, {filter: o => o.structureType === STRUCTURE_WALL && (!o.hits)})[0]
                 if (pb) {
                     observerCache[roomName] = {
                         powerBank: true,
@@ -65,60 +66,19 @@ function work() {
                     time: Game.time
                 }
             }
-            {
-                const ttl = require('tools').roomCachettl[roomName]
-                if (!ttl || Game.time - ttl >= 500) {
-                    const costs = new PathFinder.CostMatrix
-                    let cantgo = 0
-                    room.find(FIND_STRUCTURES).forEach(struct => {
-                        if (struct.structureType === STRUCTURE_ROAD) {
-                            costs.set(struct.pos.x, struct.pos.y, 1)
-                            cantgo++
-                        } else if (struct.structureType !== STRUCTURE_CONTAINER && (struct.structureType == STRUCTURE_RAMPART ? (!(struct.my || struct.isPublic)) : true)) {
-                            if (struct.structureType != STRUCTURE_CONTROLLER || struct.structureType != STRUCTURE_EXTRACTOR) {
-                                cantgo++
-                            }
-                            costs.set(struct.pos.x, struct.pos.y, 0xff)
-                        }
-                    })
-                    room.find(FIND_MY_CONSTRUCTION_SITES).forEach(struct => {
-                        if (struct.structureType === STRUCTURE_ROAD) {
-                            costs.set(struct.pos.x, struct.pos.y, 1)
-                            cantgo++
-                        } else if (struct.structureType !== STRUCTURE_CONTAINER &&
-                            (struct.structureType !== STRUCTURE_RAMPART ||
-                                !struct.my)) {
-                            if (struct.structureType != STRUCTURE_CONTROLLER || struct.structureType != STRUCTURE_EXTRACTOR) {
-                                cantgo++
-                            }
-                            costs.set(struct.pos.x, struct.pos.y, 0xff)
-                        }
-                    })
-                    if (require('tools').isCenterRoom(roomName)) {
-                        room.find(FIND_HOSTILE_CREEPS).forEach(o => {
-                            if (o.owner == 'Source Keeper') {
-                                for (let a = -3; a <= 3; ++a) {
-                                    for (let b = -3; b <= 3; ++b) {
-                                        costs.set(o.pos.x + a, o.pos.y + b, 0xff)
-                                    }
-                                }
-                            }
-                        })
-                    }
-                    if (cantgo == 0) {
-                        require('tools').roomCache[roomName] = undefined
-                    } else {
-                        require('tools').roomCache[roomName] = costs
-                    }
 
-                    require('tools').roomCachettl[roomName] = Game.time
-                    if (require('tools').roomCacheUse[roomName] && Game.time - require('tools').roomCacheUse[roomName] > 4000) {
-                        require('tools').roomCache[roomName] = undefined
-                        observerCache[roomName]['lazytime'] = Game.time
-                        observerCache[roomName]['time'] = undefined
-                    }
 
-                }
+            const ttl = Game.tools.roomCachettl[roomName]
+            if (!ttl || Game.time - ttl >= 500) {
+                const costs = Game.tools.getRoomCostMatrix(room)
+                Game.tools.roomCache[roomName] = costs
+                Game.tools.roomCachettl[roomName] = Game.time
+            }
+            if (Game.tools.roomCacheUse[roomName] && Game.time - Game.tools.roomCacheUse[roomName] > 4000) {
+                //clear costMatrix to save memory
+                Game.tools.roomCache[roomName] = undefined
+                observerCache[roomName]['lazytime'] = Game.time
+                observerCache[roomName]['time'] = undefined
             }
 
         }
@@ -162,7 +122,7 @@ function cache() {
 function observerCacheSet(val) {
     if (val) {
         observerCache = val
-        module.exports.observerCache = observerCache
+        module.exports.observerCache = observerCache||{}
     } else {
         return observerCache
     }

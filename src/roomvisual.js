@@ -22,7 +22,7 @@ module.exports.work = function (room) {
     Object.keys(Memory.rooms).forEach(roomName => {
         const nuke = Game.rooms[roomName].nuker
         if (nuke) {
-            room.visual.text(`nuke ${roomName} ${(nuke.cooldown || 0) == 0 ? 'OK' : "" + (100-nuke.cooldown / 100000 * 100).toFixed(1) + "%"}`,
+            room.visual.text(`nuke ${roomName} ${(nuke.cooldown || 0) == 0 ? 'OK' : "" + (100 - nuke.cooldown / 100000 * 100).toFixed(1) + "%"}`,
                 5, nukey++, {color: 'red', font: 0.5}
             )
         }
@@ -30,6 +30,36 @@ module.exports.work = function (room) {
 
 }
 module.exports.statistics = function () {
+
+    const flagDraw = Game.flags['draw']
+    if (flagDraw) {
+        const roomName = flagDraw.pos.roomName
+        const costMatrix = Game.tools.roomCache[roomName]
+        if (costMatrix) {
+            for (let x = 0; x <= 49; ++x) {
+                for (let y = 0; y <= 49; ++y) {
+                    let val = costMatrix.get(x, y)
+                    if (val > 0) {
+                        new RoomVisual(flagDraw.pos.roomName).text(val.toString(), x, y, {font: 0.3})
+                    }
+                }
+            }
+        } else {
+
+            new RoomVisual(flagDraw.pos.roomName).text('no costMatrix'+JSON.stringify(costMatrix), 25, 23, {font: 0.8})
+        }
+
+        new RoomVisual(flagDraw.pos.roomName).text(`time=${Game.time}`, 25, 24, {font: 0.8})
+        const cacheTTL = Game.tools.roomCachettl[roomName]
+        new RoomVisual(flagDraw.pos.roomName).text(`cacheTTL=${cacheTTL}`, 25, 25, {font: 0.8})
+        const obCache = require('observer').observerCache[roomName]
+        new RoomVisual(flagDraw.pos.roomName).text(`obCache=${JSON.stringify(obCache)}`, 25, 26, {font: 0.8})
+        new RoomVisual(flagDraw.pos.roomName).text(`roomCacheUse=${Game.tools.roomCacheUse[roomName]}`, 25, 27, {font: 0.8})
+
+
+
+    }
+
 
     Object.values(Game.spawns).forEach(obj => {
         let memory = obj.room.memory
@@ -62,3 +92,4 @@ module.exports.statistics = function () {
     Memory.cpu.ticks++
     Memory.cpu.uses += Game.cpu.getUsed()
 }
+

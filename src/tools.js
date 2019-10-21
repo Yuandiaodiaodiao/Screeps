@@ -93,46 +93,20 @@ function randomNum(minNum, maxNum) {
 var roomCache = undefined
 var roomCacheWithCreep = {}
 var roomCacheWithCreepttl = {}
-    var roomCachettl = undefined
+var roomCachettl = undefined
 var roomCacheUse = undefined
 
 function roomc(roomName) {
-    if (roomCacheWithCreep[roomName] && roomCacheWithCreepttl[roomName] && roomCacheWithCreepttl[roomName] == Game.time) {
+    if (roomCacheWithCreep[roomName] && roomCacheWithCreepttl[roomName] && roomCacheWithCreepttl[roomName] === Game.time) {
         return roomCacheWithCreep[roomName].clone()
     }
     let cost = roomc_nocreep(roomName)
     const room = Game.rooms[roomName]
     if (!cost) {
-        cost = new PathFinder.CostMatrix
         if (room) {
-            const roomC = roomCache[roomName]
-            const ttl = roomCachettl[roomName]
-            if (roomC && ttl && Game.time - ttl < 1500) {
-                cost = roomC
-            } else {
-                room.find(FIND_STRUCTURES).forEach(struct => {
-                    if (struct.structureType === STRUCTURE_ROAD) {
-                        cost.set(struct.pos.x, struct.pos.y, 1)
-                    } else if (struct.structureType !== STRUCTURE_CONTAINER && (struct.structureType == STRUCTURE_RAMPART ? (!(struct.my || struct.isPublic)) : true)) {
-                        if (struct.structureType != STRUCTURE_CONTROLLER || struct.structureType != STRUCTURE_EXTRACTOR) {
-                        }
-                        cost.set(struct.pos.x, struct.pos.y, 0xff)
-                    }
-                })
-                room.find(FIND_MY_CONSTRUCTION_SITES).forEach(struct => {
-                        if (struct.structureType !== STRUCTURE_CONTAINER &&
-                            (struct.structureType !== STRUCTURE_RAMPART ||
-                                !struct.my)) {
-                            if (struct.structureType != STRUCTURE_CONTROLLER || struct.structureType != STRUCTURE_EXTRACTOR) {
-                            }
-                            cost.set(struct.pos.x, struct.pos.y, 0xff)
-                        }
-                    }
-                )
-                roomCache[roomName] = cost
-                roomCachettl[roomName] = Game.time
-            }
+            cost = getRoomCostMatrix(room)
         }
+        cost = cost || new PathFinder.CostMatrix
     }
     if (room) {
         room.find(FIND_CREEPS).forEach(creep => {
@@ -161,6 +135,20 @@ function isCenter(roomName) {
     return x >= 4 && x <= 6 && y >= 4 && y <= 6
 }
 
+function isHighway(roomName) {
+    const parsed = /^[WE]([0-9]+)[NS]([0-9]+)$/.exec(roomName);
+    const isHighway = (parsed[1] % 10 === 0) ||
+        (parsed[2] % 10 === 0)
+    return isHighway
+}
+
+function isMyRoom(roomName, userName) {
+    const controller = (Game.rooms[roomName] || {}).controller
+    const isMyroom = controller &&
+        (controller.my || (controller.reservation && controller.reservation.username === userName))
+    return isMyroom
+}
+
 function roomc_nocreep(roomName) {
     const observer = require('observer')
     const room = Game.rooms[roomName]
@@ -168,71 +156,76 @@ function roomc_nocreep(roomName) {
         return false
     } else if (!room && !observer.observerCache[roomName]) {
         observer.observer_queue.add(roomName)
-        const parsed = /^[WE]([0-9]+)[NS]([0-9]+)$/.exec(roomName);
-        const isHighway = (parsed[1] % 10 === 0) ||
-            (parsed[2] % 10 === 0);
-        const controller = Game.rooms[roomName] ? Game.rooms[roomName].controller : undefined
-        const isMyRoom = controller &&
-            (controller.my || (controller.reservation && controller.reservation.username === 'Yuandiaodiaodiao'))
-        if (!(isMyRoom || isCenter(roomName))) return false
+        roomCacheUse[roomName] = Game.time
+        if (!isMyRoom(roomName, Game.config.userName) && !isCenter(roomName)) return false
+    } else if (!room && observer.observerCache[roomName].lazytime) {
+        observer.observer_queue.add(roomName)
+        observer.observerCache[roomName].lazytime = undefined
+        roomCacheUse[roomName] = Game.time
+        return false
     }
-
     let costs = undefined
-    const roomC = roomCache[roomName]
     const ttl = roomCachettl[roomName]
     if (ttl && Game.time - ttl < 1500) {
-        costs = roomC
+        costs = roomCache[roomName]
         roomCacheUse[roomName] = Game.time
     } else if (room) {
-        costs = new PathFinder.CostMatrix
-        let cantgo = 0
-        room.find(FIND_STRUCTURES).forEach(struct => {
+        costs = getRoomCostMatrix(room)
+        roomCache[roomName] = costs
+        roomCachettl[roomName] = Game.time
+    } else {
+        observer.observer_queue.add(roomName)
+        roomCacheUse[roomName] = Game.time
+        return false
+    }
+    return costs ? costs.clone() : undefined
+}
+
+function getRoomCostMatrix(room) {
+    const roomName = room.name
+    let costs = new PathFinder.CostMatrix
+    let cantgo = 0
+    room.find(FIND_STRUCTURES).forEach(struct => {
+        if (struct.structureType === STRUCTURE_ROAD) {
+            cantgo++
+            costs.set(struct.pos.x, struct.pos.y, 1)
+        } else if (struct.structureType !== STRUCTURE_CONTAINER && (struct.structureType === STRUCTURE_RAMPART ? (!(struct.my || struct.isPublic)) : true)) {
+            if (struct.structureType !== STRUCTURE_CONTROLLER || struct.structureType !== STRUCTURE_EXTRACTOR) {
+                cantgo++
+            }
+            costs.set(struct.pos.x, struct.pos.y, 0xff)
+        }
+    })
+    room.find(FIND_MY_CONSTRUCTION_SITES).forEach(struct => {
             if (struct.structureType === STRUCTURE_ROAD) {
                 cantgo++
                 costs.set(struct.pos.x, struct.pos.y, 1)
-            } else if (struct.structureType !== STRUCTURE_CONTAINER && (struct.structureType == STRUCTURE_RAMPART ? (!(struct.my || struct.isPublic)) : true)) {
+            } else if (struct.structureType !== STRUCTURE_CONTAINER &&
+                (struct.structureType !== STRUCTURE_RAMPART ||
+                    !struct.my)) {
                 if (struct.structureType != STRUCTURE_CONTROLLER || struct.structureType != STRUCTURE_EXTRACTOR) {
                     cantgo++
                 }
                 costs.set(struct.pos.x, struct.pos.y, 0xff)
             }
-        })
-        room.find(FIND_MY_CONSTRUCTION_SITES).forEach(struct => {
-                if (struct.structureType === STRUCTURE_ROAD) {
-                    cantgo++
-                    costs.set(struct.pos.x, struct.pos.y, 1)
-                } else if (struct.structureType !== STRUCTURE_CONTAINER &&
-                    (struct.structureType !== STRUCTURE_RAMPART ||
-                        !struct.my)) {
-                    if (struct.structureType != STRUCTURE_CONTROLLER || struct.structureType != STRUCTURE_EXTRACTOR) {
-                        cantgo++
+        }
+    )
+
+    if (isCenterRoom(roomName)) {
+        room.find(FIND_HOSTILE_CREEPS).forEach(o => {
+            if (o.owner === 'Source Keeper') {
+                for (let a = -3; a <= 3; ++a) {
+                    for (let b = -3; b <= 3; ++b) {
+                        costs.set(o.pos.x + a, o.pos.y + b, 0xff)
                     }
-                    costs.set(struct.pos.x, struct.pos.y, 0xff)
                 }
             }
-        )
-
-        if (isCenterRoom(roomName)) {
-            room.find(FIND_HOSTILE_CREEPS).forEach(o => {
-                if (o.owner == 'Source Keeper') {
-                    for (let a = -3; a <= 3; ++a) {
-                        for (let b = -3; b <= 3; ++b) {
-                            costs.set(o.pos.x + a, o.pos.y + b, 0xff)
-                        }
-                    }
-                }
-            })
-        }
-        if (cantgo == 0) {
-            roomCache[roomName] = undefined
-            costs = undefined
-        } else {
-            roomCache[roomName] = costs
-        }
-        roomCachettl[roomName] = Game.time
+        })
     }
-
-    return costs ? costs.clone() : new PathFinder.CostMatrix
+    if (cantgo === 0) {
+        costs = undefined
+    }
+    return costs
 }
 
 function testmemory() {
@@ -435,7 +428,7 @@ function moveByLongPath(pathArray, creep) {
 }
 
 module.exports = {
-    'bodycost':bodycost,
+    'bodycost': bodycost,
     'findrooms': findrooms,
     'generatebody': generatebody,
     'deepcopy': deepcopy,
@@ -456,4 +449,5 @@ module.exports = {
     'isCenterRoom': isCenterRoom,
     'roomCacheUseSet': roomCacheUseSet,
     'moveByLongPath': moveByLongPath,
+    'getRoomCostMatrix': getRoomCostMatrix
 };

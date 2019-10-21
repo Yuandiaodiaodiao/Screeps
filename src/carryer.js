@@ -1,6 +1,6 @@
 function work(creep) {
     const memory = creep.memory
-    if (memory.status == 'getting') {
+    if (memory.status === 'getting') {
         const target = Game.getObjectById(memory.missionid)
         if (target) {
             if (creep.pos.getRangeTo(target) > 1) {
@@ -26,11 +26,13 @@ function work(creep) {
                     }
 
                 }
-            } else if (memory.type != RESOURCE_ENERGY && target.store[RESOURCE_ENERGY] > 0) {
+            } else if (memory.type !== RESOURCE_ENERGY && target.store[RESOURCE_ENERGY] > 0) {
                 const action = creep.withdraw(target, RESOURCE_ENERGY)
-                if (action == ERR_NOT_IN_RANGE) {
+                if (action === ERR_NOT_IN_RANGE) {
                     creep.moveTo(target)
                 }
+            }else if(memory.type==RESOURCE_ENERGY&&target.store.getUsedCapacity()>target.store.getUsedCapacity('energy')){
+                creep.memory.status='clean'
             }
         }
     } else if (memory.status == 'carrying') {
@@ -77,6 +79,29 @@ function work(creep) {
         } catch (e) {
             console.log(`suicide error ${creep.name}`)
         }
+    }else if(memory.status==='clean'){
+        const target = Game.getObjectById(memory.missionid)
+        let ok=false
+        for(let type in target.store){
+            if(type!==RESOURCE_ENERGY){
+                creep.withdraw(target,type)
+                ok=true
+                break
+            }
+        }
+        if(!ok){
+            for(let type in creep.store){
+                if(type!==RESOURCE_ENERGY){
+                    creep.drop(type)
+                    ok=true
+                    break
+                }
+            }
+        }
+        if(!ok){
+            creep.memory.status='getting'
+        }
+
     }
 }
 

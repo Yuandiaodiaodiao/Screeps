@@ -8,13 +8,11 @@ function clearmem() {
     for (let name in Memory.creeps) {
         if (!Game.creeps[name]) {
             delete Memory.creeps[name]
-            delete require('prototype.Creep.move').lastMove[name]
         }
     }
     for (let name in Memory.powerCreeps) {
         if (!Game.powerCreeps[name] || !Game.powerCreeps[name].ticksToLive) {
             delete Memory.powerCreeps[name]
-            delete require('prototype.Creep.move').lastMove[name]
         }
     }
 }
@@ -337,6 +335,7 @@ function load() {
     Game.tools = require('tools')
     Game.terminal = require('terminal')
     Game.factory = require('factory')
+    Game.observer=require('observer')
 }
 
 var missionController = require('missionController')
@@ -344,12 +343,17 @@ var missionController = require('missionController')
 module.exports.loop = function () {
     if (shard()) return
     load()
+    // try{
+    //     require('Game.memory').work()
+    // }catch (e) {
+    //     console.log('main.Game.memory error'+e)
+    // }
     try {
         require('cacheController').Cache()
     } catch (e) {
         console.log('cacheController error' + e)
     }
-    require('prototype.Creep.move').moveCache.clear()
+    require('prototype.Creep.move').clear()
     if (Game.time % 20 == 0) {
         clearmem()
     }

@@ -55,3 +55,5 @@ var role_num = {
     destroyer: 0
 }
 module.exports.role_num = role_num
+
+module.exports.userName='Yuandiaodiaodiao'

@@ -2,14 +2,14 @@
 creep对穿
 拒绝堵车从你做起
 author: Yuandiaodiaodiao
-data:2019/9/13
-version:1.1
+data:2019/10/21
+version:1.2
 Usage:
 module :main
 
 require('prototype.Creep.move')
 module.exports.loop=function(){
-     require('prototype.Creep.move').moveCache.clear()
+     require('prototype.Creep.move').clear()
 
      //your codes go here
 
@@ -27,6 +27,7 @@ var config = {
     roomCallbackWithoutCreep: require('tools').roomc_nocreep,//moveTo默认使用的忽视creep的callback函数
     roomCallbackWithCreep: require('tools').roomc,//moveTo默认使用的计算creep体积的callback函数
     changeFindClostestByPath: true,  //修改findClosestByPath 使得默认按照对穿路径寻找最短
+    reusePath: 10 //增大默认寻路缓存
 }
 
 var moveCache = new Set()
@@ -34,7 +35,6 @@ var lastMove = {}
 module.exports.moveCache = moveCache
 module.exports.lastMove = lastMove
 if (config.changemove) {
-
     if (!Creep.prototype._move) {
         // Store the original method
         Creep.prototype._move = Creep.prototype.move
@@ -44,7 +44,7 @@ if (config.changemove) {
             const direction = +target
             const thisarray = [this.pos.x, this.pos.y, direction, Game.time]
             const lastM = lastMove[this.name] = lastMove[this.name] || thisarray
-            if ((this.room.storage && this.pos.getRangeTo(this.room.storage.pos) < 10) || (lastM[0] == this.pos.x && lastM[1] == this.pos.y && lastM[3] + 1 == Game.time && lastM[2] == direction) || (this.pos.x <= 1 || this.pos.x >= 49 || this.pos.y <= 1 || this.pos.y >= 49)) {
+            if ((this.room.storage && this.pos.getRangeTo(this.room.storage.pos) < 10) || (lastM[0] === this.pos.x && lastM[1] === this.pos.y && lastM[3] + 1 === Game.time && lastM[2] === direction) || (this.pos.x <= 1 || this.pos.x >= 49 || this.pos.y <= 1 || this.pos.y >= 49)) {
                 const tarpos = pos2direction(this.pos, direction)
                 if (tarpos) {
                     const tarcreep = tarpos.lookFor(LOOK_CREEPS)[0] || tarpos.lookFor(LOOK_POWER_CREEPS)[0]
@@ -79,13 +79,13 @@ if (config.changemoveTo) {
                 ops = opts || {}
             }
             if (!ops.reusePath) {
-                ops.reusePath = 10
+                ops.reusePath = config.reusePath
             }
             if (ops.ignoreRoads) {
                 ops.plainCost = 1
                 ops.swampCost = 5
             }
-            if (ops.ignoreCreeps == undefined || ops.ignoreCreeps == true) {
+            if (ops.ignoreCreeps === undefined || ops.ignoreCreeps === true) {
                 ops.ignoreCreeps = true
                 ops.costCallback = config.roomCallbackWithoutCreep
             } else {
@@ -130,7 +130,7 @@ if (config.changeFindClostestByPath) {
         RoomPosition.prototype._findClosestByPath = RoomPosition.prototype.findClosestByPath
         RoomPosition.prototype.findClosestByPath = function (type, opts) {
             opts = opts || {}
-            if (opts.ignoreCreeps == undefined || opts.ignoreCreeps == true) {
+            if (opts.ignoreCreeps === undefined || opts.ignoreCreeps === true) {
                 opts.ignoreCreeps = true
                 opts.costCallback = config.roomCallbackWithoutCreep
             } else {
@@ -146,21 +146,36 @@ function pos2direction(pos, direction) {
         x: pos.x,
         y: pos.y,
     }
-    if (direction != 7 && direction != 3) {
+    if (direction !== 7 && direction !== 3) {
         if (direction > 7 || direction < 3) {
             --tarpos.y
         } else {
             ++tarpos.y
         }
     }
-    if (direction != 1 && direction != 5) {
+    if (direction !== 1 && direction !== 5) {
         if (direction < 5) {
             ++tarpos.x
         } else {
             --tarpos.x
         }
     }
-    if (tarpos.x < 0 || tarpos.y > 49 || tarpos.x > 49 || tarpos.y < 0) return undefined
-    else
+    if (tarpos.x < 0 || tarpos.y > 49 || tarpos.x > 49 || tarpos.y < 0) {
+        return undefined
+    } else {
         return new RoomPosition(tarpos.x, tarpos.y, pos.roomName)
+
+    }
+}
+
+module.exports.clear = function () {
+    moveCache.clear()
+    if (Game.time % 1500 === 0) {
+        for (let name in lastMove) {
+            if (Game.time - lastMove[name][3] > 100) {
+                delete lastMove[name]
+            }
+        }
+    }
+
 }

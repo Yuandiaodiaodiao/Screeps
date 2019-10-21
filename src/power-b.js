@@ -40,10 +40,13 @@ function work(creep) {
         }
         if (!target) return
         creep.memory.target = target.id
-        const act = creep.heal(target)
-        if (act == ERR_NOT_IN_RANGE) {
-            creep.moveTo(target, {ignoreCreeps: false,serializeMemory:false})
+        if (!target.memory.sleep) {
+            const act = creep.heal(target)
+            if (act == ERR_NOT_IN_RANGE) {
+                creep.moveTo(target, {ignoreCreeps: false, serializeMemory: false})
+            }
         }
+
 
     }
 

@@ -535,7 +535,7 @@ function workRush(creep) {
         if (!target) target = creep.pos.findClosestByPath(FIND_STRUCTURES, {filter: obj => obj.hits && obj.structureType != STRUCTURE_CONTROLLER})
         if (target) {
             creep.moveTo(target, {ignoreCreeps: false, reusePath: 10})
-            const act=creep.dismantle(target)
+            const act = creep.dismantle(target)
         }
 
     } else {
@@ -546,6 +546,13 @@ function workRush(creep) {
     if (!Game.flags['rush' + creep.memory.missionid]) {
         creep.memory.status = 'fighting'
     }
+}
+module.exports.moveAwayFromSide=moveAwayFromSide
+function moveAwayFromSide(creep) {
+    if (creep.pos.x === 0) creep.move(RIGHT)
+    else if (creep.pos.x === 49) creep.move(LEFT)
+    else if (creep.pos.y === 0) creep.move(BOTTOM)
+    else if (creep.pos.y === 49) creep.move(TOP)
 }
 
 /*

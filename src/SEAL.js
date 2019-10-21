@@ -97,7 +97,14 @@ function work(creep) {
 
     }
     if (creep.memory.status == 'rush') {
-        if(creep.getActiveBodyparts(ATTACK)===0&&creep.getActiveBodyparts(HEAL)===0&&creep.getActiveBodyparts(RANGED_ATTACK)===0){
+        if (creep.pos.roomName === creep.memory.missionid) {
+            if (Game.time % (Math.ceil(Math.random() * 5)) === 0) {
+                if (creep.room.towers.length === 0) {
+                    Game.war.moveAwayFromSide(creep)
+                }
+            }
+        }
+        if (creep.getActiveBodyparts(ATTACK) === 0 && creep.getActiveBodyparts(HEAL) === 0 && creep.getActiveBodyparts(RANGED_ATTACK) === 0) {
             return Game.war.workRush(creep)
         }
         if (Game.time % 20 == 0) {
@@ -134,9 +141,9 @@ function work(creep) {
                 }
             } else {
 
-                let target = creep.pos.findClosestByRange(FIND_HOSTILE_STRUCTURES, {filter: obj => obj.hits&&obj.structureType != STRUCTURE_RAMPART && (!obj.pos.lookFor(LOOK_STRUCTURES).some(obj => obj.structureType == STRUCTURE_RAMPART)) && obj.structureType != STRUCTURE_CONTROLLER})
+                let target = creep.pos.findClosestByRange(FIND_HOSTILE_STRUCTURES, {filter: obj => obj.hits && obj.structureType != STRUCTURE_RAMPART && (!obj.pos.lookFor(LOOK_STRUCTURES).some(obj => obj.structureType == STRUCTURE_RAMPART)) && obj.structureType != STRUCTURE_CONTROLLER})
                 if (!target) target = creep.pos.findClosestByRange(FIND_HOSTILE_CONSTRUCTION_SITES)
-                if (!target) target = creep.pos.findClosestByRange(FIND_STRUCTURES, {filter: obj =>obj.hits&& obj.structureType != STRUCTURE_CONTROLLER})
+                if (!target) target = creep.pos.findClosestByRange(FIND_STRUCTURES, {filter: obj => obj.hits && obj.structureType != STRUCTURE_CONTROLLER})
                 if (target) {
                     creep.moveTo(target, {ignoreCreeps: false, reusePath: 10})
                     if (!target.ticksToLive && creep.pos.getRangeTo(target) <= 1 && !target.progressTotal && (target.structureType ? target.structureType != STRUCTURE_ROAD && target.structureType != STRUCTURE_CONTAINER : true)) {
@@ -282,9 +289,9 @@ function work(creep) {
             if (target) {
                 creep.moveTo(target, {ignoreCreep: false, reusePath: 10})
                 creep.dismantle(target)
-                }
+            }
         } else {
-            const exitDir = Game.map.findExit(creep.room,newRoomName)
+            const exitDir = Game.map.findExit(creep.room, newRoomName)
             const exit = creep.pos.findClosestByRange(exitDir)
             creep.moveTo(exit)
         }

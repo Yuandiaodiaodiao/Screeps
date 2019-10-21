@@ -17,8 +17,9 @@ var open = new Set()
 var status = 'check'
 module.exports.Cache = Cache
 var frequency = 2
-
+let startTime=0
 function Cache() {
+    startTime++
     if (!mission) mission = new Set()
     if (status == 'read') {
         for (let x of mission) {
@@ -57,7 +58,7 @@ function Cache() {
         mission.clear()
         open.clear()
         status = 'check'
-    } else if (status == 'check') {
+    } else if (startTime>=2&& status == 'check') {
         mission.clear()
         open.clear()
         for (let x in config) {
@@ -104,7 +105,7 @@ function Cache() {
         mission.clear()
         open.clear()
         status = 'check'
-        console.log(savestr)
+        // console.log(savestr)
     }
     //
     /*
@@ -115,7 +116,7 @@ function Cache() {
     * */
     //let temp={}; let cache=require('tools').roomCache;console.log(_.size(cache)+'cache len=');for(let x in cache){console.log(x); if(cache[x])temp[x]=cache[x].serialize(); console.log('l'+JSON.stringify(temp[x]).legnth)}; console.log('ans='+JSON.stringify(temp).length);
     // let temp={}; let cache=require('tools').roomCache; for(let x in cache){if(cache[x])temp[x]=cache[x].serialize();}; console.log('ans='+JSON.stringify(temp).length);
-    if (status == 'check' && Game.time % frequency == 0) {
+    if (startTime>=2&&status == 'check' && Game.time % frequency == 0) {
         frequency = Math.min(frequency * 4, 1000)
         mission.clear()
         open.clear()
