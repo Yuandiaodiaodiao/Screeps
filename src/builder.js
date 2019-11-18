@@ -6,13 +6,13 @@ function getting(creep) {
         if (act == ERR_NOT_IN_RANGE) {
             creep.moveTo(target)
             if(Game.time%20==0){
-                require('tools').roomCachettl[creep.pos.roomName] = 0
+                Game.memory.roomCachettl[creep.pos.roomName] = 0
             }
 
         } else if (act === OK || act === ERR_FULL) {
             creep.memory.status = 'building'
             creep.carry.energy = 1600
-            require('tools').roomCachettl[creep.pos.roomName] = 0
+            Game.memory.roomCachettl[creep.pos.roomName] = 0
             building(creep)
         }
     } else {
@@ -50,7 +50,7 @@ function building(creep) {
             }
         }
     } else {
-        require('tools').roomCachettl[creep.pos.roomName] = 0
+        Game.memory.roomCachettl[creep.pos.roomName] = 0
         let room = Game.rooms[creep.memory.missionid]
         target = require('tools').findrooms(room, FIND_CONSTRUCTION_SITES)[0]
         if (target) {

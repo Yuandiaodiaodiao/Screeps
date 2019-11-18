@@ -2,7 +2,6 @@ var towerCache = {}
 let enemy={}
 
 function work(room) {
-    if(room.memory.mineral)delete room.memory.mineral
     let target = room.find(FIND_HOSTILE_CREEPS)[0]
     if(target){
         enemy[room.name]=true

@@ -90,11 +90,10 @@ function randomNum(minNum, maxNum) {
     }
 }
 
-var roomCache = undefined
+// var roomCache = undefined
 var roomCacheWithCreep = {}
 var roomCacheWithCreepttl = {}
-var roomCachettl = undefined
-var roomCacheUse = undefined
+
 
 function roomc(roomName) {
     if (roomCacheWithCreep[roomName] && roomCacheWithCreepttl[roomName] && roomCacheWithCreepttl[roomName] === Game.time) {
@@ -136,46 +135,48 @@ function isCenter(roomName) {
 }
 
 function isHighway(roomName) {
-    const parsed = /^[WE]([0-9]+)[NS]([0-9]+)$/.exec(roomName);
-    const isHighway = (parsed[1] % 10 === 0) ||
+    const parsed = /^[WE]([0-9]+)[NS]([0-9]+)$/.exec(roomName)
+    return (parsed[1] % 10 === 0) ||
         (parsed[2] % 10 === 0)
-    return isHighway
 }
 
 function isMyRoom(roomName, userName) {
     const controller = (Game.rooms[roomName] || {}).controller
-    const isMyroom = controller &&
+    return controller &&
         (controller.my || (controller.reservation && controller.reservation.username === userName))
-    return isMyroom
+
 }
 
 function roomc_nocreep(roomName) {
     const observer = require('observer')
     const room = Game.rooms[roomName]
-    if (!room && observer.observerCache[roomName] && observer.observerCache[roomName].owner) {
+    if (!room && Game.memory.observerCache[roomName] && Game.memory.observerCache[roomName].owner) {
         return false
-    } else if (!room && !observer.observerCache[roomName]) {
+    } else if (!Game.memory.observerCache[roomName]) {
         observer.observer_queue.add(roomName)
-        roomCacheUse[roomName] = Game.time
-        if (!isMyRoom(roomName, Game.config.userName) && !isCenter(roomName)) return false
-    } else if (!room && observer.observerCache[roomName].lazytime) {
+        Game.memory.roomCacheUse[roomName] = Game.time
+        return false
+    } else if (!Game.memory.observerCache[roomName].time) {
         observer.observer_queue.add(roomName)
-        observer.observerCache[roomName].lazytime = undefined
-        roomCacheUse[roomName] = Game.time
+        Game.memory.roomCacheUse[roomName] = Game.time
+        return false
+    } else if (Game.memory.roomCacheUse[roomName] && Game.time - Game.memory.roomCacheUse[roomName] > 500) {
+        Game.memory.roomCacheUse[roomName] = Game.time
         return false
     }
     let costs = undefined
-    const ttl = roomCachettl[roomName]
-    if (ttl && Game.time - ttl < 1500) {
-        costs = roomCache[roomName]
-        roomCacheUse[roomName] = Game.time
+    const ttl = Game.memory.roomCachettl[roomName]
+    if (ttl && Game.time - ttl < 500) {
+        costs = Game.memory.roomCache[roomName]
+        Game.memory.roomCacheUse[roomName] = Game.time
     } else if (room) {
         costs = getRoomCostMatrix(room)
-        roomCache[roomName] = costs
-        roomCachettl[roomName] = Game.time
+        Game.memory.roomCache[roomName] = costs
+        Game.memory.roomCachettl[roomName] = Game.time
+        Game.memory.roomCacheUse[roomName] = Game.time
     } else {
         observer.observer_queue.add(roomName)
-        roomCacheUse[roomName] = Game.time
+        Game.memory.roomCacheUse[roomName] = Game.time
         return false
     }
     return costs ? costs.clone() : undefined
@@ -186,16 +187,16 @@ function getRoomCostMatrix(room) {
     let costs = new PathFinder.CostMatrix
     let cantgo = 0
     room.find(FIND_STRUCTURES).forEach(struct => {
-        if (struct.structureType === STRUCTURE_ROAD) {
-            cantgo++
-            costs.set(struct.pos.x, struct.pos.y, 1)
-        } else if (struct.structureType !== STRUCTURE_CONTAINER && (struct.structureType === STRUCTURE_RAMPART ? (!(struct.my || struct.isPublic)) : true)) {
-            if (struct.structureType !== STRUCTURE_CONTROLLER || struct.structureType !== STRUCTURE_EXTRACTOR) {
+            if (struct.structureType === STRUCTURE_ROAD) {
                 cantgo++
+                costs.set(struct.pos.x, struct.pos.y, 1)
+            } else if (struct.structureType !== STRUCTURE_CONTAINER && struct.structureType !== STRUCTURE_CONTROLLER && struct.structureType !== STRUCTURE_EXTRACTOR
+                && (struct.structureType === STRUCTURE_RAMPART ? (!(struct.my || struct.isPublic)) : true)) {
+                cantgo++
+                costs.set(struct.pos.x, struct.pos.y, 0xff)
             }
-            costs.set(struct.pos.x, struct.pos.y, 0xff)
         }
-    })
+    )
     room.find(FIND_MY_CONSTRUCTION_SITES).forEach(struct => {
             if (struct.structureType === STRUCTURE_ROAD) {
                 cantgo++
@@ -203,9 +204,7 @@ function getRoomCostMatrix(room) {
             } else if (struct.structureType !== STRUCTURE_CONTAINER &&
                 (struct.structureType !== STRUCTURE_RAMPART ||
                     !struct.my)) {
-                if (struct.structureType != STRUCTURE_CONTROLLER || struct.structureType != STRUCTURE_EXTRACTOR) {
-                    cantgo++
-                }
+                cantgo++
                 costs.set(struct.pos.x, struct.pos.y, 0xff)
             }
         }
@@ -216,7 +215,7 @@ function getRoomCostMatrix(room) {
             if (o.owner === 'Source Keeper') {
                 for (let a = -3; a <= 3; ++a) {
                     for (let b = -3; b <= 3; ++b) {
-                        costs.set(o.pos.x + a, o.pos.y + b, 0xff)
+                        costs.set(o.pos.x + a, o.pos.y + b, 0x0F)
                     }
                 }
             }
@@ -374,39 +373,26 @@ function suicide(creep, target) {
     }
 }
 
-function roomCacheSet(val) {
-    if (val) {
-        roomCache = val
-        module.exports.roomCache = roomCache
-    } else {
-        return roomCache
-    }
-}
+// function roomCacheSet(val) {
+//     if (val) {
+//         roomCache = val
+//         module.exports.roomCache = roomCache
+//     } else {
+//         return roomCache
+//     }
+// }
 
-function roomCachettlSet(val) {
-    if (val) {
-        roomCachettl = val
-        module.exports.roomCachettl = roomCachettl
-    } else {
-        return roomCachettl
-    }
-}
+// function roomCachettlSet(val) {
+//     if (val) {
+//         Game.memory.roomCachettl = val
+//         module.exports.roomCachettl = roomCachettl
+//     } else {
+//         return roomCachettl
+//     }
+// }
 
-function roomCacheUseSet(val) {
-    if (val) {
-        roomCacheUse = val
-        module.exports.roomCacheUse = roomCacheUse
-    } else {
-        return roomCacheUse
-    }
-}
 
-if (!Creep.prototype._say) {
-    Creep.prototype._say = Creep.prototype.say
-    Creep.prototype.say = function (msg, pub = true) {
-        this._say(msg, pub)
-    }
-}
+
 
 function moveByLongPath(pathArray, creep) {
     let pos = new RoomPosition(...pathArray[creep.memory.step])
@@ -427,6 +413,25 @@ function moveByLongPath(pathArray, creep) {
     return ERR_NOT_IN_RANGE
 }
 
+function zipCostMatrix(cost) {
+    let arr = new Uint32Array(cost._bits.buffer)
+    let ans = {}
+    arr.forEach((o, index) => {
+        if (o > 0) ans[index] = o
+    })
+    return ans
+}
+
+function unzipCostMatrix(cost) {
+    let arr = new Uint32Array(625)
+    for (let index in cost) {
+        arr[parseInt(index)] = cost[index]
+    }
+    let instance = Object.create(PathFinder.CostMatrix.prototype)
+    instance._bits = new Uint8Array(arr.buffer)
+    return instance
+}
+
 module.exports = {
     'bodycost': bodycost,
     'findrooms': findrooms,
@@ -434,8 +439,8 @@ module.exports = {
     'deepcopy': deepcopy,
     'randomNum': randomNum,
     'findroomselse': findroomselse,
-    'roomCache': roomCache,
-    'roomCachettl': roomCachettl,
+    // 'roomCache': roomCache,
+    // 'roomCachettl': roomCachettl,
     'roomc': roomc,
     'roomc_nocreep': roomc_nocreep,
     'testmemory': testmemory,
@@ -443,11 +448,13 @@ module.exports = {
     'nearavailable': nearavailable,
     'extensionList': extensionList,
     'suicide': suicide,
-    'roomCacheSet': roomCacheSet,
-    'roomCachettlSet': roomCachettlSet,
-    'roomCacheUse': roomCacheUse,
+    // 'roomCacheSet': roomCacheSet,
+    // 'roomCachettlSet': roomCachettlSet,
     'isCenterRoom': isCenterRoom,
-    'roomCacheUseSet': roomCacheUseSet,
+    // 'roomCacheUseSet': roomCacheUseSet,
     'moveByLongPath': moveByLongPath,
-    'getRoomCostMatrix': getRoomCostMatrix
+    'getRoomCostMatrix': getRoomCostMatrix,
+    'zipCostMatrix': zipCostMatrix,
+    'unzipCostMatrix': unzipCostMatrix,
+    'isHighway': isHighway
 };

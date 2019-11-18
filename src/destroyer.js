@@ -111,7 +111,12 @@ function work(creep) {
         }
         const tot = wall + swamp + plain
         const strsign = `☕ mine:${mine} sources:${source}\n\n plain:${(plain / tot * 100).toFixed(0)}% swamp:${(swamp / tot * 100).toFixed(0)}% wall:${(wall / tot * 100).toFixed(0)}%  `
-        creep.signController(creep.room.controller, strsign)
+        if (creep.room.controller.sign &&( creep.room.controller.sign.text.indexOf('overmind')!==-1|| creep.room.controller.sign.text.indexOf('OVERMIND')!==-1)) {
+            creep.signController(creep.room.controller,'Non-coding players unwelcome outside shard0 - expect summary execution')
+        } else {
+            creep.signController(creep.room.controller, strsign)
+        }
+
         console.log('sign=' + strsign)
         creep.suicide()
     }

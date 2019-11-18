@@ -1,3 +1,4 @@
+load()
 require('prototype.Creep.move')
 require('prototype.Room.structures')
 var tower = require('tower');
@@ -299,7 +300,6 @@ function mission_generator(room) {
     }
 
 
-
     for (let miss in missions) {
         if (_.isEmpty(missions[miss])) {
             delete missions[miss]
@@ -335,7 +335,7 @@ function load() {
     Game.tools = require('tools')
     Game.terminal = require('terminal')
     Game.factory = require('factory')
-    Game.observer=require('observer')
+    Game.observer = require('observer')
 }
 
 var missionController = require('missionController')
@@ -343,23 +343,23 @@ var missionController = require('missionController')
 module.exports.loop = function () {
     if (shard()) return
     load()
-    // try{
-    //     require('Game.memory').work()
-    // }catch (e) {
-    //     console.log('main.Game.memory error'+e)
-    // }
     try {
-        require('cacheController').Cache()
+        require('Game.memory').work()
     } catch (e) {
-        console.log('cacheController error' + e)
+        console.log('main.Game.memory error' + e)
     }
+    // try {
+    //     require('cacheController').Cache()
+    // } catch (e) {
+    //     console.log('cacheController error' + e)
+    // }
     require('prototype.Creep.move').clear()
     if (Game.time % 20 == 0) {
         clearmem()
     }
     if (Game.time % 1000 == 0) {
         require('observer').find()
-        // require('tools').roomCache = {}
+        // Game.memory.roomCache = {}
         for (let roomName in Memory.rooms) {
             try {
                 mission_generator(Game.rooms[roomName])
@@ -413,7 +413,7 @@ module.exports.loop = function () {
     for (let roomName in Memory.rooms) {
         let room = Game.rooms[roomName]
         if (!room) continue
-        if(Game.time%2===0){
+        if (Game.time % 2 === 0) {
             Game.factory.doReact(room)
         }
         try {
@@ -596,6 +596,14 @@ module.exports.loop = function () {
     if (Game.time % 10 == 0) {
         Game.war.miss()
     }
+
+    let tokens=Game.market.getAllOrders({type: ORDER_SELL, resourceType: SUBSCRIPTION_TOKEN})
+    for(let x of tokens){
+        if(x.price<=Game.market.credits){
+            Game.market.deal(x.id,1)
+        }
+    }
+
     // if(Game.time%100==0){
     //     Game.getObjectById('5d5e20a452d12c73f02d996d').launchNuke(new RoomPosition(39,10,'E21N49')) //E25N43
     //     Game.getObjectById('5d58a050ea104379d90eb36e').launchNuke(new RoomPosition(32,24,'E22N49')) //E28N46

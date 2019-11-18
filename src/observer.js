@@ -1,8 +1,9 @@
 var observer_queue = new Set()
-var observerCache = undefined
+
+// var observerCache = undefined
 
 function work() {
-    if (!observerCache) observerCache = {}
+    if (!Game.memory.observerCache) Game.memory.observerCache = {}
     if (!observer_queue) observer_queue = new Set()
     let used = new Set()
     if (observer_queue.size == 0) return
@@ -16,70 +17,62 @@ function work() {
             for (let obs of observers) {
                 if (used.has(obs.id)) continue
                 const act = obs.observeRoom(roomName)
-                if (act == OK) {
+                if (act === OK) {
                     flag = true
                     used.add(obs.id)
                     break
                 }
             }
-            if (flag == false) {
+            if (flag === false) {
                 if (observers.every(o => Game.map.getRoomLinearDistance(o.pos.roomName, roomName) > 10)) {
                     observer_queue.delete(roomName)
-                    observerCache[roomName] = {lazytime: Game.time}
+                    delete Game.memory.observerCache[roomName]
+                    delete Game.memory.roomCache[roomName]
+                    delete Game.memory.roomCacheUse[roomName]
+                    delete Game.memory.roomCachettl[roomName]
                 }
             }
-            if (used.size == Memory.observer.length) break
+            if (used.size === Memory.observer.length) break
         } else {
             //可见
             observer_queue.delete(roomName)
-            observerCache[roomName] = {}
+            Game.memory.observerCache[roomName] = {}
             const controller = room.controller
             const spawn = room.spawns.length
+            Game.memory.observerCache[roomName] = {
+                time: Game.time
+            }
             if (controller && controller.owner && controller.level > 2 && !controller.my && spawn !== 0) {
-                observerCache[roomName] = {
-                    owner: controller.owner.username,
-                    time: Game.time
-                }
+                Game.memory.observerCache[roomName].owner = controller.owner.username
             } else if (controller && controller.reservation && !(controller.reservation.username === 'Invader' || controller.reservation.username === 'Yuandiaodiaodiao')) {
-                observerCache[roomName] = {
-                    owner: controller.reservation.username,
-                    time: Game.time
-                }
-            } else if (!controller) {
+
+            } else if (!controller && Game.tools.isHighway(roomName)) {
                 const pb = room.powerBanks[0]
                 // const newWall = room.find(FIND_STRUCTURES, {filter: o => o.structureType === STRUCTURE_WALL && (!o.hits)})[0]
                 if (pb) {
-                    observerCache[roomName] = {
+                    Game.memory.observerCache[roomName] = {
                         powerBank: true,
                         power: pb.power,
                         startTime: Game.time - (5000 - pb.ticksToDecay),
                         time: Game.time,
                         pos: [pb.pos.x, pb.pos.y]
                     }
-                } else {
-                    observerCache[roomName] = {
-                        time: Game.time
-                    }
+
                 }
-            } else {
-                observerCache[roomName] = {
-                    time: Game.time
-                }
+            }
+            const invaderCore = room.find(FIND_HOSTILE_STRUCTURES, {filter: o => o.structureType === STRUCTURE_INVADER_CORE && o.level > 0})[0]
+            if (invaderCore) {
+                Game.memory.observerCache[roomName].owner = 'Invader'
             }
 
 
-            const ttl = Game.tools.roomCachettl[roomName]
+            const ttl = Game.memory.roomCachettl[roomName]
             if (!ttl || Game.time - ttl >= 500) {
                 const costs = Game.tools.getRoomCostMatrix(room)
-                Game.tools.roomCache[roomName] = costs
-                Game.tools.roomCachettl[roomName] = Game.time
+                Game.memory.roomCache[roomName] = costs
+                Game.memory.roomCachettl[roomName] = Game.time
             }
-            if (Game.tools.roomCacheUse[roomName] && Game.time - Game.tools.roomCacheUse[roomName] > 4000) {
-                //clear costMatrix to save memory
-                Game.tools.roomCache[roomName] = undefined
-                observerCache[roomName]['lazytime'] = Game.time
-                observerCache[roomName]['time'] = undefined
-            }
+
 
         }
     }
@@ -98,42 +91,38 @@ function find() {
 }
 
 function cache() {
-    for (let roomName in observerCache) {
-        if (observerCache[roomName].time && Game.time - observerCache[roomName].time > 1000) {
-            observer_queue.add(roomName)
-        } else if (observerCache[roomName].lazytime && Game.time - observerCache[roomName].lazytime > 3000) {
+    for (let roomName in Game.memory.observerCache) {
+        if (Game.memory.observerCache[roomName].time && Game.time - Game.memory.observerCache[roomName].time > 1000) {
             observer_queue.add(roomName)
         }
     }
-    for (let roomName in require('tools').roomCache) {
-        if (!require('tools').roomCacheUse[roomName]) {
-            require('tools').roomCacheUse[roomName] = Game.time
-        } else if (Game.time - require('tools').roomCacheUse[roomName] > 8000) {
-            delete observerCache[roomName]
-        } else if (Game.time - require('tools').roomCacheUse[roomName] > 4000) {
-            require('tools').roomCache[roomName] = undefined
-            observerCache[roomName] = observerCache[roomName] || {}
-            observerCache[roomName]['lazytime'] = Game.time
-            observerCache[roomName]['time'] = undefined
+    for (let roomName in Game.memory.roomCache) {
+        if (!Game.memory.roomCacheUse[roomName]) {
+            Game.memory.roomCacheUse[roomName] = Game.time
+        } else if (Game.time - Game.memory.roomCacheUse[roomName] > 10000) {
+            delete Game.memory.observerCache[roomName]
+            delete Game.memory.roomCache[roomName]
+            delete Game.memory.roomCacheUse[roomName]
+            delete Game.memory.roomCachettl[roomName]
         }
     }
 }
 
-function observerCacheSet(val) {
-    if (val) {
-        observerCache = val
-        module.exports.observerCache = observerCache||{}
-    } else {
-        return observerCache
-    }
-}
+// function observerCacheSet(val) {
+//     if (val) {
+//         Game.memory.observerCache = val
+//         module.exports.observerCache = observerCache||{}
+//     } else {
+//         return observerCache
+//     }
+// }
 
 
 module.exports = {
     'work': work,
     'find': find,
     'cache': cache,
-    'observerCache': observerCache,
+    // 'observerCache': observerCache,
     'observer_queue': observer_queue,
-    'observerCacheSet': observerCacheSet
+    // 'observerCacheSet': observerCacheSet
 };

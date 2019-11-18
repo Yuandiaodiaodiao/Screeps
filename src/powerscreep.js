@@ -1,5 +1,6 @@
 var sources = {}
 var minerals = {}
+let labOp = require('labOperator')
 
 function work(creep) {
     const room = creep.room
@@ -22,15 +23,8 @@ function work(creep) {
             if (act == ERR_INVALID_ARGS) {
                 memory.status = 'enable'
             }
-        } else if (room.powerSpawn.power === 0 && (room.terminal.store[RESOURCE_POWER] || creep.store.power)) {
-            creep.memory = {
-                type: RESOURCE_POWER,
-                gettarget: room.terminal.id,
-                status: 'getting',
-                nexts: 'filling',
-                filltarget: room.powerSpawn.id,
-                thor: 100
-            }
+        } else if (labOp.fillPower(creep, memory, room)) {
+
         } else if (ops > 150) {
             creep.memory = {
                 type: RESOURCE_OPS,
@@ -69,86 +63,16 @@ function work(creep) {
                 status: 'gopower',
                 memory: true,
             }
-        } else if (room.memory.reaction && room.memory.reaction.status == 'fill') {
-            const mine = require('reaction').reaction[room.memory.reaction.type]
-            for (let x in mine) {
-                let lab = Game.getObjectById(room.memory.lab.input[x])
-                if (lab.mineralAmount < 3000 && (room.terminal.store[mine[x]] || 0) >= (3000 - lab.mineralAmount)) {
+        } else if (labOp.labFill(creep, memory, room)) {
 
-                    creep.memory = {
-                        type: mine[x],
-                        gettarget: room.storage&&room.storage.store[mine[x]] ? room.storage.id : room.terminal.id,
-                        status: 'getting',
-                        nexts: 'filling',
-                        filltarget: lab.id,
-                        thor: lab.mineralCapacity - lab.mineralAmount
-                    }
-                    break
-                }
-            }
-        } else if (room.memory.reaction && room.memory.reaction.status == 'collect') {
-            const labs = room.labs
-            for (let lab of labs) {
-                if (lab.mineralAmount > 0) {
-                    creep.memory = {
-                        type: lab.mineralType,
-                        gettarget: lab.id,
-                        status: 'getting',
-                        nexts: 'filling',
-                        filltarget: room.terminal.id,
-                    }
-                    break
-                }
-            }
-            if (_.size(creep.memory) == 0) {
-                room.memory.reaction.status = 'miss'
-            }
-        } else if (room.memory.reaction && room.memory.reaction.status === 'boost' && (!room.memory.reaction.boostReady) && room.labs.some(lab => {
-            return lab.energy < lab.energyCapacity
-        })) {
-            for (let lab of room.labs) {
-                if (lab.energy < lab.energyCapacity) {
-                    memory.type = RESOURCE_ENERGY
-                    memory.gettarget = room.storage.id
-                    memory.filltarget = lab.id
-                    memory.status = 'getting'
-                    memory.nexts = 'filling'
-                    memory.thor = lab.energyCapacity - lab.energy
-                    break
-                }
-            }
-        } else if (room.memory.reaction && room.memory.reaction.status === 'boost' && (!room.memory.reaction.boostReady)) {
-            const boostList = room.memory.reaction.boostList
-            let ok = false
-            for (let index in boostList) {
-                const type = boostList[index]
-                const lab = room.labs[index]
-                if (lab.mineralAmount < lab.mineralCapacity) {
-                    memory.type = type
-                    memory.gettarget = room.terminal.id
-                    memory.filltarget = lab.id
-                    memory.status = 'getting'
-                    memory.nexts = 'filling'
-                    memory.thor = lab.mineralCapacity - lab.mineralAmount
-                    ok = true
-                    break
-                }
-            }
-            if (ok === false) {
-                room.memory.reaction.boostReady = true
-            } else {
-                room.memory.reaction.boostReady = false
-            }
-        } else if (room.terminal.store[RESOURCE_GHODIUM] && room.nuker && room.nuker.ghodium < 5000) {
-            const target = room.nuker
-            creep.memory = {
-                type: RESOURCE_GHODIUM,
-                gettarget: room.terminal.id,
-                status: 'getting',
-                nexts: 'filling',
-                filltarget: target.id,
-                thor: target.ghodiumCapacity - target.ghodium
-            }
+        } else if (labOp.labCollect(creep, memory, room)) {
+
+        } else if (labOp.boostEnergy(creep, memory, room)) {
+
+        } else if (labOp.boostMine(creep, memory, room)) {
+
+        } else if (labOp.fillNuke(creep, memory, room)) {
+
         } else if (!room.controller.isPowerEnabled) {
             memory.status = 'enable'
         } else if (ops >= 10 && creep.powers[PWR_OPERATE_OBSERVER] && !creep.powers[PWR_OPERATE_OBSERVER].cooldown) {
@@ -167,30 +91,11 @@ function work(creep) {
                     status: 'gopower',
                 }
             }
-        } else if (room.memory.factory && room.memory.factory.status === 'fill' && room.memory.factory.thor > 0) {
-            const target = room.factory
-            creep.memory = {
-                type: room.memory.factory.fillType,
-                gettarget: room.terminal.id,
-                status: 'getting',
-                nexts: 'filling',
-                filltarget: target.id,
-                thor: room.memory.factory.thor,
-            }
-            Game.factory.miss(room)
-        } else if (room.memory.factory && room.memory.factory.status === 'get' && room.memory.factory.thor > 0) {
-            const target = room.factory
-            Game.factory.miss(room)
-            creep.memory = {
-                type: room.memory.factory.fillType,
-                gettarget: target.id,
-                status: 'getting',
-                nexts: 'filling',
-                filltarget: room.terminal.id,
-                thor: room.memory.factory.thor,
-            }
-        } else {
+        } else if (labOp.factoryFill(creep, memory, room)) {
 
+        } else if (labOp.factoryGet(creep, memory, room)) {
+
+        } else {
             memory.status = 'sleep'
         }
         memory = creep.memory
@@ -214,39 +119,10 @@ function work(creep) {
             }
         } else return
     }
-    if (memory.status == 'filling') {
-        let filltarget = Game.getObjectById(memory.filltarget)
-        const act = creep.transfer(filltarget, memory.type, memory.fillthor)
-        if (act == ERR_NOT_IN_RANGE) {
-            creep.moveTo(filltarget, {reusePath: 10})
-        } else if (act === OK) {
-            memory.status = 'miss'
-        } else if (act === ERR_NOT_ENOUGH_RESOURCES) {
-            memory.status = 'miss'
-        } else if (act == ERR_FULL) {
-            memory.status = 'miss'
-        } else {
-            memory.status = 'miss'
-        }
-    } else if (memory.status == 'getting') {
-        const gettarget = Game.getObjectById(memory.gettarget)
-        let act = null
-        if (memory.thor) {
-            act = creep.withdraw(gettarget, memory.type, Math.min(gettarget.store[memory.type], memory.thor, creep.carryCapacity - _.sum(creep.carry)))
-        } else {
-            act = creep.withdraw(gettarget, memory.type)
-        }
-        if (act == ERR_NOT_IN_RANGE) {
-            creep.moveTo(gettarget, {reusePath: 10})
-        } else if (act == OK) {
-            memory.status = memory.nexts
-        } else if (act == ERR_NOT_ENOUGH_RESOURCES) {
-            memory.status = memory.nexts
-        } else if (act == ERR_FULL) {
-            memory.status = memory.nexts
-        } else {
-            memory.status = 'miss'
-        }
+    if (memory.status === 'filling') {
+        require('labOperator').fill(creep, memory)
+    } else if (memory.status === 'getting') {
+        require('labOperator').get(creep, memory)
     } else if (memory.status == 'gopower') {
         const target = Game.getObjectById(memory.target)
         const act = creep.usePower(memory.power, target)

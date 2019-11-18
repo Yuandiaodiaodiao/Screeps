@@ -4,27 +4,6 @@ module.exports.work = function (room) {
     let terminal = room.terminal
     if (!terminal || !terminal.my) return
 
-    if (room.memory.reaction.status === 'boost') {
-        let type = _.find(room.memory.reaction.boostList, o => (terminal.store[o] || 0) < 3000)
-        let need = 3000 - (terminal.store[type] || 0)
-        for (let roomNames in Memory.rooms) {
-            if (roomNames == room.name) continue
-            let rooms = Game.rooms[roomNames]
-            if (rooms.controller.level == 8) {
-                let terminals = rooms.terminal
-                if (!terminals) continue
-                const last = (terminals.store[type] || 0)
-                if (last > 0) {
-                    let act = terminals.send(type, Math.min(last, need), room.name)
-                    if (act == OK) {
-                        need -= Math.min(last, need)
-                    }
-                }
-            }
-            if (need <= 0) break
-        }
-    }
-
     if (terminal && room.storage && room.storage.store[RESOURCE_ENERGY] / room.storage.store.getCapacity() > 0.7) {
         const helpRoomNameList = _.filter(Object.keys(Memory.rooms), roomName => {
             let room2 = Game.rooms[roomName]
@@ -104,7 +83,7 @@ function handlesell(roomName) {
         return sellSome(room, terminal, type, terminal.store[type] - terminal.store.getCapacity() * 0.25)
     }
     if (terminal && mineral && terminal.store.getUsedCapacity(Game.factory.produce[type]) > 500) {
-        return sellSome(room, terminal, Game.factory.produce[type], terminal.store.getUsedCapacity(Game.factory.produce[type])-500, 0.25)
+        return sellSome(room, terminal, Game.factory.produce[type], terminal.store.getUsedCapacity(Game.factory.produce[type]) - 500, 0.25)
     }
     const storage = room.storage
     if (storage && terminal && storage.store[RESOURCE_ENERGY] / storage.store.getCapacity() > 0.9) {
@@ -128,4 +107,30 @@ function sellSome(room, terminal, type, amount, minPrice) {
     const sell = Math.min(maxsend, maxsell)
     console.log('room:' + room.name + ' sell ' + order.roomName + ' amount:' + sell)
     return Game.market.deal(order.id, sell, room.name)
+}
+
+module.exports.needBoost = needBoost
+
+function needBoost(room) {
+    const terminal = room.terminal
+    if (room.memory.reaction.status === 'boost') {
+        let type = _.find(room.memory.reaction.boostList, o => (terminal.store[o] || 0) < 3000)
+        let need = 3000 - (terminal.store[type] || 0)
+        for (let roomNames in Memory.rooms) {
+            if (roomNames == room.name) continue
+            let rooms = Game.rooms[roomNames]
+            if (rooms.controller.level == 8) {
+                let terminals = rooms.terminal
+                if (!terminals) continue
+                const last = (terminals.store[type] || 0)
+                if (last > 0) {
+                    let act = terminals.send(type, Math.min(last, need), room.name)
+                    if (act == OK) {
+                        need -= Math.min(last, need)
+                    }
+                }
+            }
+            if (need <= 0) break
+        }
+    }
 }

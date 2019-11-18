@@ -1,8 +1,8 @@
 var config = [
-    require('observer').observerCacheSet,
-    require('tools').roomCacheSet,
-    require('tools').roomCachettlSet,
-    require('tools').roomCacheUseSet
+    // require('observer').observerCacheSet,
+    // require('tools').roomCacheSet,
+    // require('tools').roomCachettlSet,
+    // require('tools').roomCacheUseSet
 ]
 var seg = [
     [8],
@@ -110,12 +110,12 @@ function Cache() {
     //
     /*
     {
-    let temp={}; let cache=require('tools').roomCache;console.log(_.size(cache)+'cache len=');
-    let hascache=0;let nocache=0;  let cache=require('tools').roomCache;console.log(_.size(cache)+'cache len='); let temp={};for(let x in cache){if(cache[x]){hascache++;console.log('has'+x)}else{nocache++;}}console.log('has'+hascache+' no'+nocache);
+    let temp={}; let cache=Game.memory.roomCache;console.log(_.size(cache)+'cache len=');
+    let hascache=0;let nocache=0;  let cache=Game.memory.roomCache;console.log(_.size(cache)+'cache len='); let temp={};for(let x in cache){if(cache[x]){hascache++;console.log('has'+x)}else{nocache++;}}console.log('has'+hascache+' no'+nocache);
     }
     * */
-    //let temp={}; let cache=require('tools').roomCache;console.log(_.size(cache)+'cache len=');for(let x in cache){console.log(x); if(cache[x])temp[x]=cache[x].serialize(); console.log('l'+JSON.stringify(temp[x]).legnth)}; console.log('ans='+JSON.stringify(temp).length);
-    // let temp={}; let cache=require('tools').roomCache; for(let x in cache){if(cache[x])temp[x]=cache[x].serialize();}; console.log('ans='+JSON.stringify(temp).length);
+    //let temp={}; let cache=Game.memory.roomCache;console.log(_.size(cache)+'cache len=');for(let x in cache){console.log(x); if(cache[x])temp[x]=cache[x].serialize(); console.log('l'+JSON.stringify(temp[x]).legnth)}; console.log('ans='+JSON.stringify(temp).length);
+    // let temp={}; let cache=Game.memory.roomCache; for(let x in cache){if(cache[x])temp[x]=cache[x].serialize();}; console.log('ans='+JSON.stringify(temp).length);
     if (startTime>=2&&status == 'check' && Game.time % frequency == 0) {
         frequency = Math.min(frequency * 4, 1000)
         mission.clear()

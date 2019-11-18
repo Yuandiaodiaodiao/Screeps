@@ -15,7 +15,7 @@ function born(spawnnow, creepname, memory) {
         creepname,
         {
             memory: {
-                status: 'goBoost',
+                status: 'pair',
                 boostStep: 0,
                 missionid: memory.targetRoomName,
                 step: 0,
@@ -27,6 +27,7 @@ function born(spawnnow, creepname, memory) {
 
 
 function work(creep) {
+
     if (creep.memory.status === 'goBoost') {
         let boostStep = creep.memory.boostStep
         let lab = creep.room.labs[boostStep]
@@ -43,13 +44,24 @@ function work(creep) {
                 creep.moveTo(lab)
             }
         } else {
-            creep.memory.status = 'pair'
-        }
-    } else if (creep.memory.status === 'pair') {
-        if (creep.memory.pair) {
-            Game.getObjectById(creep.memory.pair).memory.pair = creep.id
+            creep.room.memory.reaction.boostReady = false
             creep.memory.status = 'going'
         }
+    } else if (creep.memory.status === 'pair') {
+        if (creep.ticksToLive >= 1490) {
+            if (creep.memory.pair) {
+                Game.getObjectById(creep.memory.pair).memory.pair = creep.id
+                creep.memory.status = 'goBoost'
+            }
+        } else {
+            const spawn = creep.room.spawns.find(o => !o.spawning)
+            if (spawn) {
+                creep.moveTo(spawn)
+                spawn.renewCreep(creep)
+            }
+        }
+
+
     } else if (creep.memory.status === 'going') {
         let config = null
         try {
@@ -73,7 +85,7 @@ function work(creep) {
         }
     } else if (creep.memory.status == 'rush') {
         if (Game.time % 5 == 0) {
-            require('tools').roomCachettl[creep.pos.roomName] = 0
+            Game.memory.roomCachettl[creep.pos.roomName] = 0
         }
         const flag = Game.flags['rush' + creep.memory.missionid]
         if (!flag) {
@@ -87,19 +99,29 @@ function work(creep) {
                 if (!target) target = creep.pos.findInRange(FIND_STRUCTURES, 1, {filter: o => o.structureType !== STRUCTURE_CONTAINER})[0]
                 if (target) {
                     creep.dismantle(target)
+                    creep.rangedAttack(target)
                 }
             } else {
                 const structures = flag.pos.lookFor(LOOK_STRUCTURES)
                 const rampart = structures.find(struct => struct.structureType === STRUCTURE_RAMPART)
                 if (rampart) {
                     creep.dismantle(rampart)
-                } else {
+                    creep.rangedAttack(rampart)
+                } else if (structures[0]) {
+                    creep.rangedAttack(structures[0])
                     creep.dismantle(structures[0])
+                } else {
+                    let target = creep.pos.findInRange(FIND_HOSTILE_STRUCTURES, 1)[0]
+                    if (!target) target = creep.pos.findInRange(FIND_STRUCTURES, 1, {filter: o => o.structureType !== STRUCTURE_CONTAINER})[0]
+                    if (target) {
+                        creep.dismantle(target)
+                        creep.rangedAttack(target)
+                    }
                 }
             }
         }
         if (creep.pos.isNearTo(pair) || creep.pos.x <= 1 || creep.pos.x >= 48 || creep.pos.y <= 1 || creep.pos.y >= 48) {
-            if(!creep.pos.isEqualTo(flag)){
+            if (!creep.pos.isEqualTo(flag) && pair.fatigue === 0) {
                 creep.moveTo(flag, {ignoreCreeps: false})
                 pair.moveTo(creep)
             }
@@ -118,6 +140,7 @@ function work(creep) {
         if (creep.hits === creep.hitsMax) {
             let target = creep.pos.findClosestByPath(FIND_HOSTILE_STRUCTURES, {filter: o => o.structureType != STRUCTURE_CONTROLLER && o.structureType != STRUCTURE_RAMPART && o.structureType != STRUCTURE_EXTRACTOR})
             if (!target) target = creep.pos.findClosestByPath(FIND_STRUCTURES, {filter: o => o.structureType != STRUCTURE_WALL && o.structureType != STRUCTURE_RAMPART})
+            if (!target) target = creep.room.find(FIND_STRUCTURES, {filter: o => o.hits})
             if (target) {
                 creep.dismantle(target)
             }
@@ -125,8 +148,17 @@ function work(creep) {
                 creep.moveTo(target, {ignoreCreeps: false})
                 pair.moveTo(creep)
             }
+            if(!target){
+                creep.memory.status='sign'
+            }
         }
 
+    } else if (creep.memory.status === 'sign') {
+        creep.moveTo(creep.room.controller)
+        let act = creep.signController(creep.room.controller, 'Non-coding players unwelcome outside shard0 - expect summary execution')
+        if (act === OK) {
+            creep.memory.status = 'fighting'
+        }
     }
 }
 

@@ -6,14 +6,25 @@ module.exports = {
 }
 var powerRoom = {
     'E28N46': ['E30N46', 'E30N47', 'E30N48', 'E30N49'],
-    'E27N38': ['E30N37', 'E30N36','E30N35','E30N34'],
-    'E29N38': ['E30N38', 'E30N39'],
-    'E29N41': ['E30N40', 'E31N40','E32N40','E33N40'],
-    'E25N43': ['E23N40', 'E24N40', 'E25N40', 'E26N40', 'E27N40'],
-    'E27N42': ['E28N40', 'E29N40'],
-    'E19N41': ['E18N40', 'E19N40', 'E20N40', 'E20N41', 'E20N39'],
-    // 'E14N41': ['E13N40', 'E14N40', 'E15N40']
+    'E27N38': ['E30N36', 'E30N35', 'E30N34', 'E30N33'],
+    'E29N38': ['E30N37', 'E30N38', 'E30N39'],
+    'E29N41': ['E30N40', 'E31N40', 'E32N40', 'E33N40'],
+    'E25N43': ['E22N40', 'E23N40', 'E24N40', 'E25N40'],
+    'E27N42': ['E26N40', 'E27N40', 'E28N40', 'E29N40'],
+    'E19N41': ['E18N40', 'E19N40', 'E20N40', 'E20N41', 'E20N39', 'E21N40'],
+    'E14N41': ['E12N40', 'E13N40', 'E14N40', 'E15N40', 'E16N40']
 }
+/*
+
+
+const ans = PathFinder.search(Game.rooms['E27N38'].spawns[0].pos, {pos: new RoomPosition(40,13,'E30N35'), range: 3}, {
+                    plainCost: 1, swampCost: 5, roomCallback:Game.tools.roomc_nocreep, maxOps: 10000
+                });
+console.log(`pathlen=${ans.path.length} complete=${!ans.incomplete}`);
+
+
+ */
+let tryTimes = {}
 
 function miss() {
     Memory.powerPlan = Memory.powerPlan || {}
@@ -24,20 +35,28 @@ function miss() {
             continue
         }
         const terminal = room.terminal
-        if(!terminal){
+        if (!terminal) {
             continue
         }
         if ((terminal.store[RESOURCE_POWER] || 0) > 20e3) continue
         const rooms = powerRoom[roomName]
         for (let roomn of rooms) {
-            const roomc = require('observer').observerCache[roomn]
-            if (Game.cpu.bucket>5000&&roomc && roomc.powerBank && roomc.power >= 1000 && Game.time - roomc.startTime <= 500 && !Memory.powerPlan[roomn] && Game.rooms[roomName].storage.store[RESOURCE_ENERGY] > 300000) {
+            const roomc = Game.memory.observerCache[roomn]
+            if (Game.cpu.bucket > 5000 && roomc && roomc.powerBank && roomc.power >= 1000 && Game.time - roomc.startTime <= 500 && !Memory.powerPlan[roomn] && Game.rooms[roomName].storage.store[RESOURCE_ENERGY] > 300000) {
                 const targetpos = new RoomPosition(roomc.pos[0], roomc.pos[1], roomn)
                 const ans = PathFinder.search(Game.rooms[roomName].spawns[0].pos, {pos: targetpos, range: 3}, {
-                    plainCost: 1, swampCost: 5, roomCallback: require('tools').roomc_nocreep, maxOps: 10000
+                    plainCost: 1, swampCost: 5, roomCallback: Game.tools.roomc_nocreep, maxOps: 10000
                 })
                 if (ans.incomplete == true) {
                     console.log('cant find' + roomName + 'to' + roomn)
+                    tryTimes[roomn] = 0
+                    continue
+                } else {
+                    tryTimes[roomn] = (tryTimes[roomn] || 0) + 1
+                }
+                if (tryTimes[roomn] >= 2) {
+                    tryTimes[roomn] = 0
+                } else {
                     continue
                 }
                 let position = []
@@ -52,7 +71,7 @@ function miss() {
                     startTime: roomc.startTime,
                     power: roomc.power,
                     position: position,
-                    carry: Math.ceil(roomc.power / 1250),
+                    carry: Math.ceil((roomc.power + 500) / 1250),
                     timelock: 0,
                 }
                 solveplan(roomn)
@@ -122,7 +141,7 @@ function logcache() {
     for (let roomName in powerRoom) {
         const rooms = powerRoom[roomName]
         for (let roomn of rooms) {
-            console.log(roomn + ' ' + JSON.stringify(require('observer').observerCache[roomn]))
+            console.log(roomn + ' ' + JSON.stringify(Game.memory.observerCache[roomn]))
         }
     }
 }

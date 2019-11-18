@@ -49,7 +49,7 @@ function work(creep) {
                 creep.memory.targetpos = [structure.pos.x, structure.pos.y, structure.pos.roomName]
                 creep.memory.target = structure.id
                 creep.memory.status = 'go'
-            }else{
+            } else {
                 creep.memory.status = 'heal'
             }
 
@@ -90,7 +90,15 @@ function work(creep) {
         let target = Game.getObjectById(creep.memory.target)
         if (target) {
             creep.heal(creep)
-            if (creep.pos.getRangeTo(target) >= 3) {
+            if (Game.war.howDangerous(target) <= 1) {
+                creep.moveTo(target)
+                if(creep.pos.getRangeTo(target) <= 1){
+                    creep.rangedMassAttack()
+                    creep.attack(target)
+                }else{
+                    creep.rangedAttack(target)
+                }
+            } else if (creep.pos.getRangeTo(target) >= 3) {
                 creep.moveTo(target, {ignoreCreeps: false})
             } else if (creep.pos.getRangeTo(target) <= 1) {
                 let ans = PathFinder.search(creep.pos, {pos: target.pos, range: 2}, {
@@ -131,17 +139,19 @@ function work(creep) {
             creep.memory.status = 'miss'
         }
         if (!creep.pos.isNearTo(target)) {
-           creep.moveTo(target)
+            creep.moveTo(target)
         }
         creep.rangedAttack(target)
         creep.attack(target)
         if (Game.time % 20 === 0) {
+            Game.memory.roomCachettl[creep.pos.roomName] = 0
             creep.memory.status = 'miss'
         }
     }
 
 
 }
+
 /*
 
 let x=require('tools').findroomselse(Game.rooms['E27N38'], FIND_HOSTILE_STRUCTURES, {
@@ -157,6 +167,11 @@ let x=require('tools').findroomselse(Game.rooms['E27N38'], FIND_HOSTILE_STRUCTUR
 function miss(room) {
     if (!room.memory.missions) return
     room.memory.missions.subprotecter = {}
+    let len = require('tools').findroomselse(room, FIND_HOSTILE_CREEPS, {
+        filter: obj => {
+            return require('whitelist').whitelist.indexOf(obj.owner.username) == -1
+        }
+    }).length
     if (require('tools').findroomselse(room, FIND_HOSTILE_STRUCTURES, {
         filter: obj => {
             return obj.structureType === STRUCTURE_INVADER_CORE
@@ -172,13 +187,21 @@ function miss(room) {
 
             }
         }
-    } else if (require('tools').findroomselse(room, FIND_HOSTILE_CREEPS, {
-        filter: obj => {
-            return require('whitelist').whitelist.indexOf(obj.owner.username) == -1
-        }
-    }).length > 0) {
-        room.memory.missions.subprotecter[room.name] = {
-            roomName: room.name
+    } else if (len > 0) {
+        if (len >= 4) {
+            room.memory.missions.subprotecter[room.name] = {
+                roomName: room.name,
+                body: {
+                    'move': 25,
+                    'ranged_attack': 21,
+                    'heal': 4
+
+                }
+            }
+        } else {
+            room.memory.missions.subprotecter[room.name] = {
+                roomName: room.name
+            }
         }
     } else {
         room.memory.missions.subprotecter = undefined

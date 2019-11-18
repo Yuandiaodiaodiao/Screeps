@@ -34,7 +34,7 @@ module.exports.statistics = function () {
     const flagDraw = Game.flags['draw']
     if (flagDraw) {
         const roomName = flagDraw.pos.roomName
-        const costMatrix = Game.tools.roomCache[roomName]
+        const costMatrix = Game.memory.roomCache[roomName]
         if (costMatrix) {
             for (let x = 0; x <= 49; ++x) {
                 for (let y = 0; y <= 49; ++y) {
@@ -50,11 +50,11 @@ module.exports.statistics = function () {
         }
 
         new RoomVisual(flagDraw.pos.roomName).text(`time=${Game.time}`, 25, 24, {font: 0.8})
-        const cacheTTL = Game.tools.roomCachettl[roomName]
+        const cacheTTL = Game.memory.roomCachettl[roomName]
         new RoomVisual(flagDraw.pos.roomName).text(`cacheTTL=${cacheTTL}`, 25, 25, {font: 0.8})
-        const obCache = require('observer').observerCache[roomName]
+        const obCache = Game.memory.observerCache[roomName]
         new RoomVisual(flagDraw.pos.roomName).text(`obCache=${JSON.stringify(obCache)}`, 25, 26, {font: 0.8})
-        new RoomVisual(flagDraw.pos.roomName).text(`roomCacheUse=${Game.tools.roomCacheUse[roomName]}`, 25, 27, {font: 0.8})
+        new RoomVisual(flagDraw.pos.roomName).text(`roomCacheUse=${Game.memory.roomCacheUse[roomName]}`, 25, 27, {font: 0.8})
 
 
 

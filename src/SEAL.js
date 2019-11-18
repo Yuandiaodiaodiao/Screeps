@@ -2,8 +2,7 @@ function born(spawnnow, creepname, memory) {
     let body = memory.body
     if (!body) {
         body = {
-            'tough': 6,
-            'ranged_attack': 3,
+            'ranged_attack': 9,
             'move': 10,
             'heal': 1,
         }
@@ -108,7 +107,7 @@ function work(creep) {
             return Game.war.workRush(creep)
         }
         if (Game.time % 20 == 0) {
-            require('tools').roomCachettl[creep.pos.roomName] = 0
+            Game.memory.roomCachettl[creep.pos.roomName] = 0
         }
         if (creep.hits / creep.hitsMax < 0.95) {
             creep.memory.status = 'fighting'
@@ -279,7 +278,7 @@ function work(creep) {
         }
         const newRoomName = Game.flags['this' + creep.memory.missionid].pos.roomName
         if (Game.time % 20 == 0) {
-            require('tools').roomCachettl[newRoomName] = 0
+            Game.memory.roomCachettl[newRoomName] = 0
         }
         if (creep.pos.roomName == newRoomName) {
 

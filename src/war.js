@@ -1,3 +1,9 @@
+if (!Creep.prototype._say) {
+    Creep.prototype._say = Creep.prototype.say
+    Creep.prototype.say = function (msg, pub = true) {
+        return this._say(msg, pub)
+    }
+}
 if (!Creep.prototype._rangedMassAttack) {
     Creep.prototype._rangedMassAttack = Creep.prototype.rangedMassAttack
     Creep.prototype.rangedMassAttack = function () {
@@ -10,7 +16,7 @@ if (!Creep.prototype._rangedAttack) {
     Creep.prototype._rangedAttack = Creep.prototype.rangedAttack
     Creep.prototype.rangedAttack = function (target) {
         const ans = this._rangedAttack(target)
-        if (ans == OK) {
+        if (ans === OK) {
             this.say('🏹')
         }
         return ans
@@ -40,8 +46,14 @@ function miss(filterName) {
             const roomName = flag.pos.roomName
             try {
                 const rooms = Object.keys(Memory.rooms).sort((a, b) => Game.map.getRoomLinearDistance(a, roomName) - Game.map.getRoomLinearDistance(b, roomName))[0]
-                Game.war.init([roomName, [flag.pos.x, flag.pos.y, roomName], {destroyer: 1}, [rooms]])
-                Memory.army[roomName].from[rooms].cost = 550
+                let arr = [roomName, [flag.pos.x, flag.pos.y, roomName], {destroyer: 1}, [rooms]]
+                if (flag.color === COLOR_RED) {
+                    arr[2]['SEAL'] = 1
+                    Game.rooms[rooms].createFlag(1, 1, 'rush' + flag.pos.roomName)
+                }
+
+                Game.war.init(arr)
+                Memory.army[roomName].from[rooms].cost = 580
             } catch (e) {
                 console.log('war.miss.flag' + e)
             }
@@ -52,6 +64,42 @@ function miss(filterName) {
     if (Game.flags['destroy']) {
         Game.flags['destroy'].remove()
     }
+
+    const flagStart = Game.flags['warstart']
+    const flagWait = Game.flags['warwait']
+    if (flagWait) {
+        if (!flagWait.memory.init) {
+            flagWait.memory.init = true
+            flagWait.memory.fromRoom = []
+            const rooms = Object.keys(Memory.rooms).sort((a, b) => Game.map.getRoomLinearDistance(a, flagWait.pos.roomName) - Game.map.getRoomLinearDistance(b, flagWait.pos.roomName))[0]
+            flagWait.memory.fromRoom.push(rooms)
+            flagWait.memory.partType = ''
+            if (flagWait.color === COLOR_RED) {
+                flagWait.memory.partType = 'smallattack'
+            } else if (flagWait.color === COLOR_GREEN) {
+                flagWait.memory.partType = 'heal15'
+            }
+        }
+    } else {
+        delete Memory.flags['warwait']
+    }
+    if (flagStart && flagWait) {
+        const input = [flagStart.pos.roomName, [flagWait.pos.x, flagWait.pos.y, flagWait.pos.roomName],
+            {SEAL: 1},
+            flagWait.memory.fromRoom,
+            {SEAL: {}}
+        ]
+        input[4]['SEAL'][flagWait.memory.partType] = true
+        Game.war.init(input)
+        if (flagStart.color === COLOR_RED) {
+            Game.rooms[flagWait.memory.fromRoom[0]].createFlag(1, 1, 'rush' + flagStart.pos.roomName)
+        }
+        flagStart.remove()
+        delete Memory.flags[flagWait.name]
+        flagWait.remove()
+    }
+
+
     const army = Memory.army
     for (let targetRoomName in army) {
         if (filterName && targetRoomName != filterName) continue
@@ -357,7 +405,7 @@ function genbody(body) {
             'move': 15,
             'heal': 5,
         }
-    } else if (body.heal) {
+    } else if (body.heal15) {
         body = {
             'ranged_attack': 10,
             'move': 25,
@@ -381,10 +429,54 @@ function genbody(body) {
             'ranged_attack': 10,
             'heal': 15,
         }
-    } else if (body.tough) {
+    } else if (body.tough25) {
         body = {
             'tough': 25,
             'move': 25,
+        }
+    } else if (body.heallv8) {
+        body = {
+            'tough': 12,
+            'move': 10,
+            'heal': 28
+        }
+    } else if (body.heallv7) {
+        body = {
+            'tough': 10,
+            'move': 10,
+            'ranged_attack': 10,
+            'heal': 20,
+        }
+    } else if (body.heallv6) {
+        body = {
+            'tough': 6,
+            'move': 24,
+            'heal': 12,
+            'ranged_attack': 6,
+        }
+    } else if (body.attacklv8) {
+        body = {
+            'tough': 12,
+            'work': 28,
+            'move': 10,
+        }
+    } else if (body.attacklv7) {
+        body = {
+            'tough': 10,
+            'work': 30,
+            'move': 10,
+        }
+    } else if (body.attacklv6) {
+        body = {
+            'tough': 6,
+            'work': 34,
+            'move': 10,
+        }
+    } else if (body.core4) {
+        body = {
+            'tough': 10,
+            'ranged_attack': 30,
+            'move': 10,
         }
     }
     return body
@@ -394,7 +486,7 @@ var lodash = require('lodash-my')
 module.exports.getEnemy = getEnemy
 
 function getEnemy(creep) {
-    const targets = creep.room.find(FIND_HOSTILE_CREEPS)
+    const targets = creep.room.find(FIND_HOSTILE_CREEPS, {filter: o => !o.pos.lookFor(LOOK_STRUCTURES).some(j => j.structureType === STRUCTURE_RAMPART)})
     const dangerous = targets.filter(isDangerous)
     if (dangerous.length > 0) {
         const nextTargets = []
@@ -512,6 +604,7 @@ let dangerousLevel = {
     'ranged_attack': 2,
     'heal': 1,
 }
+module.exports.howDangerous = howDangerous
 
 function howDangerous(creep) {
     let level = 0
@@ -526,7 +619,7 @@ module.exports.workRush = workRush
 
 function workRush(creep) {
     if (Game.time % 20 == 0) {
-        require('tools').roomCachettl[creep.pos.roomName] = 0
+        Game.memory.roomCachettl[creep.pos.roomName] = 0
     }
     if (creep.pos.roomName == creep.memory.missionid) {
         let target = creep.pos.findClosestByPath(FIND_HOSTILE_STRUCTURES, {filter: obj => obj.hits && obj.structureType != STRUCTURE_RAMPART && (!obj.pos.lookFor(LOOK_STRUCTURES).some(obj => obj.structureType == STRUCTURE_RAMPART)) && obj.structureType != STRUCTURE_CONTROLLER})
@@ -547,7 +640,9 @@ function workRush(creep) {
         creep.memory.status = 'fighting'
     }
 }
-module.exports.moveAwayFromSide=moveAwayFromSide
+
+module.exports.moveAwayFromSide = moveAwayFromSide
+
 function moveAwayFromSide(creep) {
     if (creep.pos.x === 0) creep.move(RIGHT)
     else if (creep.pos.x === 49) creep.move(LEFT)

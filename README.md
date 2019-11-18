@@ -82,6 +82,34 @@ Game.war.init(['E25N44',[18,3,'E25N43'],{boostAttack:1,boostHeal:1},['E25N43'],{
 Game.war.init(['E8N48',[4,15,'E9N48'],{SEAL:1},['E14N41'],{SEAL:{smallattack:true}}])  
 Game.war.init(['E16N38',[22,31,'E16N39'],{SEAL:1},['E14N41'],{SEAL:{smallattack:true}}])  
 Game.war.init(['E16N43',[15,10,'E16N42'],{SEAL:1},['E14N41'],{SEAL:{smallattack:true}}])  
+Game.war.init(['E11N39',[25,25,'E11N40'],{SEAL:1},['E14N41'],{SEAL:{smallattack:true}}])  
+Game.war.init(['E6N49',[21,24,'E7N50'],{SEAL:1},['E14N41'],{SEAL:{heal:true}}])  
+Game.war.init(['E8N35',[16,3,'E8N34'],{SEAL:1},['E14N41'],{SEAL:{heal:true}}])  
+
+Game.war.init(['E32N44',[45,28,'E31N44'],{boostAttack:1,boostHeal:1},['E28N46'],{},['boost','keep']])  
+Game.war.init(['E33N48',[24,16,'E33N48'],{boostAttack:1,boostHeal:1},['E28N46'],{},['boost','keep']])  
+Game.war.init(['E32N44',[45,28,'E31N44'],{boostHeal:1},['E28N46'],{},['boost','keep']])  
+Game.war.init(['E37N49',[13,45,'E37N50'],{boostHeal:1},['E28N46'],{},['boost','keep']])  
+Game.war.init(['E18N44',[11,27,'E19N44'],{SEAL:1},['E19N41'],{SEAL:{smallattack:true}}])
+Game.war.init(['E29N37',[15,48,'E9N38'],{boostHeal:1},['E14N41'],{boostHeal:{heallv6:true}},['boost','keep']])  
+Game.war.init(['E34N42',[29,3,'E34N41'],{boostAttack:1,boostHeal:1},['E29N41'],{boostHeal:{heallv7:true},boostAttack:{attacklv7:true}},['boost','keep']])  
+Game.war.init(['E38N41',[32,3,'E38N40'],{boostHeal:1},['E29N41'],{boostHeal:{heallv6:true}},['boost','keep']])  
+
+Game.war.init(['E25N44',[17,2,'E25N43'],{boostAttack:1,boostHeal:1},['E25N43'],{boostHeal:{heallv6:true},boostAttack:{attacklv6:true}},['boost','keep']])  
+Game.war.init(['E14N44',[43,2,'E14N42'],{boostAttack:1,boostHeal:1},['E14N41'],{
+boostHeal:{'tough': 13,'move': 10,'heal': 27},
+boostAttack: {'tough': 15,'move': 10,'ranged_attack': 25}},['boost','keep']])  
+Game.war.init(['E24N43',[47,27,'E24N44'],{boostAttack:1,boostHeal:1},['E25N43'],{boostHeal:{heallv7:true},boostAttack:{attacklv7:true}},['boost','keep']])  
+Game.war.init(['E22N44',[14,2,'E22N43'],{boostAttack:1,boostHeal:1},['E19N41'],{boostHeal:{heallv7:true},boostAttack:{attacklv7:true}},['boost','keep']])  
+Game.war.init(['E27N43',[31,47,'E27N44'],{boostAttack:1,boostHeal:1},['E25N43'],{boostHeal:{heallv7:true},boostAttack:{attacklv7:true}},['boost','keep']])  
+Game.war.init(['E23N42',[15,47,'E23N41'],{boostAttack:1,boostHeal:1},['E19N41'],{boostHeal:{heallv7:true},boostAttack:{attacklv7:true}},['boost']])  
+Game.war.init(['E24N44',[2,24,'E25N44'],{boostAttack:1,boostHeal:1},['E25N43'],{boostHeal:{heallv8:true},boostAttack:{attacklv8:true}},['boost','keep']])  
+Game.war.init(['E24N43',[48,34,'E23N43'],{boostAttack:1,boostHeal:1},['E14N41'],{boostHeal:{heallv6:true},boostAttack:{attacklv6:true}},['boost']])  
+Game.war.init(['E18N44',[11,27,'E19N44'],{SEAL:1},['E19N41'],{SEAL:{smallattack:true}}])
+
+Game.war.init(['E15N42',[46,31,'E14N42'],{boostAttack:1,boostHeal:1},['E14N41'],{boostHeal:{heallv6:true},boostAttack:{attacklv6:true}},['boost']])  
+
+Game.war.init(['E12N46',[10,4,'E12N45'],{boostAttack:1,boostHeal:1},['E14N41'],{boostHeal:{heallv6:true},boostAttack:{attacklv6:true}},['boost']])  
 
 
 # 其他  

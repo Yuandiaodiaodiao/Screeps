@@ -172,8 +172,8 @@ function build(creep) {
         if (act === ERR_NOT_IN_RANGE) {
             creep.moveTo(target, {reusePath: 5, ignoreRoads: true, ignoreCreeps: false})
         } else if (act === ERR_NOT_ENOUGH_RESOURCES) {
-            if (Game.time - require('tools').roomCachettl[creep.pos.roomName] > 20) {
-                require('tools').roomCachettl[creep.pos.roomName] = 0
+            if (Game.time - Game.memory.roomCachettl[creep.pos.roomName] > 20) {
+                Game.memory.roomCachettl[creep.pos.roomName] = 0
             }
             creep.memory.status = 'get'
         } else if (act === ERR_INVALID_TARGET) {

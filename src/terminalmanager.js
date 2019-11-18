@@ -1,21 +1,16 @@
+let labOp = require('labOperator')
+
 function work(creep) {
     const terminal = creep.room.terminal
     let memory = creep.memory
-    if (creep.memory.status == 'miss') {
-        memory = creep.memory = {
-            role: creep.memory.role,
-            status: 'miss',
-            missionid: creep.memory.missionid,
-        }
+    if (creep.memory.status === 'miss') {
+
+        const role = creep.memory.role
+        const missionid = creep.memory.missionid
+        memory = creep.memory = {}
         const room = creep.room
         if (creep.memory.role) {
-            if (memory.role == 'power' && room.powerSpawn && creep.room.powerSpawn.power == 0) {
-                memory.type = RESOURCE_POWER
-                memory.gettarget = room.terminal.id
-                memory.filltarget = room.powerSpawn.id
-                memory.status = 'getting'
-                memory.nexts = 'filling'
-                memory.thor = 100
+            if (memory.role === 'power' && labOp.fillPower(creep, memory, room)) {
             }
         } else if (terminal.store[RESOURCE_ENERGY] > 14000 && _.sum(room.storage.store) / room.storage.store.getCapacity() < 0.95) {
             memory.type = RESOURCE_ENERGY
@@ -23,104 +18,37 @@ function work(creep) {
             memory.filltarget = room.storage.id
             memory.status = 'getting'
             memory.nexts = 'filling'
-        } else if (terminal.store[RESOURCE_GHODIUM] && room.nuker && room.nuker.ghodium < 5000) {
-            memory.type = RESOURCE_GHODIUM
-            memory.gettarget = room.terminal.id
-            memory.filltarget = room.nuker.id
-            memory.status = 'getting'
-            memory.nexts = 'filling'
-            memory.thor = 5000 - room.nuker.ghodium
-        } else if (room.memory.factory && room.memory.factory.status === 'fill' && room.memory.factory.thor > 0) {
-            const target = room.factory
-            Game.factory.miss(room)
-            memory.type = room.memory.factory.fillType
-            memory.gettarget = room.terminal.id
-            memory.status = 'getting'
-            memory.nexts = 'filling'
-            memory.filltarget = target.id
-            memory.thor = room.memory.factory.thor
-        } else if (room.memory.factory && room.memory.factory.status === 'get' && room.memory.factory.thor > 0) {
-            const target = room.factory
-            Game.factory.miss(room)
-            memory.type = room.memory.factory.fillType
-            memory.gettarget = target.id
-            memory.status = 'getting'
-            memory.nexts = 'filling'
-            memory.filltarget = room.terminal.id
-            memory.thor = room.memory.factory.thor
+        } else if (labOp.labFill(creep, memory, room)) {
+
+        } else if (labOp.fillNuke(creep, memory, room)) {
+
+        } else if (labOp.factoryFill(creep, memory, room)) {
+
+        } else if (labOp.factoryGet(creep, memory, room)) {
+
+        } else if (labOp.boostEnergy(creep, memory, room)) {
+
+        } else if (labOp.boostMine(creep, memory, room)) {
+
+        } else if (labOp.labCollect(creep, memory, room)) {
+
+        } else if (creep.ticksToLive < 50) {
+            creep.memory.status = 'suicide'
+
+        } else if (_.sum(creep.carry) > 0) {
+            for (let type in creep.carry) {
+                memory.type = type
+                memory.filltarget = room.terminal.id
+                memory.status = 'filling'
+                memory.nexts = 'miss'
+                break
+            }
         } else {
-            if (creep.ticksToLive < 50) {
-                creep.memory.status = 'suicide'
-                return
-            }
-
-            let ok = false
-            for (let lab of room.labs) {
-                if (lab.energy < lab.energyCapacity) {
-                    memory.type = RESOURCE_ENERGY
-                    memory.gettarget = room.storage.id
-                    memory.filltarget = lab.id
-                    memory.status = 'getting'
-                    memory.nexts = 'filling'
-                    memory.thor = lab.energyCapacity - lab.energy
-                    ok = true
-                    break
-                }
-            }
-            if (!ok && room.memory.reaction && room.memory.reaction.status === 'boost') {
-                const boostList = room.memory.reaction.boostList
-                for (let index in boostList) {
-                    const type = boostList[index]
-                    const lab = room.labs[index]
-                    if (lab.mineralAmount < lab.mineralCapacity) {
-                        memory.type = type
-                        memory.gettarget = room.terminal.id
-                        memory.filltarget = lab.id
-                        memory.status = 'getting'
-                        memory.nexts = 'filling'
-                        memory.thor = lab.mineralCapacity - lab.mineralAmount
-                        ok = true
-                        break
-                    }
-                }
-                if (ok == false) {
-                    room.memory.reaction.boostReady = true
-                } else {
-                    room.memory.reaction.boostReady = false
-                }
-            }
-            if (!ok && room.memory.reaction && room.memory.reaction.status === 'collect') {
-                const labs = room.labs
-                for (let lab of labs) {
-                    if (lab.mineralAmount > 0) {
-                        memory.type = lab.mineralType
-                        memory.gettarget = lab.id
-                        memory.status = 'getting'
-                        memory.nexts = 'filling'
-                        memory.filltarget = room.terminal.id
-                        ok = true
-                        break
-                    }
-                }
-            }
-
-
-            if (!ok) {
-                if (_.sum(creep.carry) > 0) {
-                    for (let type in creep.carry) {
-                        memory.type = type
-                        memory.filltarget = room.terminal.id
-                        memory.status = 'filling'
-                        memory.nexts = 'miss'
-                        ok = true
-                        break
-                    }
-                }
-            }
-            if (!ok) {
-                creep.memory.status = 'sleep'
-            }
+            creep.memory.status = 'sleep'
         }
+        creep.memory.role = role
+        creep.memory.missionid = missionid
+        memory = creep.memory
     } else if (creep.memory.status === 'sleep') {
         if (Game.time % 10 === 0) {
             creep.memory.status = 'miss'
@@ -129,36 +57,11 @@ function work(creep) {
         Game.tools.suicide(creep, creep.room.terminal)
         return
     }
-    if (memory.status == 'filling') {
-        let filltarget = Game.getObjectById(memory.filltarget)
-        const act = creep.transfer(filltarget, memory.type, memory.fillthor)
-        if (act == ERR_NOT_IN_RANGE) {
-            creep.moveTo(filltarget, {reusePath: 10})
-        } else if (act == OK) {
-            if (!creep.carry[memory.type] || creep.carry[memory.type] == 0)
-                memory.status = 'miss'
-        } else if (act == ERR_NOT_ENOUGH_RESOURCES) {
-            memory.status = 'miss'
-        } else if (act == ERR_FULL) {
-            memory.status = 'miss'
-        }
-    } else if (memory.status == 'getting') {
-        const gettarget = Game.getObjectById(memory.gettarget)
-        let act = null
-        if (memory.thor) {
-            act = creep.withdraw(gettarget, memory.type, Math.min(gettarget.store[memory.type], memory.thor, creep.carryCapacity - _.sum(creep.carry)))
-        } else {
-            act = creep.withdraw(gettarget, memory.type)
-        }
-        if (act == ERR_NOT_IN_RANGE) {
-            creep.moveTo(gettarget, {reusePath: 10})
-        } else if (act == OK) {
-            memory.status = memory.nexts
-        } else if (act == ERR_NOT_ENOUGH_RESOURCES) {
-            memory.status = 'miss'
-        } else if (act == ERR_FULL) {
-            memory.status = memory.nexts
-        }
+    if (memory.status === 'filling') {
+        require('labOperator').fill(creep, memory)
+    } else if (memory.status === 'getting') {
+        require('labOperator').get(creep, memory)
+
     }
     creep.memory = memory
 
@@ -203,8 +106,12 @@ function miss(room) {
                 role: 'power',
             }
         }
-        if (terminal.store[RESOURCE_ENERGY] > 90000 || (!room.controller.isPowerEnabled && terminal.store[RESOURCE_GHODIUM] && terminal.store[RESOURCE_GHODIUM] >= 1000 && room.nuker && room.nuker.ghodium < 5000)
-        ||(!room.controller.isPowerEnabled&&(room.memory.factory.status==='fill'||room.memory.factory.status==='get'))
+        if (terminal.store[RESOURCE_ENERGY] > 90000 ||
+            (!room.controller.isPowerEnabled && terminal.store[RESOURCE_GHODIUM] && terminal.store[RESOURCE_GHODIUM] >= 1000 && room.nuker && room.nuker.ghodium < 5000)
+            || (!room.controller.isPowerEnabled && (
+                room.memory.factory && (room.memory.factory.status === 'fill' || room.memory.factory.status === 'get') ||
+                room.memory.reaction && (room.memory.reaction.status === 'collect' || (room.memory.reaction.status === 'boost' && !room.memory.reaction.boostReady) || room.memory.reaction.status === 'fill')
+            ))
         ) {
             room.memory.missions.terminalmanager[room.name] = {
                 roomName: room.name,
