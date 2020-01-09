@@ -22,19 +22,17 @@
  then when you reload your code, the variable 'x'
  may large probability in 'Game.memory'.
  This module suit to save Objects like CostMatrixCache PathCache.
-warning!!! you cant use RawMemory.setActiveSegments out the module
+ warning!!! you cant use RawMemory.setActiveSegments out the module
  only if you change the code to merge ActiveSegments
- you can init your datastruct in dataStruct
  全局储存器 用来将变量保存致ram中来节省Memory开销
  最大可存10*100k 并且相比于Memory cpu消耗极低
  注意 只能用来保存易失数据 如CostMatrix缓存 路径缓存,
  当push代码之后 您保存的数据可能会被回滚至(0,maxSaveFrequency)之前
-警告: 使用此模块后不能在其他位置使用RawMemory.setActiveSegments
+ 警告: 使用此模块后不能在其他位置使用RawMemory.setActiveSegments
  除非你自己将ActiveSegments的开启操作合并
- 最好将自己的数据结构写入dataStruct
  Changelog:
  1.0: Initial publish
- 2.0: add dataStruct
+
  */
 
 let segStart = 20
@@ -43,51 +41,47 @@ let maxSaveFrequency = 1000
 //save Frequency your change will be save after reload 2ticks 8ticks 32ticks....1000ticks
 //保存频率 全局reload后保存频率将从2 8 32 倍增至maxSaveFrequency
 
-
-
-
-
-
-
-
-
-
-
+//save Callback  used when your Object will be saved in Segments
+//保存回调 用于在即将被保存时做一些转化(比如压缩costMatrix
 const specialSave = {
+    /* example
     roomCache: function (cache) {
-        let temp = {}
-        for (let name in cache) {
-            if (cache[name]) {
-                try {
-                    temp[name] = Game.tools.zipCostMatrix(cache[name])
-                } catch (e) {
-                    console.log('Game.tools.zipCostMatrix' + e + name)
-                }
-            }
-        }
+       let temp=null
+        //doSomething
         return temp
     }
+    */
 }
+
+//load Callback  used when your Object is loaded from Segments
+//加载回调 用于从segment里取出时做解压
 const specialLoad = {
-    roomCache: function (cache) {
-        for (let name in cache) {
-            try {
-                cache[name] = Game.tools.unzipCostMatrix(cache[name])
-            } catch (e) {
-                console.log('  Game.tools.unzipCostMatrix error ' + e + 'name')
-            }
+    /*example
+        roomCache: function (cache) {
+            let temp=null
+            //doSomething
+            return temp
         }
-        return cache
-    }
+
+     */
 }
+
+//prepare the key because in the first tick  the Game.memory will be {}
+//提前写入空key:value 在代码被reload的第一个tick的时候Game.memory 会是 {}
 const dataStruct = {
+    /* example
     observerCache: {},
     roomCache: {},
     roomCacheUse: {},
     roomCachettl: {},
-    openerCache: {},
+     */
 }
-Game.memory={}
+
+
+//////////////////////////////////////////////////////////////////////////////////logicCode
+
+
+Game.memory = {}
 let memory = undefined
 const initData = function () {
     for (let key in dataStruct) {
@@ -120,7 +114,6 @@ function work() {
             for (let segid = segStart; segid <= segStart + segNum; ++segid) {
                 openArray.push(segid)
             }
-            // console.log('doRead seg=' + JSON.stringify(openArray))
             RawMemory.setActiveSegments(openArray)
             status = 'read'
             Game.memory = memory = {}
@@ -153,7 +146,6 @@ function work() {
                 console.log('Game.memory.read.specialLoad error' + e + " key= " + key)
             }
         }
-        // console.log('readObject=' + JSON.stringify(readObject))
         console.log('Game.memory.read length= '+config.len)
         Game.memory = memory = readObject
         initData()
@@ -161,7 +153,6 @@ function work() {
         RawMemory.setActiveSegments([])
     } else if (status === 'save') {
         let saveStr = preSaveStr
-        // console.log('save' + saveStr)
         const len = saveStr.length
         config.len = len
         const segNum = Math.floor(len / 99e3)
@@ -187,7 +178,6 @@ function work() {
         }
         preSaveStr = JSON.stringify(saveTemp)
         const len = preSaveStr.length
-        // console.log('Game.memory.save len= ' + len)
         const segNum = Math.floor(len / 99e3)
         let openArray = []
         for (let segid = segStart; segid <= segStart + segNum; ++segid) {

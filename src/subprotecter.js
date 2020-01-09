@@ -32,7 +32,7 @@ function work(creep) {
     } else if (creep.memory.status == 'miss') {
         let targets = require('tools').findroomselse(Game.rooms[creep.memory.missionid], FIND_HOSTILE_CREEPS, {
             filter: obj => {
-                return require('whitelist').whitelist.indexOf(obj.owner.username) == -1
+                return !require('whitelist').whitelist.has(obj.owner.username)
             }
         }).sort((a, b) => {
             if (a.pos.roomName != b.pos.roomName) return a.pos.roomName > b.pos.roomName ? 1 : -1
@@ -169,7 +169,7 @@ function miss(room) {
     room.memory.missions.subprotecter = {}
     let len = require('tools').findroomselse(room, FIND_HOSTILE_CREEPS, {
         filter: obj => {
-            return require('whitelist').whitelist.indexOf(obj.owner.username) == -1
+            return !require('whitelist').whitelist.has(obj.owner.username)
         }
     }).length
     if (require('tools').findroomselse(room, FIND_HOSTILE_STRUCTURES, {

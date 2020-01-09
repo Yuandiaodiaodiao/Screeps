@@ -18,7 +18,7 @@ function work(creep) {
         let step = memory.step || 0
         let extensionList = require('tools').extensionList[room.name] || require('tools').solveExtension(room)
         if (!extensionList) {
-            memory.status = 'carrying'
+            memory.status = 'getting'
             console.log('err no extensionList')
             return
         }
@@ -115,7 +115,7 @@ function work(creep) {
         }
         if (!target || target.store.energy === 0) {
             target = creep.pos.findClosestByPath(FIND_STRUCTURES, {
-                filter: obj => obj.store && obj.store[RESOURCE_ENERGY] > 0
+                filter: obj => obj.store && obj.store[RESOURCE_ENERGY] > 0 &&(obj.structureType===STRUCTURE_CONTAINER)
             })
         }
         if (target && target.store[RESOURCE_ENERGY] > 0) {

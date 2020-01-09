@@ -3,23 +3,38 @@ function work(creep) {
     if (creep.memory.status === 'solve') {
         if (Game.time % 10 !== 0) return
         const goal = new RoomPosition(...creep.memory.goal)
-        const ans = PathFinder.search(creep.pos, {pos: goal, range: 10}, {
-            plainCost: 1,
-            swampCost: 5,
-            roomCallback: require('tools').roomc_nocreep,
-            maxOps: 40000,
-            maxCost: 1500,
-            maxRooms: 64
-        })
-        console.log(creep.name + 'solve' + !ans.incomplete)
-        if (ans.incomplete) {
-            return
+        let path = []
+        let cost = 0
+        if (Game.memory.openerCache[creep.pos.roomName] && Game.memory.openerCache[creep.pos.roomName][goal.roomName]) {
+            path = Game.memory.openerCache[creep.pos.roomName][goal.roomName]
+            cost = path.length
+        } else {
+            const ans = PathFinder.search(creep.pos, {pos: goal, range: 10}, {
+                plainCost: 1,
+                swampCost: 5,
+                roomCallback: require('tools').roomc_nocreep,
+                maxOps: 100000,
+                maxCost: 1500,
+                maxRooms: 64
+            })
+            console.log(creep.name + 'solve' + !ans.incomplete)
+            if (ans.incomplete) {
+                return
+            }
+            for (let x of ans.path) {
+                path.push([x.x, x.y, x.roomName])
+            }
+            cost = ans.cost
+            if (!Game.memory.openerCache[creep.pos.roomName]) {
+                Game.memory.openerCache[creep.pos.roomName] = {}
+            }
+            Game.memory.openerCache[creep.pos.roomName][goal.roomName] = path
         }
-        const path = []
-        for (let x of ans.path) {
-            path.push([x.x, x.y, x.roomName])
+        if(!creep.room.memory.missions.opener){
+            creep.suicide()
         }
-        creep.memory.cost = ans.cost
+        creep.room.memory.missions.opener[creep.memory.missionid].cost = cost
+        creep.memory.cost = cost
         creep.memory.step = 0
         creep.memory.path = path
         creep.memory.status = 'go'
@@ -54,18 +69,21 @@ function work(creep) {
         }
     } else if (creep.memory.status === 'mine') {
         let target = Game.getObjectById(creep.memory.mineTarget)
-        if (target&&target.energy>0) {
+        if (target && target.energy > 0) {
             let act = creep.harvest(target)
-            if (act == ERR_NOT_IN_RANGE) {
+            if (act === ERR_NOT_IN_RANGE) {
                 creep.moveTo(target, {reusePath: 20, ignoreCreeps: false, ignoreRoads: true})
                 creep.memory.mineWalk = (creep.memory.mineWalk || 0) + 1
-            } else if (act == ERR_FULL) {
+            } else if (act === ERR_FULL) {
+                creep.memory.mineWalk = 0
                 creep.memory.status = 'miss'
             }
             if (_.sum(creep.carry) === creep.carryCapacity) {
-                creep.memory.status='miss'
+                creep.memory.mineWalk = 0
+                creep.memory.status = 'miss'
             }
-            if (creep.memory.mineWalk > 30) {
+            if (creep.memory.mineWalk && creep.memory.mineWalk > 30) {
+                creep.memory.mineWalk = 0
                 creep.memory.mineTarget = ''
             }
         } else {
@@ -93,7 +111,7 @@ function work(creep) {
         }
 
     } else if (creep.memory.status === 'filltower') {
-        let target = creep.pos.findClosestByRange(FIND_STRUCTURES, {filter: obj => obj.structureType == STRUCTURE_TOWER && obj.energy / obj.energyCapacity<0.8})
+        let target = creep.pos.findClosestByRange(FIND_STRUCTURES, {filter: obj => obj.structureType == STRUCTURE_TOWER && obj.energy / obj.energyCapacity < 0.8})
         if (target && target.energy < target.energyCapacity) {
             const act = creep.transfer(target, RESOURCE_ENERGY)
             if (act == ERR_NOT_IN_RANGE) {
@@ -104,11 +122,30 @@ function work(creep) {
         } else {
             creep.memory.status = 'miss'
         }
+    } else if (creep.memory.status === 'fillextension') {
+        let target=Game.getObjectById(creep.memory.extensiontarget)||creep.pos.findClosestByRange(FIND_STRUCTURES,{filter:o=>(o.structureType===STRUCTURE_EXTENSION||o.structureType===STRUCTURE_SPAWN)&&o.store.getFreeCapacity('energy')>0})
+        if(target){
+            const act=creep.transfer(target,RESOURCE_ENERGY)
+            if (act === ERR_NOT_IN_RANGE) {
+                creep.memory.extensiontarget=target.id
+                creep.moveTo(target)
+            } else {
+                creep.memory.extensiontarget=undefined
+                creep.memory.status = 'miss'
+            }
+        } else {
+            creep.memory.extensiontarget=undefined
+            creep.memory.status = 'miss'
+        }
+
     } else if (creep.memory.status === 'miss') {
-        if (creep.carry.energy!==0) {
-            let target = creep.pos.findClosestByRange(FIND_STRUCTURES, {filter: obj => obj.structureType == STRUCTURE_TOWER && obj.energy / obj.energyCapacity<0.8})
+
+        if (creep.carry.energy !== 0) {
+            let target = creep.pos.findClosestByRange(FIND_STRUCTURES, {filter: obj => obj.structureType === STRUCTURE_TOWER && obj.energy / obj.energyCapacity < 0.8})
             if (target) creep.memory.status = 'filltower'
-            else if (creep.room.controller.ticksToDowngrade < 3000) {
+            else if (!creep.room.storage&&creep.room.energyAvailable < creep.room.energyCapacityAvailable - 200) {
+                creep.memory.status = 'fillextension'
+            } else if (creep.room.controller.ticksToDowngrade < 3000) {
                 creep.memory.status = 'upgrade'
             } else {
                 creep.memory.status = creep.memory.role
@@ -145,24 +182,47 @@ function born(spawnnow, creepname, memory = {}) {
 }
 
 let help = {
-
+    //
+    // 'E11N32':{
+    // 'E14N41':3
+    // }
+    'E1N29': {
+        'E11N32': 2
+    }
 }
 
 function miss() {
-    for (let fromName in help) {
-        let helpName = help[fromName]
-        let room = Game.rooms[fromName]
-        room.memory.missions.opener = {}
-        room.memory.missions.opener[helpName] = {
-            roomName: helpName
+    for (let helpName in help) {
+        let helproom = Game.rooms[helpName]
+        if (helproom) {
+            if (helproom.storage) {
+                continue
+            }
         }
+        for (let fromName in help[helpName]) {
+            let room = Game.rooms[fromName]
+            let cost = 0
+            if (Game.memory.openerCache[fromName] && Game.memory.openerCache[fromName][helpName]) {
+                let path = Game.memory.openerCache[fromName][helpName]
+                cost = path.length
+            }
+            room.memory.missions.opener = {}
+            room.memory.missions.opener[helpName] = {
+                roomName: helpName,
+                numfix: help[helpName][fromName],
+                cost: cost
+            }
+        }
+
     }
 }
 
 module.exports = {
     'work': work,
     'born': born,
-    'miss': miss
+    'miss': miss,
+    'help': help,
+    'showCache': showCache
 };
 
 function build(creep) {
@@ -187,4 +247,14 @@ function build(creep) {
             creep.memory.status = 'fill'
         }
     }
+}
+
+function showCache() {
+    let str = ''
+    for (let i in Game.memory.openerCache) {
+        for (let j in Game.memory.openerCache[i]) {
+            str += `from ${i} to ${j}` + '\n'
+        }
+    }
+    console.log(str)
 }

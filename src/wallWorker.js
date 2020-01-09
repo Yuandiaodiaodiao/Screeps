@@ -74,8 +74,8 @@ function born(spawnnow, creepname, memory) {
     }
     const dist = ans.cost
     let bestF = 0
-    let bestCarry = 1
-    for (let i = 1; i <= 32; ++i) {
+    let bestCarry = 2
+    for (let i = 2; i <= 32; ++i) {
         let y = i * 100 / (i * 50 / (33 - i) + dist * 2)
         if (y > bestF) {
             bestF = y
@@ -109,10 +109,10 @@ function born(spawnnow, creepname, memory) {
 
 function miss(room) {
     room.memory.missions.wallWorker = {}
-    if (room.controller.level === 8 && room.storage && room.storage.store[RESOURCE_ENERGY] / room.storage.store.getCapacity() > 0.5&&Game.cpu.bucket>8000) {
+    if (room.controller.level === 8 && room.storage && room.storage.store[RESOURCE_ENERGY] / room.storage.store.getCapacity() > 0.5&&Game.cpu.bucket>9500) {
         room.memory.missions.wallWorker[room.name] = {
             roomName: room.name,
-            numfix:Math.min( Math.max(Game.cpu.bucket-8000,0)/500,Math.min(3, Math.ceil((room.storage.store[RESOURCE_ENERGY] / room.storage.store.getCapacity() - 0.5) / 0.04)))
+            numfix:Math.min( Math.max(Game.cpu.bucket-9000,0)/500,Math.min(1, Math.ceil((room.storage.store[RESOURCE_ENERGY] / room.storage.store.getCapacity() - 0.5) / 0.04)))
         }
     } else {
         room.memory.missions.wallWorker = undefined

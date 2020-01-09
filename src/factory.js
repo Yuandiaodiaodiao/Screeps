@@ -28,6 +28,9 @@ function miss(room) {
     }
     const memory = room.memory.factory
     const factory = room.factory
+    if(!factory){
+        return
+    }
     const terminal = room.terminal
     const mineType = room.find(FIND_MINERALS)[0].mineralType
     if (terminal.store.getUsedCapacity(mineType) > (memory.status === 'fill' ? 60e3 : 70e3) && factory.store.getUsedCapacity(mineType) < 10e3) {
@@ -56,14 +59,18 @@ module.exports.doReact = doReact
 function doReact(room) {
     const memory = room.memory.factory
     const factory = room.factory
+    if(Game.time-memory.sleep<100){
+        return
+    }
     if (factory) {
         if (!factory.cooldown) {
             for (let type in reaction) {
                 const act = factory.produce(type)
                 if (act === OK) {
-                    break
+                    return
                 }
             }
+            memory.sleep=Game.time
         }
 
     }

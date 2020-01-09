@@ -53,7 +53,7 @@ function miss(filterName) {
                 }
 
                 Game.war.init(arr)
-                Memory.army[roomName].from[rooms].cost = 580
+                Memory.army[roomName].from[rooms].cost = -1
             } catch (e) {
                 console.log('war.miss.flag' + e)
             }
@@ -130,14 +130,14 @@ function miss(filterName) {
                 }
             }
             const config = from[fromRoomName]
-            if ((!config.pathttl || Game.time - config.pathttl > 3000) && (config.failedtimes ? config.failedtimes <= 30 : true)) {
+            if ((!config.pathttl || Game.time - config.pathttl > 3000) && (config.failedtimes ? config.failedtimes <= 90 : true)) {
                 const ans = PathFinder.search(fromRoom.spawns[0].pos, {pos: goal, range: 2}, {
                     plainCost: 1,
                     swampCost: 5,
                     roomCallback: require('tools').roomc_nocreep,
                     maxOps: 100000,
                     maxRooms: 64,
-                    maxCost: config.maxCost || 1300,
+                    maxCost: config.maxCost || 1400,
                 })
                 if (ans.pos <= 1 && ans.incomplete) {
                     console.log(`search failed from${fromRoomName}to${targetRoomName}use ops${ans.ops} cost${ans.cost}`)
@@ -161,7 +161,9 @@ function miss(filterName) {
                 config.path = path
                 console.log(`pathstr=${JSON.stringify(path)}`)
                 config.pathttl = Game.time
-                config.cost = ans.cost
+                if(config.cost!==-1){
+                    config.cost = ans.cost
+                }
 
 
             }

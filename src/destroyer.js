@@ -66,7 +66,11 @@ function work(creep) {
             const exit = creep.pos.findClosestByRange(exitDir)
             creep.moveTo(exit)
         }
-    } else if (creep.memory.status == 'destroy') {
+    } else if (creep.memory.status === 'destroy') {
+        if (Game.flags['save']) {
+            creep.memory.status = 'suicide'
+            return
+        }
         const structs = creep.room.find(FIND_STRUCTURES, {
             filter: o => {
                 if (o.structureType === STRUCTURE_WALL) {
@@ -80,6 +84,7 @@ function work(creep) {
         const structs1 = creep.room.find(FIND_CONSTRUCTION_SITES)
         structs1.forEach(o => o.remove())
         if (structs.length == 0) {
+
             creep.room.controller.unclaim()
             try {
                 Game.war.remove(creep.memory.missionid)
@@ -111,8 +116,10 @@ function work(creep) {
         }
         const tot = wall + swamp + plain
         const strsign = `☕ mine:${mine} sources:${source}\n\n plain:${(plain / tot * 100).toFixed(0)}% swamp:${(swamp / tot * 100).toFixed(0)}% wall:${(wall / tot * 100).toFixed(0)}%  `
-        if (creep.room.controller.sign &&( creep.room.controller.sign.text.indexOf('overmind')!==-1|| creep.room.controller.sign.text.indexOf('OVERMIND')!==-1)) {
-            creep.signController(creep.room.controller,'Non-coding players unwelcome outside shard0 - expect summary execution')
+        if (Game.flags['save']) {
+            creep.signController(creep.room.controller, 'Traveler')
+        } else if (creep.room.controller.sign && (creep.room.controller.sign.text.indexOf('overmind') !== -1 || creep.room.controller.sign.text.indexOf('OVERMIND') !== -1)) {
+            creep.signController(creep.room.controller, 'Non-coding players unwelcome outside shard0 - expect summary execution')
         } else {
             creep.signController(creep.room.controller, strsign)
         }

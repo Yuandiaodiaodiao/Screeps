@@ -75,8 +75,8 @@ function work(creep) {
         }
 
     } else if (memory.status == 'dropping') {
-        let container = Game.getObjectById(memory.container) || creep.pos.findInRange(FIND_CONSTRUCTION_SITES, 3, {
-            filter: obj => obj.structureType == STRUCTURE_CONTAINER
+        let container = Game.getObjectById(memory.container) || creep.pos.findInRange(FIND_CONSTRUCTION_SITES, 1, {
+            filter: obj => obj.structureType === STRUCTURE_CONTAINER
         })[0]
         if (container) {
             memory.container = memory.container || container.id
@@ -91,11 +91,14 @@ function work(creep) {
                     creep.suicide()
                 }
             }
-        } else if (container = creep.pos.findInRange(FIND_STRUCTURES, 3, {
+        } else if (container = creep.pos.findInRange(FIND_STRUCTURES, 1, {
             filter: obj => obj.structureType == STRUCTURE_CONTAINER
         })[0]) {
             memory.status = 'mining'
             memory.container = container.id
+        }else{
+            creep.room.createConstructionSite(creep.pos,STRUCTURE_CONTAINER)
+
         }
     } else if (memory.status == 'going') {
         if (memory.link) {

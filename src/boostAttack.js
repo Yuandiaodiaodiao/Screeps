@@ -138,18 +138,20 @@ function work(creep) {
         }
         let pair = Game.getObjectById(creep.memory.pair)
         if (creep.hits === creep.hitsMax) {
-            let target = creep.pos.findClosestByPath(FIND_HOSTILE_STRUCTURES, {filter: o => o.structureType != STRUCTURE_CONTROLLER && o.structureType != STRUCTURE_RAMPART && o.structureType != STRUCTURE_EXTRACTOR})
-            if (!target) target = creep.pos.findClosestByPath(FIND_STRUCTURES, {filter: o => o.structureType != STRUCTURE_WALL && o.structureType != STRUCTURE_RAMPART})
+            let target = creep.pos.findClosestByPath(FIND_HOSTILE_STRUCTURES, {filter: o => o.hits && o.structureType != STRUCTURE_RAMPART && o.structureType != STRUCTURE_SPAWN})
+            if (!target) target = creep.pos.findClosestByPath(FIND_STRUCTURES, {filter: o => o.hits && o.structureType != STRUCTURE_WALL})
             if (!target) target = creep.room.find(FIND_STRUCTURES, {filter: o => o.hits})
             if (target) {
                 creep.dismantle(target)
             }
             if (creep.pos.isNearTo(pair) || creep.pos.x <= 1 || creep.pos.x >= 48 || creep.pos.y <= 1 || creep.pos.y >= 48) {
-                creep.moveTo(target, {ignoreCreeps: false})
-                pair.moveTo(creep)
+                if ( pair.fatigue === 0) {
+                    creep.moveTo(flag, {ignoreCreeps: false})
+                    pair.moveTo(creep)
+                }
             }
-            if(!target){
-                creep.memory.status='sign'
+            if (!target) {
+                creep.memory.status = 'sign'
             }
         }
 

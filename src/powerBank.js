@@ -38,7 +38,7 @@ function miss() {
         if (!terminal) {
             continue
         }
-        if ((terminal.store[RESOURCE_POWER] || 0) > 20e3) continue
+        if ((terminal.store[RESOURCE_POWER] || 0) > 40e3) continue
         const rooms = powerRoom[roomName]
         for (let roomn of rooms) {
             const roomc = Game.memory.observerCache[roomn]

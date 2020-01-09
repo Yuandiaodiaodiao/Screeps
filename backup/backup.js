@@ -1,3 +1,8 @@
+/*
+set http_proxy=http://127.0.0.1:1079
+set https_proxy=http://127.0.0.1:1079
+*/
+
 function f() {
 
 
@@ -112,10 +117,7 @@ function f() {
             }
         },
     })
-    /*
-    set http_proxy=http://127.0.0.1:1080
-    set https_proxy=http://127.0.0.1:1080
-    */
+
     let roada = [
         [11, 49, 'E25N44'],
         [11, 41, 'E25N44'],

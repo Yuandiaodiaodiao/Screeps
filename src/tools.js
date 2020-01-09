@@ -121,6 +121,7 @@ function roomc(roomName) {
 }
 
 function isCenterRoom(roomName) {
+    // /^([WE])[0-9]+([NS])[0-9]+$/.exec('E19N43') 获取EN
     const parsed = /^[WE]([0-9]+)[NS]([0-9]+)$/.exec(roomName);
     const x = parsed[1] % 10
     const y = parsed[2] % 10
@@ -291,7 +292,7 @@ function nearavailable(pos) {
     if (Game.rooms[pos.roomName]) {
         for (let a = -1; a <= 1; ++a) {
             for (let b = -1; b <= 1; ++b) {
-                if (a == b && b == 0) continue
+                if (a === b && b === 0) continue
                 let newpos = new RoomPosition(pos.x + a, pos.y + b, pos.roomName)
                 if (walkable(newpos)) {
                     return newpos
@@ -300,22 +301,35 @@ function nearavailable(pos) {
         }
     }
 }
-
+function allnearavailable(pos) {
+    let ans=[]
+    if (Game.rooms[pos.roomName]) {
+        for (let a = -1; a <= 1; ++a) {
+            for (let b = -1; b <= 1; ++b) {
+                if (a === b && b === 0) continue
+                let newpos = new RoomPosition(pos.x + a, pos.y + b, pos.roomName)
+                if (walkable(newpos)) {
+                    ans.push( newpos)
+                }
+            }
+        }
+    }
+    return ans
+}
 function walkable(pos) {
     return pos.lookFor(LOOK_STRUCTURES).every(struct => {
-        if (struct.structureType !== STRUCTURE_CONTAINER && struct.structureType != STRUCTURE_ROAD &&
+        return !(struct.structureType !== STRUCTURE_CONTAINER && struct.structureType !== STRUCTURE_ROAD &&
             (struct.structureType !== STRUCTURE_RAMPART ||
-                !struct.my)) {
-            return false
-        }
-        return true
-    }) && pos.lookFor(LOOK_TERRAIN) != 'wall'
+                !struct.my))
+
+    }) && pos.lookFor(LOOK_TERRAIN).every(o => o !== 'wall')
 }
 
 if (!StructureSpawn.prototype._spawnCreep) {
     StructureSpawn.prototype._spawnCreep = StructureSpawn.prototype.spawnCreep
     StructureSpawn.prototype.spawnCreep = function (body, name, options = {}) {
         let bodycosts = 9999
+
         if (_.isArray(body)) {
             bodycosts = 0
             for (let part of body) {
@@ -326,11 +340,27 @@ if (!StructureSpawn.prototype._spawnCreep) {
             bodycosts = bodycost(body)
             if (bodycosts > this.room.energyAvailable) return ERR_NOT_ENOUGH_ENERGY
             let bodyarray = []
-            for (let part in body) {
-                for (let i of range(0, Math.ceil(body[part]))) {
-                    bodyarray.push(part)
+            if(options.massPart){
+                let numbody={}
+                for(let part in body){
+                    numbody[part]=Math.ceil(body[part])
+                }
+                while (_.sum(numbody)<=0){
+                    for(let part in numbody){
+                        if(numbody[part]>0){
+                            bodyarray.push(part)
+                            numbody[part]-=1
+                        }
+                    }
+                }
+            }else{
+                for (let part in body) {
+                    for (let i of range(0, Math.ceil(body[part]))) {
+                        bodyarray.push(part)
+                    }
                 }
             }
+
             body = bodyarray
         }
         if (!extensionList[this.room.name]) {
@@ -392,8 +422,6 @@ function suicide(creep, target) {
 // }
 
 
-
-
 function moveByLongPath(pathArray, creep) {
     let pos = new RoomPosition(...pathArray[creep.memory.step])
     if (creep.pos.isEqualTo(pos)) {
@@ -432,7 +460,44 @@ function unzipCostMatrix(cost) {
     return instance
 }
 
+function give(targetRoomName, type, number = 4000) {
+    Object.values(Game.rooms).forEach(o => {
+        try {
+            if (type === RESOURCE_ENERGY && o.storage.store[type] < 1000e3) {
+                return
+            }
+            let act = o.terminal.send(type, number, targetRoomName)
+            if (act === OK) {
+                console.log(`${o.name} send ${targetRoomName} ${number}${type}`)
+            }
+        } catch (e) {
+        }
+    })
+}
+
+function removeSubRoom(targetRoom) {
+    for (let roomName in Memory.rooms) {
+        let subroom = Memory.rooms[roomName].subroom
+        if (subroom && subroom.indexOf(targetRoom) !== -1) {
+            subroom.splice(subroom.indexOf(targetRoom), 1)
+        }
+    }
+}
+
+function addSubRoom(fromRoom, targetRoom) {
+    let subroom = Memory.rooms[fromRoom].subroom
+    if (!subroom) {
+        Memory.rooms[fromRoom].subroom = []
+    }
+    if (subroom && subroom.indexOf(targetRoom) === -1) {
+        subroom.push(targetRoom)
+    }
+}
+
 module.exports = {
+    'removeSubRoom': removeSubRoom,
+    'addSubRoom': addSubRoom,
+    'give': give,
     'bodycost': bodycost,
     'findrooms': findrooms,
     'generatebody': generatebody,
@@ -456,5 +521,6 @@ module.exports = {
     'getRoomCostMatrix': getRoomCostMatrix,
     'zipCostMatrix': zipCostMatrix,
     'unzipCostMatrix': unzipCostMatrix,
-    'isHighway': isHighway
+    'isHighway': isHighway,
+    'allnearavailable':allnearavailable
 };

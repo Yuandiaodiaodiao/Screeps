@@ -111,6 +111,15 @@ Game.war.init(['E15N42',[46,31,'E14N42'],{boostAttack:1,boostHeal:1},['E14N41'],
 
 Game.war.init(['E12N46',[10,4,'E12N45'],{boostAttack:1,boostHeal:1},['E14N41'],{boostHeal:{heallv6:true},boostAttack:{attacklv6:true}},['boost']])  
 
+Game.war.init(['E2N28',[13,44,'E2N29'],{boostAttack:1,boostHeal:1},['E14N41'],{boostHeal:{heallv8:true},boostAttack:{attacklv8:true}},['boost','keep']])  
+Game.war.init(['E33N41',[17,2,'E33N40'],{boostAttack:1,boostHeal:1},['E29N41'],{boostHeal:{heallv6:true},boostAttack:{attacklv6:true}},['boost','keep']])  
+Game.war.init(['E23N42',[19,3,'E23N41'],{boostAttack:1,boostHeal:1},['E19N41'],{boostHeal:{heallv6:true},boostAttack:{attacklv6:true}},['boost','keep']])  
+Game.war.init(['E23N41',[10,2,'E23N40'],{destroyer:1},['E19N41'],{destroyer:{claim25:true}},['keep']])  
+
+Game.war.init(['E21N43',[46,13,'E20N43'],{boostAttack:1,boostHeal:1},['E19N41'],{boostHeal:{heallv6:true},boostAttack:{attacklv6:true}},['boost','keep']])  
+Game.war.init(['E21N43',[46,13,'E20N43'],{destroyer:1},['E19N41'],{destroyer:{claim25:true}},['keep']])  
+Game.war.init(['E11N32',[14,14,'E11N32'],{SEAL:1},['E14N41'],{SEAL:{wall:true}},['keep']])  
+
 
 # 其他  
 刷墙效率=刷墙数量Q/(刷墙时间+路程时间 * 2)  

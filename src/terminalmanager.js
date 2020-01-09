@@ -99,7 +99,7 @@ function miss(room) {
     room.memory.missions.terminalmanager = {}
     const terminal = room.terminal
     if (terminal) {
-        if (!room.controller.isPowerEnabled && terminal.store[RESOURCE_POWER] > 1400 && room.storage.store[RESOURCE_ENERGY] / room.storage.store.getCapacity() > 0.65 && room.powerSpawn) {
+        if (!Game.powerCreeps[room.name]  && terminal.store[RESOURCE_POWER] > 1400 && room.storage.store[RESOURCE_ENERGY] / room.storage.store.getCapacity() > 0.65 && room.powerSpawn) {
             room.memory.missions.terminalmanager[room.name] = {
                 roomName: room.name,
                 capacity: 100,
@@ -107,8 +107,8 @@ function miss(room) {
             }
         }
         if (terminal.store[RESOURCE_ENERGY] > 90000 ||
-            (!room.controller.isPowerEnabled && terminal.store[RESOURCE_GHODIUM] && terminal.store[RESOURCE_GHODIUM] >= 1000 && room.nuker && room.nuker.ghodium < 5000)
-            || (!room.controller.isPowerEnabled && (
+            (!Game.powerCreeps[room.name] && terminal.store[RESOURCE_GHODIUM] && terminal.store[RESOURCE_GHODIUM] >= 1000 && room.nuker && room.nuker.ghodium < 5000)
+            || (!Game.powerCreeps[room.name] && (
                 room.memory.factory && (room.memory.factory.status === 'fill' || room.memory.factory.status === 'get') ||
                 room.memory.reaction && (room.memory.reaction.status === 'collect' || (room.memory.reaction.status === 'boost' && !room.memory.reaction.boostReady) || room.memory.reaction.status === 'fill')
             ))

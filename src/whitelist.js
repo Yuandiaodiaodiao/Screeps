@@ -1,4 +1,5 @@
-module.exports.whitelist=[
-    'o4kapuk'
-]
+module.exports.whitelist = new Set([
+    'o4kapuk',
+    'WheatEars'
+])
 

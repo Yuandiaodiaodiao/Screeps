@@ -1,9 +1,10 @@
 load()
 require('prototype.Creep.move')
 require('prototype.Room.structures')
-var tower = require('tower');
+var tower = require('tower')
 var link = require('link')
 console.log('reload---------------------')
+require('command')
 
 function clearmem() {
     for (let name in Memory.creeps) {
@@ -66,9 +67,16 @@ function mission_generator(room) {
     thisroom.missions = require('tools').deepcopy(missions_ori)
     //找到所有资源
     const sources = []
-    let targets = require('tools').findrooms(room, FIND_SOURCES)
+    let targets = Game.tools.findrooms(room, FIND_SOURCES)
     for (let obj of targets) {
         sources.push(obj)
+    }
+    //修路
+    try{
+        Game.RoomPlanner.autoRoad(room)
+
+    }catch (e) {
+        console.log('buildroad error'+e+'in'+room.name)
     }
     //找矿
     const minerals = []
@@ -117,21 +125,24 @@ function mission_generator(room) {
     require('tools').solveExtension(room)
     let missions = thisroom.missions
     //分配miner
-    for (let source of sources) {
-        const container = source.pos.findInRange(FIND_STRUCTURES, 2, {
-            filter: structure => structure.structureType == STRUCTURE_CONTAINER
-        })[0]
-        const link = source.pos.findInRange(FIND_STRUCTURES, 2, {
-            filter: structure => structure.structureType == STRUCTURE_LINK && structure.my == true
-        })[0]
+    if (room.controller.level >= 4) {
+        for (let source of sources) {
+            const container = source.pos.findInRange(FIND_STRUCTURES, 1, {
+                filter: structure => structure.structureType == STRUCTURE_CONTAINER
+            })[0]
+            const link = source.pos.findInRange(FIND_STRUCTURES, 2, {
+                filter: structure => structure.structureType == STRUCTURE_LINK && structure.my == true
+            })[0]
 
-        missions.miner[source.id] = {
-            target: source.id,
-            container: container ? container.id : undefined,
-            link: link ? link.id : undefined,
+            missions.miner[source.id] = {
+                target: source.id,
+                container: container ? container.id : undefined,
+                link: link ? link.id : undefined,
+            }
+
         }
-
     }
+
 
     //分配carryer
     for (let sourceid in missions.miner) {
@@ -174,7 +185,7 @@ function mission_generator(room) {
             }
 
             if (filltarget) {
-                if (mincost > 1) {
+                if (mincost > 1 || room.controller.level === 4) {
                     missions.carryer[containerid] = {
                         gettarget: containerid,
                         fill: filltarget.id,
@@ -231,7 +242,6 @@ function mission_generator(room) {
 
 
     //opener
-    missions.opener = {}
     //mineraler
     for (let source of minerals) {
 
@@ -336,6 +346,7 @@ function load() {
     Game.terminal = require('terminal')
     Game.factory = require('factory')
     Game.observer = require('observer')
+    Game.RoomPlanner=require('RoomPlanner')
 }
 
 var missionController = require('missionController')
@@ -442,7 +453,7 @@ module.exports.loop = function () {
             console.log(roomName + 'link error ' + e)
         }
 
-        if (room.towers.length == 0 && room.find(FIND_HOSTILE_CREEPS).length > 0) {
+        if (room.towers.length === 0 && room.find(FIND_HOSTILE_CREEPS).length > 0) {
             room.controller.activateSafeMode()
         }
 
@@ -495,12 +506,13 @@ module.exports.loop = function () {
             }
         }
     }
-    if (Game.time % 10 == 0) {
+    if (Game.time % 10 === 0) {
         for (let roomName in Memory.rooms) {
             let room = Game.rooms[roomName]
             let ticks = 100
-            if (room.storage && room.storage.store[RESOURCE_ENERGY] / room.storage.store.getCapacity() > 0.95) {
-                ticks = 10
+            let rate = room.storage ? room.storage.store[RESOURCE_ENERGY] / room.storage.store.getCapacity() : 0
+            if (room.storage && rate > 0.9) {
+                ticks = Math.ceil(Math.round(Math.max(10, 50 - (rate - 0.9) * 800)/10)*10)
             }
             if (Game.time % ticks === 0) {
                 try {
@@ -597,13 +609,15 @@ module.exports.loop = function () {
         Game.war.miss()
     }
 
-    let tokens=Game.market.getAllOrders({type: ORDER_SELL, resourceType: SUBSCRIPTION_TOKEN})
-    for(let x of tokens){
-        if(x.price<=Game.market.credits){
-            Game.market.deal(x.id,1)
+    let tokens = Game.market.getAllOrders({type: ORDER_SELL, resourceType: SUBSCRIPTION_TOKEN})
+    for (let x of tokens) {
+        if (x.price <= Game.market.credits) {
+            Game.market.deal(x.id, 1)
         }
     }
-
+    if (Game.time % 100 === 0 && Memory.giveRoom) {
+        Game.tools.give(Memory.giveRoom, 'energy');
+    }
     // if(Game.time%100==0){
     //     Game.getObjectById('5d5e20a452d12c73f02d996d').launchNuke(new RoomPosition(39,10,'E21N49')) //E25N43
     //     Game.getObjectById('5d58a050ea104379d90eb36e').launchNuke(new RoomPosition(32,24,'E22N49')) //E28N46

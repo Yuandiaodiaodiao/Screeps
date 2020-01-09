@@ -135,6 +135,11 @@ function born(spawnnow, creepname, memory) {
             'move': 8
         }
     }
+    if(spawnnow.pos.roomName===Game.getObjectById(memory.gettarget).pos.roomName){
+        if(body['work']){
+            delete body['work']
+        }
+    }
     let bodyarray = require('tools').generatebody(body, spawnnow)
     return spawnnow.spawnCreep(
         bodyarray,
