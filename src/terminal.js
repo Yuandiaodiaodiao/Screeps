@@ -39,7 +39,7 @@ module.exports.work = function (room, rate) {
 
     }
 
-    if ((terminal.store[RESOURCE_POWER] || 0) > 4000) {
+    if ((terminal.store[RESOURCE_POWER] || 0) > 8000) {
         const powerHave = terminal.store[RESOURCE_POWER]
         for (let roomNames in Memory.rooms) {
             let rooms = Game.rooms[roomNames]
@@ -98,8 +98,8 @@ function handlesell(roomName) {
         }
     }
 
-    if (storage && terminal && (terminal.store[RESOURCE_POWER] || 0) > 0) {
-        let act = sellSome(room, terminal, RESOURCE_POWER, 2500, 0.523)
+    if (storage && terminal && (terminal.store[RESOURCE_POWER] || 0) > 20e3) {
+        let act = sellSome(room, terminal, RESOURCE_POWER, 2500, 0.7)
         if (act === OK) {
             return act
         }
@@ -110,7 +110,7 @@ function handlesell(roomName) {
 
 function sellSome(room, terminal, type, amount, minPrice) {
     const allorders = Game.market.getAllOrders({resourceType: type})
-    const mineorder = _.filter(allorders, obj => obj.type === ORDER_BUY && obj.amount > 100 && obj.price >= (minPrice || (type === RESOURCE_ENERGY ? 0 : 0.04)))
+    const mineorder = _.filter(allorders, obj => obj.type === ORDER_BUY && obj.amount >= (type === RESOURCE_ENERGY ? 1000 : 1) && obj.price >= (minPrice || (type === RESOURCE_ENERGY ? 0 : 0.04)))
     if (mineorder.length === 0) return -10
     let failedset = new Set()
     let ans = ERR_TIRED
@@ -174,7 +174,8 @@ module.exports.change = function () {
     Game.market.getAllOrders(order => order.resourceType === RESOURCE_POWER &&
         order.type === ORDER_SELL
     ).forEach(o => {
-        Game.market.changeOrderPrice(o.id, 0.7)
+        console.log('change'+o.id)
+        Game.market.changeOrderPrice(o.id, 0.65)
 
     })
 }

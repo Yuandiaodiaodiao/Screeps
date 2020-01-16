@@ -123,15 +123,20 @@ module.exports.statistics = function () {
             let roomController = {}
             let Xresource = {}
             let Xmine = {}
+            let Nuke = {}
+            let terminalUse = {}
+            let spawning = {}
             Object.keys(Memory.rooms).forEach(roomName => {
                 let room = Game.rooms[roomName]
+                if (!room) return
                 if (room && room.storage) {
                     storageUse[roomName] = room.storage.store[RESOURCE_ENERGY]
                 }
                 if (room && room.controller.level < 8) {
                     roomController[roomName] = room.controller.progress / room.controller.progressTotal
                 }
-                if (room.terminal) {
+                if (room && room.terminal) {
+                    terminalUse[room.name] = _.sum(room.terminal.store)
                     Object.values(REACTIONS.X).forEach(o => {
                         Xresource[o] = (Xresource[o] || 0) + (room.terminal.store[o] || 0)
                     })
@@ -139,9 +144,44 @@ module.exports.statistics = function () {
                         Xmine[o] = (Xmine[o] || 0) + (room.terminal.store[o] || 0)
                     })
                 }
-
+                const nuke = room.nuker
+                if (nuke) {
+                    Nuke[roomName] = (100 - nuke.cooldown / 100000 * 100).toFixed(1)
+                }
+                for (let spawn of room.spawns) {
+                    let spawningx = spawn.spawning
+                    if (spawningx && spawningx.name) {
+                        let type = spawningx.name.split('_')[1]
+                        spawning[type] = (spawning[type] || 0) + 1
+                    }
+                }
             })
+            let pbProcess = {}
+            for (let pbRoom in Memory.powerPlan) {
+                let pb = undefined
+                let plan = Memory.powerPlan[pbRoom]
+                if (plan.pbid) {
+                    pb = Game.getObjectById(plan.pbid)
+                }
+                if (!pb) {
+                    let pbr = Game.rooms[pbRoom]
+                    if (pbr) {
+                        pb = pbr.powerBanks[0]
+                    }
+                }
+                if (pb) {
+                    pbProcess[pbRoom] = 1 - pb.hits / pb.hitsMax
+                } else {
+                    pbProcess[pbRoom] = 0
+                }
+
+
+            }
+
             Memory.grafana.creepNum = Object.keys(Game.creeps).length
+            Memory.grafana.terminalUse = terminalUse
+            Memory.grafana.spawning = spawning
+            Memory.grafana.Nuke = Nuke
             Memory.grafana.creepType = _.countBy(Object.keys(Game.creeps), o => o.split('_')[1])
             Memory.grafana.storageUse = storageUse
             Memory.grafana.roomController = roomController
@@ -150,7 +190,8 @@ module.exports.statistics = function () {
             Memory.grafana.money = Game.market.credits
             Memory.grafana.gpl = Game.gpl
             Memory.grafana.gcl = Game.gcl
-            Memory.grafana.cpu20=20
+            Memory.grafana.cpu20 = 20
+            Memory.grafana.pbProcess = pbProcess
         }
 
     }

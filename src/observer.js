@@ -53,6 +53,7 @@ function work() {
                     Game.memory.observerCache[roomName] = {
                         powerBank: true,
                         power: pb.power,
+                        pbid: pb.id,
                         startTime: Game.time - (5000 - pb.ticksToDecay),
                         time: Game.time,
                         pos: [pb.pos.x, pb.pos.y]

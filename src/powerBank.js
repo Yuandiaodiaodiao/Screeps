@@ -42,7 +42,7 @@ function miss() {
         const rooms = powerRoom[roomName]
         for (let roomn of rooms) {
             const roomc = Game.memory.observerCache[roomn]
-            if (Game.cpu.bucket > 5000 && roomc && roomc.powerBank && roomc.power >= 1000 && Game.time - roomc.startTime <= 500 && !Memory.powerPlan[roomn] && Game.rooms[roomName].storage.store[RESOURCE_ENERGY] > 300000) {
+            if (Game.cpu.bucket > 3000+400*Math.max(5,Object.keys(Memory.powerPlan).length) && roomc && roomc.powerBank && roomc.power >= 1500 && Game.time - roomc.startTime <= 1500 && !Memory.powerPlan[roomn] && Game.rooms[roomName].storage.store[RESOURCE_ENERGY] > 300000) {
                 const targetpos = new RoomPosition(roomc.pos[0], roomc.pos[1], roomn)
                 const ans = PathFinder.search(Game.rooms[roomName].spawns[0].pos, {pos: targetpos, range: 3}, {
                     plainCost: 1, swampCost: 5, roomCallback: Game.tools.roomc_nocreep, maxOps: 10000
@@ -70,6 +70,7 @@ function miss() {
                     spawnRoom: roomName,
                     startTime: roomc.startTime,
                     power: roomc.power,
+                    pbid:roomc.pbid,
                     position: position,
                     carry: Math.ceil((roomc.power + 500) / 1250),
                     timelock: 0,

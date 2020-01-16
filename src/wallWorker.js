@@ -112,7 +112,7 @@ function miss(room) {
     if (room.controller.level === 8 && room.storage && room.storage.store[RESOURCE_ENERGY] / room.storage.store.getCapacity() > 0.5&&Game.cpu.bucket>9500) {
         room.memory.missions.wallWorker[room.name] = {
             roomName: room.name,
-            numfix:Math.min( Math.max(Game.cpu.bucket-9000,0)/500,Math.min(1, Math.ceil((room.storage.store[RESOURCE_ENERGY] / room.storage.store.getCapacity() - 0.5) / 0.04)))
+            numfix:Math.min( Math.max(Game.cpu.bucket-9500,0)/500,Math.min(1, Math.ceil((room.storage.store[RESOURCE_ENERGY] / room.storage.store.getCapacity() - 0.5) / 0.04)))
         }
     } else {
         room.memory.missions.wallWorker = undefined

@@ -117,7 +117,7 @@ function miss(room) {
     if (room.controller.level >=4&&room.controller.ticksToDowngrade && room.controller.ticksToDowngrade < 3000 && role_num_fix[room.name].upgrader === 0) {
         role_num_fix[room.name].upgrader = 1
     }
-    if (room.controller.level === 8 && room.storage && room.storage.store[RESOURCE_ENERGY] / room.storage.store.getCapacity() >= 0.5 && Game.cpu.bucket>8000) {
+    if (room.controller.level === 8 && room.storage && room.storage.store[RESOURCE_ENERGY] / room.storage.store.getCapacity() >= 0.4 && Game.cpu.bucket>8500) {
         role_num_fix[room.name].upgrader = 1
     }
     if(!room.storage){

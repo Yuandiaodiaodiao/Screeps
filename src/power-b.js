@@ -42,7 +42,7 @@ function work(creep) {
         creep.memory.target = target.id
         if (!target.memory.sleep) {
             const act = creep.heal(target)
-            if (act == ERR_NOT_IN_RANGE) {
+            if (act === ERR_NOT_IN_RANGE) {
                 creep.moveTo(target, {ignoreCreeps: false, serializeMemory: false})
             }
         }
