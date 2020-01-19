@@ -119,6 +119,17 @@ module.exports.statistics = function () {
         Memory.grafana.cpu = Game.cpu.getUsed()
         Memory.grafana.bucket = Game.cpu.bucket
         if (Game.time % 10 === 0) {
+            if(Game.time%100===0){
+                Memory.grafana.hits={}
+                Object.keys(Memory.rooms).forEach(roomName => {
+                    let room = Game.rooms[roomName]
+                    if (!room) return
+                    let structures=room.find(FIND_STRUCTURES,{filter:o=>o.hits&&(o.structureType===STRUCTURE_RAMPART
+                            ||o.structureType===STRUCTURE_WALL)})
+                    let hits=Game.lodash.meanBy(structures,o=>o.hits)
+                    Memory.grafana.hits[roomName]=hits
+                })
+            }
             let storageUse = {}
             let roomController = {}
             let Xresource = {}

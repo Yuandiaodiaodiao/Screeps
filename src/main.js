@@ -497,7 +497,7 @@ module.exports.loop = function () {
         }
     }
     if (Game.time % 50 == 0) {
-
+        Memory.grafana.enemy={}
 
         try {
             require('powerBank').miss()
