@@ -1,3 +1,4 @@
+Game.lodash=require('lodash-my')
 load()
 require('prototype.Creep.move')
 require('prototype.Room.structures')
@@ -133,7 +134,11 @@ function mission_generator(room) {
             const link = source.pos.findInRange(FIND_STRUCTURES, 2, {
                 filter: structure => structure.structureType == STRUCTURE_LINK && structure.my == true
             })[0]
-
+            if(room.controller.level<8){
+                if(link&&container){
+                    container.destroy()
+                }
+            }
             missions.miner[source.id] = {
                 target: source.id,
                 container: container ? container.id : undefined,
@@ -158,7 +163,7 @@ function mission_generator(room) {
                 if (spawns.length == 0) continue
                 let spawn = spawns[0]
                 filltarget = spawn.pos.findClosestByRange(FIND_STRUCTURES, {
-                    filter: obj => obj.structureType == STRUCTURE_CONTAINER
+                    filter: obj => obj.structureType === STRUCTURE_CONTAINER
                 })
                 if (filltarget)
                     mincost = PathFinder.search(container.pos, {pos: filltarget.pos, range: 1}, {
@@ -167,10 +172,10 @@ function mission_generator(room) {
             } else {
 
                 filltarget = room.storage
-                mincost = PathFinder.search(container.pos, {pos: filltarget.pos, range: 1}, {
+                mincost = PathFinder.search(container.pos, {pos: filltarget.pos, range: 0}, {
                     plainCost: 2, swampCost: 10, roomCallback: require('tools').roomc_nocreep
-                }).cost - 4
-                if (container.pos.roomName != room.name) {
+                }).cost
+                if (container.pos.roomName !== room.name) {
                     for (let obj of canfill) {
                         let nowcost = PathFinder.search(container.pos, {pos: obj.pos, range: 1}, {
                             plainCost: 2, swampCost: 10, roomCallback: require('tools').roomc_nocreep
@@ -347,6 +352,7 @@ function load() {
     Game.factory = require('factory')
     Game.observer = require('observer')
     Game.RoomPlanner=require('RoomPlanner')
+    Game.lodash=require('lodash-my')
 }
 
 var missionController = require('missionController')
@@ -626,9 +632,12 @@ module.exports.loop = function () {
     require('roomvisual').statistics()
 
 }
-module.exports.handlemission = function () {
+module.exports.handlemission = function (roomNamein) {
     timer()
     for (let roomName in Memory.rooms) {
+        if(roomNamein&&roomName!==roomNamein){
+            continue
+        }
         let room = Game.rooms[roomName]
         if (!room) continue
         mission_generator(room)

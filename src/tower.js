@@ -47,6 +47,10 @@ function work(room) {
         }
     })[0]
     enemy[room.name] = !!target;
+    if(target){
+        Memory.grafana.enemy=Memory.grafana.enemy||{}
+        Memory.grafana.enemy[room.name+target.owner.username]=1
+    }
     if (target) {
         if (room.spawns.length > 0 && room.spawns.some(o => o.pos.getRangeTo(target.pos)<= 2) ) {
             room.controller.activateSafeMode()

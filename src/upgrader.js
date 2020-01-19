@@ -1,6 +1,7 @@
 var upgradertime = {}
 
 function work(creep) {
+
     const memory = creep.memory
     if (memory.status === 'going') {
         let target = Game.getObjectById(memory.missionid)
@@ -47,7 +48,7 @@ function work(creep) {
 
         })
         if (target) {
-            memory.container=target.id
+            memory.container = target.id
             if (creep.withdraw(target, RESOURCE_ENERGY) === ERR_NOT_IN_RANGE) {
                 creep.moveTo(target)
             }
@@ -94,33 +95,28 @@ function miss(room) {
     let role_num_fix = Game.config.role_num_fix
     role_num_fix[room.name] = role_num_fix[room.name] || {}
     if (room.storage && room.controller.level >= 4 && room.controller.level <= 7) {
-
-        if (room.storage.store[RESOURCE_ENERGY] / room.storage.store.getCapacity() < 0.3) {
-            role_num_fix[room.name].upgrader = 0
-        } else if (room.storage.store[RESOURCE_ENERGY] / room.storage.store.getCapacity() < 0.4) {
-            role_num_fix[room.name].upgrader = 1
-        } else if (room.storage.store[RESOURCE_ENERGY] / room.storage.store.getCapacity() < 0.5) {
-            role_num_fix[room.name].upgrader = 2
-        } else if (room.storage.store[RESOURCE_ENERGY] / room.storage.store.getCapacity() >= 0.6) {
-            role_num_fix[room.name].upgrader = 3
-        }
+        let persent = room.storage.store[RESOURCE_ENERGY] / room.storage.store.getCapacity()
+        let num = Math.ceil((persent - 0.3) / 0.05)
+        num = Math.max(0, num)
+        num = Math.min(4, num)
+        role_num_fix[room.name].upgrader = num
     }
     if (room.controller.level === 8) {
-            role_num_fix[room.name].upgrader = Math.min(role_num_fix[room.name].upgrader,1)
+        role_num_fix[room.name].upgrader = Math.min(role_num_fix[room.name].upgrader, 1)
         if (room.controller.ticksToDowngrade && room.controller.ticksToDowngrade > 100000) {
             role_num_fix[room.name].upgrader = 0
-        }else{
+        } else {
             role_num_fix[room.name].upgrader = 1
         }
     }
 
-    if (room.controller.level >=4&&room.controller.ticksToDowngrade && room.controller.ticksToDowngrade < 3000 && role_num_fix[room.name].upgrader === 0) {
+    if (room.controller.level >= 4 && room.controller.ticksToDowngrade && room.controller.ticksToDowngrade < 3000 && role_num_fix[room.name].upgrader === 0) {
         role_num_fix[room.name].upgrader = 1
     }
-    if (room.controller.level === 8 && room.storage && room.storage.store[RESOURCE_ENERGY] / room.storage.store.getCapacity() >= 0.4 && Game.cpu.bucket>8500) {
+    if (room.controller.level === 8 && room.storage && room.storage.store[RESOURCE_ENERGY] / room.storage.store.getCapacity() >= 0.4 && Game.cpu.bucket > 8500) {
         role_num_fix[room.name].upgrader = 1
     }
-    if(!room.storage){
+    if (!room.storage) {
         role_num_fix[room.name].upgrader = 0
     }
     // if (room.name == 'E29N38') {

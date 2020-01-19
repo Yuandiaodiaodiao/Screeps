@@ -463,6 +463,9 @@ function unzipCostMatrix(cost) {
 function give(targetRoomName, type, number = 4000) {
     Object.values(Game.rooms).forEach(o => {
         try {
+            if(!(o.controller&&o.controller.my)){
+                return
+            }
             if (type === RESOURCE_ENERGY && o.storage.store[type] < 1000e3) {
                 return
             }

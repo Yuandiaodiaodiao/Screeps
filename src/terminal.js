@@ -98,7 +98,7 @@ function handlesell(roomName) {
         }
     }
 
-    if (storage && terminal && (terminal.store[RESOURCE_POWER] || 0) > 20e3) {
+    if (storage && terminal && (terminal.store[RESOURCE_POWER] || 0) > 40e3) {
         let act = sellSome(room, terminal, RESOURCE_POWER, 2500, 0.7)
         if (act === OK) {
             return act
@@ -170,12 +170,16 @@ module.exports.createOrder = function () {
         }
     })
 }
-module.exports.change = function () {
-    Game.market.getAllOrders(order => order.resourceType === RESOURCE_POWER &&
+module.exports.change = function (type,price) {
+    _.filter(Game.market.orders,order => order.resourceType === type &&
         order.type === ORDER_SELL
     ).forEach(o => {
-        console.log('change'+o.id)
-        Game.market.changeOrderPrice(o.id, 0.65)
+        // console.log('change'+o.id)
+        if(o.remainingAmount===0){
+            Game.market.cancelOrder(o.id)
+        }else{
+            Game.market.changeOrderPrice(o.id, price)
+        }
 
     })
 }

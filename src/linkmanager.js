@@ -1,6 +1,10 @@
 function work(creep) {
     const memory = creep.memory
     const link = Game.getObjectById(memory.link)
+    if(!link){
+        require('main').handlemission(creep.pos.roomName)
+        creep.suicide()
+    }
     const container = Game.getObjectById(memory.container)
     const storage = creep.room.storage
     if (memory.status == 'miss') {

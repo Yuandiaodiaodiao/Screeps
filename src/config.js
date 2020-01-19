@@ -3,16 +3,13 @@ var role_num_fix = {
         opener: 0,
     },
     'E25N43': {
-        opener: 1,
         // rattacker: 2,
     },
     'E27N38': {
-        opener:2,
         rattacker: 0,
         healer: 0,
     },
     'E27N42': {
-        opener:1
     },
     'E29N41': {
         farcarryer: 0,
@@ -55,5 +52,10 @@ var role_num = {
     destroyer: 0
 }
 module.exports.role_num = role_num
+module.exports.price = {
+    'power':{
+        'sell':1.3
+    }
+}
 
 module.exports.userName='Yuandiaodiaodiao'
