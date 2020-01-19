@@ -1,6 +1,6 @@
-# 项目配置
-npm install
-在项目根目录下添加  .screeps.json
+# 项目配置  
+npm install  
+在项目根目录下添加  .screeps.json  
 ```json
 {
   "branch":"default",
@@ -9,7 +9,7 @@ npm install
 
 }
 ```
-执行grunt推上代码
+执行grunt推上代码  
 # feature 
 2019/9/10 自杀系统  
 2019/9/27 cacheController 能够自动将多segment合并为一个 来保存大于100kb的对象  
