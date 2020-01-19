@@ -69,7 +69,7 @@ function work(room) {
             return getheal(o.body)
         })
         let tough = checkTough(targets[0].body)
-        if (healNumber===0||healNumber < towerattack * tough.damage || towerattack * tough.damage > tough.hits) {
+        if (healNumber===0||healNumber < towerattack * tough.damage || towerattack > tough.hits) {
             for (let tower of room.towers) {
                 tower.attack(targets[0])
             }
