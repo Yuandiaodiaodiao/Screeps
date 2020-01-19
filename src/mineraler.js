@@ -29,7 +29,10 @@ function work(creep) {
     } else if (creep.memory.status == 'mining') {
         if(Game.time%6==0){
             let target = Game.getObjectById(creep.memory.missionid)
-            creep.harvest(target)
+            let ans=creep.harvest(target)
+            if(ans===ERR_NOT_IN_RANGE){
+                creep.moveTo(target,{reusePath: 50})
+            }
         }
     }
 }

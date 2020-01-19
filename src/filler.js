@@ -66,7 +66,7 @@ function work(creep) {
                 target = room.terminal
             } else if (room.nuker && room.nuker.energy < room.nuker.energyCapacity && room.storage.store[RESOURCE_ENERGY] / room.storage.store.getCapacity() > 0.4) {
                 target = room.nuker
-            } else if (room.powerSpawn && room.powerSpawn.energy < 5000 - 1600 && room.storage.store[RESOURCE_ENERGY] / room.storage.store.getCapacity() > 0.5) {
+            } else if (room.powerSpawn && room.powerSpawn.energy < 5000 - 1600 && room.storage.store[RESOURCE_ENERGY] / room.storage.store.getCapacity() > Game.config.powerLimit) {
                 target = room.powerSpawn
             } else if (room.factory && room.factory.store.getUsedCapacity(RESOURCE_ENERGY) < 1e4) {
                 target = room.factory

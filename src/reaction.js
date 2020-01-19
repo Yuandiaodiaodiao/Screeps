@@ -12,6 +12,9 @@ function gen_reaction() {
     return reactions
 }
 
+let usefulBoostList = new Set([
+    'XKHO2', 'XLHO2', 'XZH2O', 'XZHO2', 'XGHO2', 'XUH2O'
+])
 const reaction = gen_reaction()
 module.exports.reaction = reaction
 module.exports.work = function (room) {
@@ -34,7 +37,7 @@ module.exports.work = function (room) {
         }
         for (let output in reaction) {
             const outputnum = terminal.store[output] ? terminal.store[output] : 0
-            if (outputnum < 3000) {
+            if (outputnum < 3000 || (usefulBoostList.has(output) && outputnum < 6000)) {
                 if (reaction[output].every(obj => {
                     return (terminal.store[obj] ? terminal.store[obj] : 0) >= 3000
                 })) {

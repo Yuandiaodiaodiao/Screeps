@@ -129,6 +129,7 @@ module.exports.statistics = function () {
                     let hits=Game.lodash.meanBy(structures,o=>o.hits)
                     Memory.grafana.hits[roomName]=hits
                 })
+                Memory.grafana.enemy={}
             }
             let storageUse = {}
             let roomController = {}
@@ -171,7 +172,7 @@ module.exports.statistics = function () {
             for (let pbRoom in Memory.powerPlan) {
                 let pb = undefined
                 let plan = Memory.powerPlan[pbRoom]
-                if (plan.pbid) {
+                if (plan&&plan.pbid) {
                     pb = Game.getObjectById(plan.pbid)
                 }
                 if (!pb) {
@@ -203,7 +204,6 @@ module.exports.statistics = function () {
             Memory.grafana.gcl = Game.gcl
             Memory.grafana.cpu20 = 20
             Memory.grafana.pbProcess = pbProcess
-            Memory.grafana.enemy={}
         }
 
     }

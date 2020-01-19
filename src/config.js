@@ -59,3 +59,4 @@ module.exports.price = {
 }
 
 module.exports.userName='Yuandiaodiaodiao'
+module.exports.powerLimit=0.9
