@@ -1,6 +1,7 @@
 Game.lodash=require('lodash-my')
 load()
 require('prototype.Creep.move')
+require('prototype.Whitelist')
 require('prototype.Room.structures')
 var tower = require('tower')
 var link = require('link')
@@ -497,7 +498,6 @@ module.exports.loop = function () {
         }
     }
     if (Game.time % 50 == 0) {
-        Memory.grafana.enemy={}
 
         try {
             require('powerBank').miss()

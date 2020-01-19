@@ -183,3 +183,10 @@ module.exports.change = function (type,price) {
 
     })
 }
+module.exports.solvedeal=function (roomN) {
+    let noworder = _.filter(Game.market.orders, o => o.roomName === roomN
+        && o.resourceType === RESOURCE_POWER
+        && o.type === ORDER_SELL)||[]
+    let ordernum=Game.lodash.sumBy(noworder,o=>o.remainingAmount)||0
+    return ordernum
+}

@@ -203,7 +203,7 @@ module.exports.statistics = function () {
             Memory.grafana.gcl = Game.gcl
             Memory.grafana.cpu20 = 20
             Memory.grafana.pbProcess = pbProcess
-            Memory.grafana.enemy=Memory.grafana.enemy||{}
+            Memory.grafana.enemy={}
         }
 
     }
