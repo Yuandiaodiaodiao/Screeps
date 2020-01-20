@@ -128,7 +128,7 @@ function solveplan(roomn) {
                let ordernum=Game.lodash.sumBy(noworder,o=>o.remainingAmount)||0
                console.log('orderNum='+ordernum)
                let nownum=Game.rooms[plan.spawnRoom].terminal.store.getUsedCapacity(RESOURCE_POWER)||0
-               if(nownum-ordernum>5000&&ordernum<20e3){
+               if(nownum-ordernum>5000&&ordernum<30e3){
                     Game.market.createOrder({
                         type:ORDER_SELL,
                         resourceType:RESOURCE_POWER,

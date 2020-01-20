@@ -15,26 +15,24 @@ function work(room) {
             room.controller.activateSafeMode()
         }
     }
+    let attackSucc
     if (target) {
         let targets = room.find(FIND_HOSTILE_CREEPS).sort((a, b) => (room.towers[0].pos.getRangeTo(a.pos)) - (room.towers[0].pos.getRangeTo(b.pos)))
 
-        let target = require('tower.targetSelecter').solveCanBeAttack(room,targets)
-        if(!target){
-            target=targets[0]
+        let target = require('tower.targetSelecter').solveCanBeAttack(room, targets)
+        if (target) {
+            for (let tower of room.towers) {
+                tower.attack(target)
+            }
+            attackSucc = true
         }
-        for (let tower of room.towers) {
-            tower.attack(target)
-        }
-    } else if (target = room.find(FIND_MY_CREEPS,
-        {
-            filter: obj =>
-                obj.hits < obj.hitsMax
-        }
-    )[0]) {
+
+    }
+    if (attackSucc) return
+    if ((target = room.find(FIND_MY_CREEPS, {filter: obj => obj.hits < obj.hitsMax})[0])) {
         for (let tower of room.towers) {
             tower.heal(target)
         }
-
     } else if (Game.time % 20 === 0) {
         let roomenergy = 0
         if (room.storage) {

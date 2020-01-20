@@ -98,8 +98,8 @@ function handlesell(roomName) {
         }
     }
 
-    if (storage && terminal && (terminal.store[RESOURCE_POWER] || 0) > 20e3) {
-        let act = sellSome(room, terminal, RESOURCE_POWER, 2500, 0.7)
+    if (storage && terminal && (terminal.store[RESOURCE_POWER] || 0) > 0) {
+        let act = sellSome(room, terminal, RESOURCE_POWER, 2500, 1.3)
         if (act === OK) {
             return act
         }

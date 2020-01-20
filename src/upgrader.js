@@ -6,7 +6,7 @@ function work(creep) {
     if (memory.status === 'going') {
         let target = Game.getObjectById(memory.missionid)
         if (creep.pos.getRangeTo(target) > 1) {
-            creep.moveTo(target, {reusePath: 10})
+            creep.moveTo(target, {reusePath: 10,ignoreCreeps:false})
         } else {
             memory.status = 'upgrading'
             creep.signController(creep.room.controller, '☕')
@@ -26,6 +26,7 @@ function work(creep) {
         const action = creep.upgradeController(target)
         if (action === ERR_NOT_IN_RANGE) {
             creep.moveTo(target)
+            memory.status = 'going'
         } else if (action === ERR_NOT_ENOUGH_RESOURCES) {
             memory.status = 'getting'
         } else if (action === OK) {

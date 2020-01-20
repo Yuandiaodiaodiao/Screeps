@@ -62,7 +62,6 @@ function solveCanBeAttack(room, targets) {
         room.towers.forEach(o =>
             towerattack += solvedamage(o.pos.getRangeTo(target.pos))
         )
-
         let healNumber = 0
         target.pos.findInRange(FIND_HOSTILE_CREEPS, 1).forEach(o =>
             healNumber += getheal(o.body))
