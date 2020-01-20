@@ -8,11 +8,11 @@ function work(creep) {
     const container = Game.getObjectById(memory.container)
     const storage = creep.room.storage
     if (memory.status == 'miss') {
-        const upgrader = Game.time - (require('upgrader').upgradertime[creep.pos.roomName] || 0)
+        const upgrader = Game.time - (require('upgrader').upgradertime[creep.pos.roomName] || Game.time)
         memory._move = undefined
         if (link.energy > 0) {
             memory.status = 'getlink'
-        } else if (container.store.energy / container.store.getCapacity() < 0.5 && upgrader < 50) {
+        } else if (container.store.energy <=1200 && upgrader < 50) {
             memory.status = 'getstorage'
         } else if (creep.carry.energy > 0) {
             memory.status = 'fillstorage'
@@ -41,6 +41,7 @@ function work(creep) {
                 creep.moveTo(storage)
             } else if (act == OK || act == ERR_FULL) {
                 memory.status = 'fillcontainer'
+                creep.moveTo(storage)
             }
         } else {
             memory.status = 'miss'
@@ -56,12 +57,13 @@ function work(creep) {
         } else {
             memory.status = 'miss'
         }
-    } else if (memory.status == 'fillcontainer') {
+    } else if (memory.status === 'fillcontainer') {
         const act = creep.transfer(container, RESOURCE_ENERGY)
         if (act == ERR_NOT_IN_RANGE) {
             creep.moveTo(container)
         } else if (act == OK || act == ERR_FULL || act == ERR_NOT_ENOUGH_RESOURCES) {
             memory.status = 'miss'
+            creep.moveTo(storage)
         }
     }
 }

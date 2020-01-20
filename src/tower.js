@@ -14,6 +14,14 @@ function work(room) {
         if (room.spawns.length > 0 && room.spawns.some(o => o.pos.getRangeTo(target.pos) <= 2)) {
             room.controller.activateSafeMode()
         }
+        if (room.controller.level >= 6 && target.owner.username !== 'Invader'&&room.spawns.some(o => o.pos.getRangeTo(target.pos) <= 15)) {
+            if (require('tower.targetSelecter').isBoost(target.body, 'tough')
+                || require('tower.targetSelecter').isBoost(target.body, 'heal')
+                || require('tower.targetSelecter').isBoost(target.body, 'attack')
+            ) {
+                room.controller.activateSafeMode()
+            }
+        }
     }
     let attackSucc
     if (target) {

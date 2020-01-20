@@ -106,7 +106,8 @@ function miss(room) {
                 role: 'power',
             }
         }
-        if (terminal.store[RESOURCE_ENERGY] > 90000 ||
+        if (terminal.store[RESOURCE_ENERGY] > 90e3 ||
+            (room.controller.level<8&&terminal.store[RESOURCE_ENERGY]>30e3) ||
             (!Game.powerCreeps[room.name] && terminal.store[RESOURCE_GHODIUM] && terminal.store[RESOURCE_GHODIUM] >= 1000 && room.nuker && room.nuker.store[RESOURCE_GHODIUM] < 5000)
             || (!Game.powerCreeps[room.name] && (
                 room.memory.factory && (room.memory.factory.status === 'fill' || room.memory.factory.status === 'get') ||

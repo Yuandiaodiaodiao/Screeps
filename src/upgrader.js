@@ -5,9 +5,25 @@ function work(creep) {
     const memory = creep.memory
     if (memory.status === 'going') {
         let target = Game.getObjectById(memory.missionid)
-        if (creep.pos.getRangeTo(target) > 1) {
-            creep.moveTo(target, {reusePath: 10,ignoreCreeps:false})
+        let container = Game.getObjectById(memory.container)
+        if (!container) {
+            container = _.min(target.pos.findInRange(FIND_STRUCTURES, 3, {
+                filter: obj => obj.structureType === STRUCTURE_CONTAINER
+            }), o => o.pos.getRangeTo(target.pos))
+            if (container) memory.container = container.id
+        }
+        let workPos
+        if (memory.workPos) {
+            workPos = new RoomPosition(...memory.workPos)
         } else {
+            workPos = _.min(Game.tools.allnearavailable(container.pos, true), o => o.getRangeTo(container.pos))
+            memory.workPos = [workPos.x, workPos.y, workPos.roomName]
+        }
+        if (!workPos) return
+        if (!creep.pos.isEqualTo(workPos)) {
+            creep.moveTo(workPos, {reusePath: 100})
+        } else {
+            memory.workPos = undefined
             memory.status = 'upgrading'
             creep.signController(creep.room.controller, '☕')
         }
@@ -25,10 +41,14 @@ function work(creep) {
         }
         const action = creep.upgradeController(target)
         if (action === ERR_NOT_IN_RANGE) {
-            creep.moveTo(target)
             memory.status = 'going'
         } else if (action === ERR_NOT_ENOUGH_RESOURCES) {
-            memory.status = 'getting'
+            upgradertime[creep.pos.roomName] = Game.time
+            if (creep.room.controller.level <= 5) {
+                memory.status = 'getting'
+            } else if (creep.pos.getRangeTo(creep.room.controller.pos) > 3) {
+                memory.status = 'going'
+            }
         } else if (action === OK) {
             memory._move = undefined
         }

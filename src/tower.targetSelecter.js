@@ -14,7 +14,15 @@
  log
  v1.1 fix big bug
  */
-
+function isBoost(body,type) {
+    for (let part of body) {
+        if (part.type === type) {
+            if (part.boost){
+              return true
+            }
+        }
+    }
+}
 function solvedamage(dist) {
     if (dist <= 5) return 600
     else if (dist <= 20) return 600 - (dist - 5) * 30
@@ -75,6 +83,7 @@ function solveCanBeAttack(room, targets) {
 }
 
 module.exports.solveCanBeAttack = solveCanBeAttack
+module.exports.isBoost = isBoost
 
 //---------module prototype.Room.structures-----------
 /**

@@ -288,41 +288,47 @@ function solveExtension(room) {
 }
 
 
-function nearavailable(pos) {
+function nearavailable(pos, withCreep = false) {
     if (Game.rooms[pos.roomName]) {
         for (let a = -1; a <= 1; ++a) {
             for (let b = -1; b <= 1; ++b) {
-                if (a === b && b === 0) continue
                 let newpos = new RoomPosition(pos.x + a, pos.y + b, pos.roomName)
-                if (walkable(newpos)) {
+                if (walkable(newpos, withCreep)) {
                     return newpos
                 }
             }
         }
     }
 }
-function allnearavailable(pos) {
-    let ans=[]
+
+function allnearavailable(pos, withCreep = false) {
+    let ans = []
     if (Game.rooms[pos.roomName]) {
         for (let a = -1; a <= 1; ++a) {
             for (let b = -1; b <= 1; ++b) {
-                if (a === b && b === 0) continue
                 let newpos = new RoomPosition(pos.x + a, pos.y + b, pos.roomName)
-                if (walkable(newpos)) {
-                    ans.push( newpos)
+                if (walkable(newpos, withCreep)) {
+                    ans.push(newpos)
                 }
             }
         }
     }
     return ans
 }
-function walkable(pos) {
-    return pos.lookFor(LOOK_STRUCTURES).every(struct => {
+
+function walkable(pos, withCreep = false) {
+    let structure = pos.lookFor(LOOK_STRUCTURES).every(struct => {
         return !(struct.structureType !== STRUCTURE_CONTAINER && struct.structureType !== STRUCTURE_ROAD &&
             (struct.structureType !== STRUCTURE_RAMPART ||
                 !struct.my))
 
     }) && pos.lookFor(LOOK_TERRAIN).every(o => o !== 'wall')
+    if (withCreep) {
+        let creep = (pos.lookFor(LOOK_CREEPS).length === 0)
+        return structure && creep
+    } else {
+        return structure
+    }
 }
 
 if (!StructureSpawn.prototype._spawnCreep) {
@@ -340,20 +346,20 @@ if (!StructureSpawn.prototype._spawnCreep) {
             bodycosts = bodycost(body)
             if (bodycosts > this.room.energyAvailable) return ERR_NOT_ENOUGH_ENERGY
             let bodyarray = []
-            if(options.massPart){
-                let numbody={}
-                for(let part in body){
-                    numbody[part]=Math.ceil(body[part])
+            if (options.massPart) {
+                let numbody = {}
+                for (let part in body) {
+                    numbody[part] = Math.ceil(body[part])
                 }
-                while (_.sum(numbody)<=0){
-                    for(let part in numbody){
-                        if(numbody[part]>0){
+                while (_.sum(numbody) <= 0) {
+                    for (let part in numbody) {
+                        if (numbody[part] > 0) {
                             bodyarray.push(part)
-                            numbody[part]-=1
+                            numbody[part] -= 1
                         }
                     }
                 }
-            }else{
+            } else {
                 for (let part in body) {
                     for (let i of range(0, Math.ceil(body[part]))) {
                         bodyarray.push(part)
@@ -463,7 +469,7 @@ function unzipCostMatrix(cost) {
 function give(targetRoomName, type, number = 4000) {
     Object.values(Game.rooms).forEach(o => {
         try {
-            if(!(o.controller&&o.controller.my)){
+            if (!(o.controller && o.controller.my)) {
                 return
             }
             if (type === RESOURCE_ENERGY && o.storage.store[type] < 1000e3) {
@@ -525,5 +531,6 @@ module.exports = {
     'zipCostMatrix': zipCostMatrix,
     'unzipCostMatrix': unzipCostMatrix,
     'isHighway': isHighway,
-    'allnearavailable':allnearavailable
+    'allnearavailable': allnearavailable,
+
 };
