@@ -1,3 +1,20 @@
+function statusmiss(creep) {
+    creep.memory.status = 'miss'
+    if (creep.carry.energy !== 0) {
+        let target = creep.pos.findClosestByRange(FIND_STRUCTURES, {filter: obj => obj.structureType === STRUCTURE_TOWER && obj.energy / obj.energyCapacity < 0.8})
+        if (target) creep.memory.status = 'filltower'
+        else if (!creep.room.storage && creep.room.energyAvailable < creep.room.energyCapacityAvailable - 200) {
+            creep.memory.status = 'fillextension'
+        } else if (creep.room.controller.ticksToDowngrade < 3000) {
+            creep.memory.status = 'upgrade'
+        } else {
+            creep.memory.status = creep.memory.role
+        }
+    } else {
+        creep.memory.status = 'get'
+    }
+}
+
 function work(creep) {
 
     if (creep.memory.status === 'solve') {
@@ -30,7 +47,7 @@ function work(creep) {
             }
             Game.memory.openerCache[creep.pos.roomName][goal.roomName] = path
         }
-        if(!creep.room.memory.missions.opener){
+        if (!creep.room.memory.missions.opener) {
             creep.suicide()
         }
         creep.room.memory.missions.opener[creep.memory.missionid].cost = cost
@@ -41,7 +58,8 @@ function work(creep) {
     } else if (creep.memory.status === 'go') {
         const act = Game.tools.moveByLongPath(creep.memory.path, creep)
         if (act === OK) {
-            creep.memory.status = 'miss'
+            statusmiss(creep)
+
             delete creep.memory.path
             delete creep.memory.step
         }
@@ -62,10 +80,12 @@ function work(creep) {
             if (act === ERR_NOT_IN_RANGE) {
                 creep.moveTo(target, {reusePath: 20, ignoreRoads: true})
             } else {
-                creep.memory.status = 'miss'
+                statusmiss(creep)
+
             }
         } else {
             creep.memory.status = 'mine'
+            creep.memory.mineTarget = undefined
         }
     } else if (creep.memory.status === 'mine') {
         let target = Game.getObjectById(creep.memory.mineTarget)
@@ -74,13 +94,10 @@ function work(creep) {
             if (act === ERR_NOT_IN_RANGE) {
                 creep.moveTo(target, {reusePath: 20, ignoreCreeps: false, ignoreRoads: true})
                 creep.memory.mineWalk = (creep.memory.mineWalk || 0) + 1
-            } else if (act === ERR_FULL) {
+            } else if (act === ERR_FULL || _.sum(creep.carry) === creep.carryCapacity) {
                 creep.memory.mineWalk = 0
                 creep.memory.status = 'miss'
-            }
-            if (_.sum(creep.carry) === creep.carryCapacity) {
-                creep.memory.mineWalk = 0
-                creep.memory.status = 'miss'
+                creep.memory.mineTarget = undefined
             }
             if (creep.memory.mineWalk && creep.memory.mineWalk > 30) {
                 creep.memory.mineWalk = 0
@@ -91,7 +108,8 @@ function work(creep) {
             if (target) {
                 creep.memory.mineTarget = target.id
             } else {
-                creep.memory.status = 'miss'
+                statusmiss(creep)
+
             }
         }
 
@@ -117,46 +135,39 @@ function work(creep) {
             if (act == ERR_NOT_IN_RANGE) {
                 creep.moveTo(target)
             } else {
-                creep.memory.status = 'miss'
+                statusmiss(creep)
+
             }
         } else {
-            creep.memory.status = 'miss'
+            statusmiss(creep)
+
         }
     } else if (creep.memory.status === 'fillextension') {
-        let target=Game.getObjectById(creep.memory.extensiontarget)||creep.pos.findClosestByRange(FIND_STRUCTURES,{filter:o=>(o.structureType===STRUCTURE_EXTENSION||o.structureType===STRUCTURE_SPAWN)&&o.store.getFreeCapacity('energy')>0})
-        if(target){
-            const act=creep.transfer(target,RESOURCE_ENERGY)
+        let target = Game.getObjectById(creep.memory.extensiontarget) || creep.pos.findClosestByRange(FIND_STRUCTURES, {filter: o => (o.structureType === STRUCTURE_EXTENSION || o.structureType === STRUCTURE_SPAWN) && o.store.getFreeCapacity('energy') > 0})
+        if (target) {
+            const act = creep.transfer(target, RESOURCE_ENERGY)
             if (act === ERR_NOT_IN_RANGE) {
-                creep.memory.extensiontarget=target.id
+                creep.memory.extensiontarget = target.id
                 creep.moveTo(target)
             } else {
-                creep.memory.extensiontarget=undefined
-                creep.memory.status = 'miss'
+                creep.memory.extensiontarget = undefined
+                statusmiss(creep)
+
             }
         } else {
-            creep.memory.extensiontarget=undefined
-            creep.memory.status = 'miss'
+            creep.memory.extensiontarget = undefined
+            statusmiss(creep)
+
         }
 
     } else if (creep.memory.status === 'miss') {
+        statusmiss(creep)
 
-        if (creep.carry.energy !== 0) {
-            let target = creep.pos.findClosestByRange(FIND_STRUCTURES, {filter: obj => obj.structureType === STRUCTURE_TOWER && obj.energy / obj.energyCapacity < 0.8})
-            if (target) creep.memory.status = 'filltower'
-            else if (!creep.room.storage&&creep.room.energyAvailable < creep.room.energyCapacityAvailable - 200) {
-                creep.memory.status = 'fillextension'
-            } else if (creep.room.controller.ticksToDowngrade < 3000) {
-                creep.memory.status = 'upgrade'
-            } else {
-                creep.memory.status = creep.memory.role
-            }
-        } else {
-            creep.memory.status = 'get'
-        }
     } else {
-        creep.memory.status = 'miss'
+        statusmiss(creep)
     }
 }
+
 
 function born(spawnnow, creepname, memory = {}) {
 

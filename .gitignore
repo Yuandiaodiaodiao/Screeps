@@ -4,3 +4,4 @@ dist
 screeps-multimeter.json
 ./idea
 .idea/Screeps.iml
+.screeps-multimeter.history

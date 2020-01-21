@@ -3,12 +3,15 @@ function work(creep) {
     if (memory.status === 'getting') {
         const target = Game.getObjectById(memory.missionid)
         if (target) {
-            if (creep.pos.getRangeTo(target) > 1) {
+            if (creep.pos.getRangeTo(target) > 2) {
                 creep.moveTo(target, {reusePath: 50})
                 const tomb = creep.pos.lookFor(LOOK_TOMBSTONES)[0]
                 if (tomb) {
                     creep.withdraw(tomb, memory.type)
                 }
+            } else if (creep.pos.getRangeTo(target) === 2) {
+                creep.moveTo(target, {reusePath: 5, ignoreCreeps: false})
+
             } else if (target.store[memory.type] >= creep.carryCapacity - (_.sum(creep.carry) || 0)) {
 
                 const action = creep.withdraw(target, memory.type)
@@ -18,7 +21,7 @@ function work(creep) {
                     memory.status = 'carrying'
                     try {
                         if ((Memory.rooms[creep.name.split('_')[0]].missions[creep.name.split('_')[1]][memory.missionid].carrycost || 0) > creep.ticksToLive) {
-                            creep.withdraw(target, memory.type,1)
+                            creep.withdraw(target, memory.type, 1)
                             creep.suicide()
                         }
                     } catch (e) {
@@ -31,8 +34,8 @@ function work(creep) {
                 if (action === ERR_NOT_IN_RANGE) {
                     creep.moveTo(target)
                 }
-            }else if(memory.type==RESOURCE_ENERGY&&target.store.getUsedCapacity()>target.store.getUsedCapacity('energy')){
-                creep.memory.status='clean'
+            } else if (memory.type == RESOURCE_ENERGY && target.store.getUsedCapacity() > target.store.getUsedCapacity('energy')) {
+                creep.memory.status = 'clean'
             }
         }
     } else if (memory.status == 'carrying') {
@@ -59,7 +62,7 @@ function work(creep) {
                     creep.moveTo(target)
                 } else if (act == OK) {
                     if (target.structureType == STRUCTURE_LINK && target.energyCapacity - target.energy >= creep.carry[memory.type]
-                        || (target.store.getFreeCapacity('memory.type')>= creep.carry[memory.type])) {
+                        || (target.store.getFreeCapacity('memory.type') >= creep.carry[memory.type])) {
                         memory.status = 'getting'
                         try {
                             if ((Memory.rooms[creep.name.split('_')[0]].missions[creep.name.split('_')[1]][memory.missionid].carrycost || 0) * 2 > creep.ticksToLive) {
@@ -79,27 +82,27 @@ function work(creep) {
         } catch (e) {
             console.log(`suicide error ${creep.name}`)
         }
-    }else if(memory.status==='clean'){
+    } else if (memory.status === 'clean') {
         const target = Game.getObjectById(memory.missionid)
-        let ok=false
-        for(let type in target.store){
-            if(type!==RESOURCE_ENERGY){
-                creep.withdraw(target,type)
-                ok=true
+        let ok = false
+        for (let type in target.store) {
+            if (type !== RESOURCE_ENERGY) {
+                creep.withdraw(target, type)
+                ok = true
                 break
             }
         }
-        if(!ok){
-            for(let type in creep.store){
-                if(type!==RESOURCE_ENERGY){
+        if (!ok) {
+            for (let type in creep.store) {
+                if (type !== RESOURCE_ENERGY) {
                     creep.drop(type)
-                    ok=true
+                    ok = true
                     break
                 }
             }
         }
-        if(!ok){
-            creep.memory.status='getting'
+        if (!ok) {
+            creep.memory.status = 'getting'
         }
 
     }
@@ -135,8 +138,8 @@ function born(spawnnow, creepname, memory) {
             'move': 8
         }
     }
-    if(spawnnow.pos.roomName===Game.getObjectById(memory.gettarget).pos.roomName){
-        if(body['work']){
+    if (spawnnow.pos.roomName === Game.getObjectById(memory.gettarget).pos.roomName) {
+        if (body['work']) {
             delete body['work']
         }
     }

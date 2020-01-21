@@ -59,6 +59,7 @@ module.exports.doReact = doReact
 function doReact(room) {
     const memory = room.memory.factory
     const factory = room.factory
+    if(!factory)return
     if(Game.time-memory.sleep<100){
         return
     }

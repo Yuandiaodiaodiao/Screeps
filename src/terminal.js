@@ -99,7 +99,7 @@ function handlesell(roomName) {
     }
 
     if (storage && terminal && (terminal.store[RESOURCE_POWER] || 0) > 0) {
-        let act = sellSome(room, terminal, RESOURCE_POWER, 2500, 1.3)
+        let act = sellSome(room, terminal, RESOURCE_POWER, 2500, Game.config.price.power.sell)
         if (act === OK) {
             return act
         }
@@ -164,29 +164,61 @@ module.exports.createOrder = function () {
                 type: ORDER_SELL,
                 resourceType: RESOURCE_POWER,
                 price: 0.6,
-                totalAmount: 100e3,
+                totalAmount: 0,
                 roomName: o.name
             })
         }
     })
 }
-module.exports.change = function (type,price) {
-    _.filter(Game.market.orders,order => order.resourceType === type &&
+module.exports.change = function (type, price) {
+    _.filter(Game.market.orders, order => order.resourceType === type &&
         order.type === ORDER_SELL
     ).forEach(o => {
         // console.log('change'+o.id)
-        if(o.remainingAmount===0){
+        if (o.remainingAmount === 0) {
             Game.market.cancelOrder(o.id)
-        }else{
+        } else {
             Game.market.changeOrderPrice(o.id, price)
         }
 
     })
 }
-module.exports.solvedeal=function (roomN) {
+
+module.exports.solveOrderNum = function (roomN, type = 'power', sell = ORDER_SELL) {
     let noworder = _.filter(Game.market.orders, o => o.roomName === roomN
-        && o.resourceType === RESOURCE_POWER
-        && o.type === ORDER_SELL)||[]
-    let ordernum=Game.lodash.sumBy(noworder,o=>o.remainingAmount)||0
+        && o.resourceType === type
+        && o.type === sell)
+    let ordernum = Game.lodash.sumBy(noworder, o => {
+        console.log(JSON.stringify(o))
+        try{
+            if (o.remainingAmount === 0) {
+                Game.market.cancelOrder(o.id)
+            }
+        }catch (e) {
+            console.log('cancelorder error')
+        }
+
+        if (o && o.remainingAmount) {
+            return o.remainingAmount
+        }else{
+            return 1e7
+        }
+    }) || 1e7
     return ordernum
+}
+module.exports.autoOrder = function (roomN, type = 'power') {
+    if(!(Game.rooms[roomN].controller&&Game.rooms[roomN].controller.my))return
+    let ordernum = Game.terminal.solveOrderNum(roomN)
+    let nownum = Game.rooms[roomN].terminal.store.getUsedCapacity(RESOURCE_POWER) || 0
+    console.log('orderNum=' + ordernum + 'nownum=' + nownum)
+    if (nownum - ordernum > 5000 && ordernum < 30e3) {
+        return Game.market.createOrder({
+            type: ORDER_SELL,
+            resourceType: type,
+            price: Game.config.price[type].order,
+            totalAmount: Math.min(10e3, nownum - ordernum),
+            roomName: roomN
+        })
+    }
+    return false
 }

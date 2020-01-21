@@ -122,21 +122,7 @@ function solveplan(roomn) {
         if (Game.time - plan.timelock > 5) {
             plan.status = 5
            try{
-               let noworder = _.filter(Game.market.orders, o => o.roomName === roomn
-                   && o.resourceType === RESOURCE_POWER
-                   && o.type === ORDER_SELL)||[]
-               let ordernum=Game.lodash.sumBy(noworder,o=>o.remainingAmount)||0
-               console.log('orderNum='+ordernum)
-               let nownum=Game.rooms[plan.spawnRoom].terminal.store.getUsedCapacity(RESOURCE_POWER)||0
-               if(nownum-ordernum>5000&&ordernum<30e3){
-                    Game.market.createOrder({
-                        type:ORDER_SELL,
-                        resourceType:RESOURCE_POWER,
-                        price:Game.config.price[RESOURCE_POWER].sell,
-                        totalAmount:nownum-ordernum,
-                        roomName:plan.spawnRoom
-                    })
-               }
+            Game.terminal.autoOrder(plan.spawnRoom)
            }catch (e) {
                console.log('powerBank error'+e)
            }

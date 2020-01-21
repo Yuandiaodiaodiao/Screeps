@@ -467,21 +467,26 @@ function unzipCostMatrix(cost) {
 }
 
 function give(targetRoomName, type, number = 4000) {
-    Object.values(Game.rooms).forEach(o => {
-        try {
-            if (!(o.controller && o.controller.my)) {
-                return
-            }
-            if (type === RESOURCE_ENERGY && o.storage.store[type] < 1000e3) {
-                return
-            }
-            let act = o.terminal.send(type, number, targetRoomName)
+
+
+    Object.keys(Memory.rooms).forEach(roomName => {
+        let room = Game.rooms[roomName]
+        if (!room) return
+        if (type === RESOURCE_ENERGY && o.storage.store[type] < 1000e3) {
+            return
+        }
+        let have = room.terminal.store[type] || 0
+        if (have > 0 && number > 10) {
+            let maxsend = solveMaxSend(roomName, targetRoomName, type, room.terminal)
+            let cansend = Math.min(maxsend, Math.min(number, have))
+            let act = o.terminal.send(type, cansend, targetRoomName)
             if (act === OK) {
-                console.log(`${o.name} send ${targetRoomName} ${number}${type}`)
+                number -= cansend
+                console.log(`${o.name} send ${targetRoomName} ${cansend}${type}`)
             }
-        } catch (e) {
         }
     })
+
 }
 
 function removeSubRoom(targetRoom) {
@@ -501,6 +506,12 @@ function addSubRoom(fromRoom, targetRoom) {
     if (subroom && subroom.indexOf(targetRoom) === -1) {
         subroom.push(targetRoom)
     }
+}
+
+function solveMaxSend(fromR, toR, type, terminal) {
+    const energycost = Game.market.calcTransactionCost(1000, fromR, toR) / 1000
+    const maxsend = type === RESOURCE_ENERGY ? terminal.store[RESOURCE_ENERGY] / (1 + energycost) : terminal.store[RESOURCE_ENERGY] / energycost
+    return maxsend
 }
 
 module.exports = {
@@ -532,5 +543,6 @@ module.exports = {
     'unzipCostMatrix': unzipCostMatrix,
     'isHighway': isHighway,
     'allnearavailable': allnearavailable,
+    'walkable': walkable
 
 };

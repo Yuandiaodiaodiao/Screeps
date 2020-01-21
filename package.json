@@ -25,5 +25,11 @@
     "grunt-screeps": "^1.4.0",
     "screeps-api": "^1.9.1",
     "time-grunt": "^2.0.0"
+  },
+  "devDependencies": {
+    "changelog": "^1.4.2",
+    "grunt-changelog": "^0.3.2",
+    "grunt-github-changes": "^0.1.0",
+    "grunt-shell": "^3.0.1"
   }
 }

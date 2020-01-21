@@ -18,6 +18,9 @@ function work(creep) {
         } else {
             workPos = _.min(Game.tools.allnearavailable(container.pos, true), o => o.getRangeTo(container.pos))
             memory.workPos = [workPos.x, workPos.y, workPos.roomName]
+            if (!(memory.workPos[0] && memory.workPos[1] && memory.workPos[2])) {
+                memory.workPos = undefined
+            }
         }
         if (!workPos) return
         if (!creep.pos.isEqualTo(workPos)) {
@@ -46,7 +49,7 @@ function work(creep) {
             upgradertime[creep.pos.roomName] = Game.time
             if (creep.room.controller.level <= 5) {
                 memory.status = 'getting'
-            } else if (creep.pos.getRangeTo(creep.room.controller.pos) > 3) {
+            } else if (creep.pos.getRangeTo(creep.room.controller.pos) > 3 || creep.pos.getRangeTo(container.pos) > 1) {
                 memory.status = 'going'
             }
         } else if (action === OK) {

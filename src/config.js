@@ -54,7 +54,8 @@ var role_num = {
 module.exports.role_num = role_num
 module.exports.price = {
     'power':{
-        'sell':1.49
+        'sell':1.3,
+        'order':1.5
     }
 }
 

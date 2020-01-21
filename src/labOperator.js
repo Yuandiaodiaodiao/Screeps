@@ -167,13 +167,25 @@ module.exports.labFill = function (creep, memory, room) {
                     status: 'getting',
                     nexts: 'filling',
                     filltarget: lab.id,
-                    thor: lab.mineralCapacity - lab.mineralAmount
+                    thor: lab.store.getCapacity(lab.mineralType || mine[x]) - lab.mineralAmount
                 }
                 return true
             }
         }
         require('reaction').work(room)
 
+    }
+    return false
+}
+module.exports.dropAll=function (creep, memory, room) {
+    if(creep.store.getFreeCapacity()===0||(memory.status==='getting'&&creep.store.getFreeCapacity(memory.type)===0)||(memory.status==='filling'&&creep.store.getUsedCapacity(memory.type)===0)){
+        let type=_.max(_.filter(Object.keys(creep.store),o=>o!==RESOURCE_OPS),p=>creep.store[p]||0)
+        creep.memory = {
+            type: type,
+            status: 'filling',
+            filltarget: room.terminal.id,
+        }
+        return true
     }
     return false
 }

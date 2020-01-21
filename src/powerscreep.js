@@ -3,7 +3,7 @@ var minerals = {}
 let labOp = require('labOperator')
 
 function work(creep) {
-    const room = creep.room
+    const room = Game.rooms[creep.name]
     if (!room) {
         if (!creep.ticksToLive) {
             if (!creep.spawnCooldownTime) {
@@ -12,6 +12,7 @@ function work(creep) {
         }
         return
     }
+
     let memory = creep.memory
     if (memory.status == 'miss') {
         memory = creep.memory = {}
@@ -23,6 +24,8 @@ function work(creep) {
             if (act == ERR_INVALID_ARGS) {
                 memory.status = 'enable'
             }
+        } else if (labOp.dropAll(creep, memory, room)) {
+
         } else if (labOp.fillPower(creep, memory, room)) {
 
         } else if (ops > 150) {
@@ -104,13 +107,13 @@ function work(creep) {
             memory.status = 'miss'
             if (!sources[creep.name]) {
                 sources[creep.name] = []
-                const source = creep.room.find(FIND_SOURCES)
+                const source = room.find(FIND_SOURCES)
                 for (let x of source) {
                     sources[creep.name].push([x.id, 0])
                 }
             }
             if (!minerals[creep.name]) {
-                const mine = creep.room.find(FIND_MINERALS)[0]
+                const mine = room.find(FIND_MINERALS)[0]
                 if (!mine.ticksToRegeneration) {
                     minerals[creep.name] = mine.id
                 } else {
@@ -143,7 +146,7 @@ function work(creep) {
         let act = creep.enableRoom(room.controller)
         if (act == ERR_NOT_IN_RANGE) {
             creep.moveTo(room.controller)
-            creep.room.find(FIND_MY_CREEPS, {filter: obj => obj.name.split('_')[1] == "upgrader"}).forEach(obj => obj.suicide())
+            room.find(FIND_MY_CREEPS, {filter: obj => obj.name.split('_')[1] == "upgrader"}).forEach(obj => obj.suicide())
         } else if (act == OK) {
             memory.status = 'miss'
         }

@@ -23,9 +23,19 @@ module.exports = function (grunt) {
     grunt.loadNpmTasks('grunt-file-append')
     grunt.loadNpmTasks("grunt-jsbeautifier")
     grunt.loadNpmTasks("grunt-rsync")
+    grunt.loadNpmTasks('grunt-github-changes')
+    grunt.loadNpmTasks('grunt-shell')
 
     grunt.initConfig({
+        shell: {
+            options: {
+                stderr: false
+            },
+            target: {
+                command: 'changelog https://github.com/Yuandiaodiaodiao/Screeps.git all -m >CHANGELOG.md\n'
+            },
 
+        },
         // Push all files in the dist folder to screeps. What is in the dist folder
         // and gets sent will depend on the tasks used.
         screeps: {
@@ -33,7 +43,9 @@ module.exports = function (grunt) {
                 email: email,
                 password: password,
                 branch: branch,
-                ptr: ptr
+                ptr: ptr,
+                timeout:5e3,
+                retry:true
             },
             dist: {
                 src: ['dist/*.js']
@@ -122,4 +134,5 @@ module.exports = function (grunt) {
     grunt.registerTask('private',  ['clean', 'copy:screeps',  'file_append:versioning', 'rsync:private']);
     grunt.registerTask('test',     ['jsbeautifier:verify']);
     grunt.registerTask('pretty',   ['jsbeautifier:modify']);
+    grunt.registerTask('log',   ['shell']);
 }

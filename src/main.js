@@ -1,6 +1,9 @@
 Game.lodash=require('lodash-my')
+require('prototype.SpeedUp.getAllOrders')
 load()
+
 require('prototype.Creep.move')
+// require('prototype.Find.cache')
 require('prototype.Whitelist')
 require('prototype.Room.structures')
 var tower = require('tower')
@@ -87,8 +90,13 @@ function mission_generator(room) {
         if (mineralstemp.length > 0) {
             for (let obj of mineralstemp) {
                 if (obj.pos.findInRange(FIND_STRUCTURES, 1,
-                    {filter: obj => obj.structureType == STRUCTURE_EXTRACTOR}).length > 0)
+                    {filter: obj => obj.structureType === STRUCTURE_EXTRACTOR}).length > 0){
                     minerals.push(obj)
+                }else{
+                    //建造矿井
+                    room.createConstructionSite(obj.pos,STRUCTURE_EXTRACTOR)
+                    room.createConstructionSite(Game.tools.nearavailable(obj.pos),STRUCTURE_CONTAINER)
+                }
             }
         }
     }
@@ -249,19 +257,22 @@ function mission_generator(room) {
 
     //opener
     //mineraler
-    for (let source of minerals) {
+    if(room.controller.level>=6){
+        for (let source of minerals) {
 
-        const container = source.pos.findInRange(FIND_STRUCTURES, 3, {
-            filter: structure => structure.structureType == STRUCTURE_CONTAINER
-        })[0]
-        if (container && !source.ticksToRegeneration) {
-            //已经配置了container 允许采矿
-            missions.mineraler[source.id] = {
-                target: source.id,
-                container: container.id,
+            const container = source.pos.findInRange(FIND_STRUCTURES, 3, {
+                filter: structure => structure.structureType == STRUCTURE_CONTAINER
+            })[0]
+            if (container && !source.ticksToRegeneration) {
+                //已经配置了container 允许采矿
+                missions.mineraler[source.id] = {
+                    target: source.id,
+                    container: container.id,
+                }
             }
         }
     }
+
 
     //mineraler配套carryer
     for (let sourceid in missions.mineraler) {
@@ -354,6 +365,8 @@ function load() {
     Game.observer = require('observer')
     Game.RoomPlanner=require('RoomPlanner')
     Game.lodash=require('lodash-my')
+    Game.market.getAllOrders=require('prototype.SpeedUp.getAllOrders').getAllOrders
+
 }
 
 var missionController = require('missionController')
