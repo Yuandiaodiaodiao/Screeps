@@ -1,3 +1,34 @@
+2020-01-22
+==========
+
+  * bug fix
+    添加性能统计
+    搬运工无目标禁止出生
+    4级及以下filler完全填充,出生后计算extension填充顺序
+    Game.memory.js segment可以直接写入
+    pc添加oplab 优化regensource逻辑
+    bucket分层工作
+    miner修好container之后主动计算任务
+    矿工container满了停止挖掘
+    opener直到修好4级storage spawn extension才停止出生
+    订单hack JSON
+    反应自动上限
+    修路优先storage中心
+    grafana添加creep pc性能统计
+    push代码的tick不进行solveextension
+
+2020-01-21
+==========
+
+  * prototype.SpeedUp.getAllOrders
+    自动规划4向旋转
+    carryer近距离不忽略creep
+    pc满载bug自动释放
+    自动规划矿井
+    opener提前miss
+    pc使用名字硬编码room
+    bug:商店胡乱挂单 未修复
+
 2020-01-20
 ==========
 
