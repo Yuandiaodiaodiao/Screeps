@@ -1,10 +1,10 @@
-var sources = {}
+
 var minerals = {}
 let labOp = require('labOperator')
 
 function work(creep) {
     const room = Game.rooms[creep.name]
-    if (!room) {
+    if (!creep.room) {
         if (!creep.ticksToLive) {
             if (!creep.spawnCooldownTime) {
                 creep.spawn(Game.rooms[creep.name].powerSpawn)
@@ -42,14 +42,8 @@ function work(creep) {
                 target: room.storage.id,
                 status: 'gopower'
             }
-        } else if (creep.powers[PWR_REGEN_SOURCE] && !creep.powers[PWR_REGEN_SOURCE].cooldown && sources[creep.name] && sources[creep.name].some(o => Game.time - o[1] > 300)) {
-            const s = _.find(sources[creep.name], o => Game.time - o[1] > 300)
-            creep.memory = {
-                power: PWR_REGEN_SOURCE,
-                target: s[0],
-                status: 'gopower',
-                source: true
-            }
+        } else if (labOp.genSource(creep, memory, room)) {
+
         } else if (ops < 100 && (room.terminal.store[RESOURCE_OPS] || 0) > (100 - ops)) {
             creep.memory = {
                 type: RESOURCE_OPS,
@@ -58,7 +52,7 @@ function work(creep) {
                 nexts: 'miss',
                 thor: 100 - ops
             }
-        } else if (ops >= 100 && creep.powers[PWR_OPERATE_SPAWN] && !creep.powers[PWR_OPERATE_SPAWN].cooldown && room.spawns[0].spawning && (Game.time - (room.spawns[0].memory.power || 0) > 1000)) {
+        } else if (ops >= 100 && creep.powers[PWR_OPERATE_SPAWN] && !creep.powers[PWR_OPERATE_SPAWN].cooldown && room.spawns[0].spawning && (!room.spawns[0].effects || room.spawns[0].effects.length === 0)) {
             //_.find(room.spawns, obj => obj.spawning && (Game.time - (obj.memory.power || 0)) > 1000)
             creep.memory = {
                 power: PWR_OPERATE_SPAWN,
@@ -66,6 +60,8 @@ function work(creep) {
                 status: 'gopower',
                 memory: true,
             }
+        } else if (labOp.oplab(creep, memory, room)) {
+
         } else if (labOp.labFill(creep, memory, room)) {
 
         } else if (labOp.labCollect(creep, memory, room)) {
@@ -105,13 +101,7 @@ function work(creep) {
     } else if (memory.status === 'sleep') {
         if (Game.time % 5 == 0) {
             memory.status = 'miss'
-            if (!sources[creep.name]) {
-                sources[creep.name] = []
-                const source = room.find(FIND_SOURCES)
-                for (let x of source) {
-                    sources[creep.name].push([x.id, 0])
-                }
-            }
+
             if (!minerals[creep.name]) {
                 const mine = room.find(FIND_MINERALS)[0]
                 if (!mine.ticksToRegeneration) {
@@ -136,8 +126,10 @@ function work(creep) {
             if (memory.memory) {
                 target.memory.power = Game.time
             } else if (memory.source) {
-                const s = _.find(sources[creep.name], o => o[0] == memory.target)
-                s[1] = Game.time
+                const s = _.find(sources[creep.name], o => o[0] === memory.target)
+                if (s) {
+                    s[1] = Game.time
+                }
             }
         } else {
             memory.status = 'miss'
@@ -146,7 +138,7 @@ function work(creep) {
         let act = creep.enableRoom(room.controller)
         if (act == ERR_NOT_IN_RANGE) {
             creep.moveTo(room.controller)
-            room.find(FIND_MY_CREEPS, {filter: obj => obj.name.split('_')[1] == "upgrader"}).forEach(obj => obj.suicide())
+            room.find(FIND_MY_CREEPS, {filter: obj => obj.name.split('_')[1] === "upgrader"}).forEach(obj => obj.suicide())
         } else if (act == OK) {
             memory.status = 'miss'
         }

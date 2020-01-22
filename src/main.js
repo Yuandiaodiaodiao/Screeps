@@ -1,4 +1,7 @@
-Game.lodash=require('lodash-my')
+Game.lodash = require('lodash-my')
+let actionCounter = require('actionCounter')
+
+actionCounter.warpActions()
 require('prototype.SpeedUp.getAllOrders')
 load()
 
@@ -77,11 +80,13 @@ function mission_generator(room) {
         sources.push(obj)
     }
     //修路
-    try{
-        Game.RoomPlanner.autoRoad(room)
+    try {
+        if (Game.runTime > 0) {
+            Game.RoomPlanner.autoRoad(room)
+        }
 
-    }catch (e) {
-        console.log('buildroad error'+e+'in'+room.name)
+    } catch (e) {
+        console.log('buildroad error' + e + 'in' + room.name)
     }
     //找矿
     const minerals = []
@@ -90,12 +95,12 @@ function mission_generator(room) {
         if (mineralstemp.length > 0) {
             for (let obj of mineralstemp) {
                 if (obj.pos.findInRange(FIND_STRUCTURES, 1,
-                    {filter: obj => obj.structureType === STRUCTURE_EXTRACTOR}).length > 0){
+                    {filter: obj => obj.structureType === STRUCTURE_EXTRACTOR}).length > 0) {
                     minerals.push(obj)
-                }else{
+                } else {
                     //建造矿井
-                    room.createConstructionSite(obj.pos,STRUCTURE_EXTRACTOR)
-                    room.createConstructionSite(Game.tools.nearavailable(obj.pos),STRUCTURE_CONTAINER)
+                    room.createConstructionSite(obj.pos, STRUCTURE_EXTRACTOR)
+                    room.createConstructionSite(Game.tools.nearavailable(obj.pos), STRUCTURE_CONTAINER)
                 }
             }
         }
@@ -143,8 +148,8 @@ function mission_generator(room) {
             const link = source.pos.findInRange(FIND_STRUCTURES, 2, {
                 filter: structure => structure.structureType == STRUCTURE_LINK && structure.my == true
             })[0]
-            if(room.controller.level<8){
-                if(link&&container){
+            if (room.controller.level < 8) {
+                if (link && container) {
                     container.destroy()
                 }
             }
@@ -257,7 +262,7 @@ function mission_generator(room) {
 
     //opener
     //mineraler
-    if(room.controller.level>=6){
+    if (room.controller.level >= 6) {
         for (let source of minerals) {
 
             const container = source.pos.findInRange(FIND_STRUCTURES, 3, {
@@ -354,6 +359,8 @@ function shard() {
     return false
 }
 
+Memory.cpu.pushTime = Game.time
+
 function load() {
     Game.test = require('test').test
     Game.war = require('war')
@@ -363,9 +370,10 @@ function load() {
     Game.terminal = require('terminal')
     Game.factory = require('factory')
     Game.observer = require('observer')
-    Game.RoomPlanner=require('RoomPlanner')
-    Game.lodash=require('lodash-my')
-    Game.market.getAllOrders=require('prototype.SpeedUp.getAllOrders').getAllOrders
+    Game.RoomPlanner = require('RoomPlanner')
+    Game.lodash = require('lodash-my')
+    require('prototype.SpeedUp.getAllOrders').load()
+    Game.runTime = Game.time - Memory.cpu.pushTime
 
 }
 
@@ -373,6 +381,7 @@ var missionController = require('missionController')
 // profiler.enable()
 module.exports.loop = function () {
     if (shard()) return
+    actionCounter.init()
     load()
     try {
         require('Game.memory').work()
@@ -495,7 +504,7 @@ module.exports.loop = function () {
         }
     }
 
-
+    timer()
     Object.values(Game.powerCreeps).forEach(obj => {
         try {
             require('powerscreep').work(obj)
@@ -503,6 +512,7 @@ module.exports.loop = function () {
             console.log('powerscreep ' + obj.name + e)
         }
     })
+    Memory.cpu.pcCpu=timer()
     if ((Game.time + 25) % 50 == 0) {
         try {
             require('powerBank').cache()
@@ -531,7 +541,7 @@ module.exports.loop = function () {
             let ticks = 100
             let rate = room.storage ? room.storage.store[RESOURCE_ENERGY] / room.storage.store.getCapacity() : 0
             if (room.storage && rate > 0.9) {
-                ticks = Math.ceil(Math.round(Math.max(10, 50 - (rate - 0.9) * 800)/10)*10)
+                ticks = Math.ceil(Math.round(Math.max(10, 50 - (rate - 0.9) * 800) / 10) * 10)
             }
             if (Game.time % ticks === 0) {
                 try {
@@ -605,50 +615,62 @@ module.exports.loop = function () {
             }
         }
     }
-
+    timer()
     Object.values(Game.creeps).forEach(obj => {
         try {
             if (!obj.spawning) {
                 const type = obj.name.split('_')[1]
-                if (type == 'boostAttack' || type == 'boostHeal' || type == 'subprotecter') {
-                    require(type).work(obj)
-                } else {
-                    if (!(Game.cpu.bucket < 1000 && Game.time % 3 == 0)) {
+                if(type==='upgrader'||type==='wallWorker'){
+                    if(Game.cpu.bucket>3000){
                         require(type).work(obj)
                     }
+                }else if(type==='carryer'){
+                    if(Game.cpu.bucket>2000){
+                        require(type).work(obj)
+                    }
+                }else if(type === 'boostAttack' || type === 'boostHeal' || type === 'subprotecter'||type === 'destroyer'){
+                    require(type).work(obj)
+                }else if(Game.cpu.bucket > 1000 ){
+                    require(type).work(obj)
+                }else if(Game.time%3!==0){
+                    require(type).work(obj)
                 }
             }
         } catch (e) {
             console.log('role=' + obj.name + 'error' + e)
         }
     })
+    Memory.cpu.creepCpu=timer()
 
 
     if (Game.time % 10 == 0) {
         Game.war.miss()
     }
-
-    let tokens = Game.market.getAllOrders({type: ORDER_SELL, resourceType: SUBSCRIPTION_TOKEN})
-    for (let x of tokens) {
-        if (x.price <= Game.market.credits) {
-            Game.market.deal(x.id, 1)
+    if (Game.market.credits > 2e6) {
+        let tokens = Game.market.getAllOrders({type: ORDER_SELL, resourceType: SUBSCRIPTION_TOKEN})
+        for (let x of tokens) {
+            if (x.price <= Game.market.credits) {
+                Game.market.deal(x.id, 1)
+            }
         }
     }
-    if (Game.time % 100 === 0 && Memory.giveRoom) {
-        Game.tools.give(Memory.giveRoom, 'energy');
+
+    if ((Game.time-20) % 100 === 0 && Memory.giveRoom) {
+        Game.tools.give(Memory.giveRoom, 'energy')
     }
     // if(Game.time%100==0){
     //     Game.getObjectById('5d5e20a452d12c73f02d996d').launchNuke(new RoomPosition(39,10,'E21N49')) //E25N43
     //     Game.getObjectById('5d58a050ea104379d90eb36e').launchNuke(new RoomPosition(32,24,'E22N49')) //E28N46
     //     Game.getObjectById('5d5b0a943a990a6377228922').launchNuke(new RoomPosition(37,11,'E21N45'))
     // }
-    require('roomvisual').statistics()
 
+    require('roomvisual').statistics()
+    actionCounter.save(100)
 }
 module.exports.handlemission = function (roomNamein) {
     timer()
     for (let roomName in Memory.rooms) {
-        if(roomNamein&&roomName!==roomNamein){
+        if (roomNamein && roomName !== roomNamein) {
             continue
         }
         let room = Game.rooms[roomName]

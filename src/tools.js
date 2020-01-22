@@ -199,10 +199,8 @@ function getRoomCostMatrix(room) {
         }
     )
     room.find(FIND_MY_CONSTRUCTION_SITES).forEach(struct => {
-            if (struct.structureType === STRUCTURE_ROAD) {
-                cantgo++
-                costs.set(struct.pos.x, struct.pos.y, 1)
-            } else if (struct.structureType !== STRUCTURE_CONTAINER &&
+           if (struct.structureType !== STRUCTURE_CONTAINER &&
+               struct.structureType !== STRUCTURE_ROAD&&
                 (struct.structureType !== STRUCTURE_RAMPART ||
                     !struct.my)) {
                 cantgo++
@@ -242,6 +240,9 @@ var extensionList = {}
 
 function solveExtension(room) {
     try {
+        if (Game.runTime <=0) {
+            return undefined
+        }
         let tar = room.storage || _.head(room.spawns) || undefined
         if (!tar) return extensionList[room.name] = []
         let t1 = Game.cpu.getUsed()
@@ -254,17 +255,21 @@ function solveExtension(room) {
         let idlist = []
         let target = null
         let n = 1
-        while (target = pos.findClosestByPath(FIND_STRUCTURES, {filter: obj => obj.structureType == STRUCTURE_EXTENSION && !used.has(obj.id)})) {
+
+        while ((target = pos.findClosestByPath(FIND_STRUCTURES, {filter: obj => obj.structureType == STRUCTURE_EXTENSION && !used.has(obj.id)}))) {
             if (!pos.isNearTo(target)) {
                 let ans = PathFinder.search(pos, {pos: target.pos, range: 1}, {
                     plainCost: 0xff,
                     swampCost: 0xff,
-                    roomCallback: require('tools').roomc_nocreep,
+                    roomCallback: Game.tools.roomc_nocreep,
                 })
                 // for (let x of ans.path) {
                 //     if (position.length == 0 || !_.last(position).isEqualTo(x)) {
                 //         position.push(x)
                 //     }
+                // }
+                // if(!_.last(ans.path)){
+                //     console.log('no _.last(ans.path) in'+pos.roomName+pos.x+pos.y+`target.pos= ${JSON.stringify(target.pos)}`)
                 // }
                 pos = _.last(ans.path)
             }
@@ -278,6 +283,7 @@ function solveExtension(room) {
         }
         return extensionList[room.name] = idlist
     } catch (e) {
+        console.log('fail solve ' + room.name + 'in' + Game.time)
         console.log('solveExtension error' + e)
     }
 
@@ -513,8 +519,16 @@ function solveMaxSend(fromR, toR, type, terminal) {
     const maxsend = type === RESOURCE_ENERGY ? terminal.store[RESOURCE_ENERGY] / (1 + energycost) : terminal.store[RESOURCE_ENERGY] / energycost
     return maxsend
 }
-
+function removeSite(roomName,build=false){
+    let room=Game.rooms[roomName]
+    room.find(FIND_CONSTRUCTION_SITES).forEach(o=>{
+        if(!build||(build&&o.progress===0)){
+            o.remove()
+        }
+    })
+}
 module.exports = {
+    'removeSite':removeSite,
     'removeSubRoom': removeSubRoom,
     'addSubRoom': addSubRoom,
     'give': give,

@@ -138,6 +138,9 @@ function born(spawnnow, creepname, memory) {
             'move': 8
         }
     }
+    if(!Game.getObjectById(memory.gettarget)){
+        return -12
+    }
     if (spawnnow.pos.roomName === Game.getObjectById(memory.gettarget).pos.roomName) {
         if (body['work']) {
             delete body['work']

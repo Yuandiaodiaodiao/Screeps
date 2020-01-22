@@ -94,7 +94,7 @@ function work(creep) {
     } else if (memory.status == 'sleep' && Game.time % 5 == 0) {
         if (creep.ticksToLive < 20) {
             memory.status = 'suicide'
-        } else if (room.energyAvailable < room.energyCapacityAvailable - 200) {
+        } else if ((room.energyAvailable < room.energyCapacityAvailable - (room.controller.level>=5?200:50))) {
             memory.status = 'fillextension'
             memory.step = 0
         } else {
@@ -194,6 +194,8 @@ function born(spawnnow, creepname, memory, isonly) {
             if (maxbody == 1 || tools.bodycost(body) <= 300) break
         }
     }
-
+    if(ans===OK){
+        require('tools').solveExtension(spawnnow.room)
+    }
     return ans
 }

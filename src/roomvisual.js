@@ -108,29 +108,40 @@ module.exports.statistics = function () {
     if (!Memory.grafana) {
         Memory.grafana = {}
     } else {
-        Memory.grafana.cpuper30 = Memory.grafana.cpuper30 || []
-        while (Memory.grafana.cpuper30.length >= 30) {
-            Memory.grafana.cpuper30.shift()
-        }
 
-        Memory.grafana.cpuper30.push(Memory.lastCpuUsed)
-        Memory.grafana.cpuper30val = _.sum(Memory.grafana.cpuper30) / Memory.grafana.cpuper30.length
+
         Memory.grafana.cpuavg = Memory.cpu.uses / Memory.cpu.ticks
         Memory.grafana.cpu = Game.cpu.getUsed()
         Memory.grafana.bucket = Game.cpu.bucket
+
+        Memory.grafana.cpuper30 = Memory.grafana.cpuper30 || []
+        Memory.grafana.cpuper30[Game.time % 22] = Memory.cpu.lastCpuUsed
+        Memory.grafana.cpuper30val = _.sum(Memory.grafana.cpuper30) / Memory.grafana.cpuper30.length
+
+        Memory.grafana.creepcpuper30 = Memory.grafana.creepcpuper30 || []
+        Memory.grafana.creepcpuper30[Game.time % 22] = Memory.cpu.creepCpu
+        Memory.grafana.creepcpu30val = _.sum(Memory.grafana.creepcpuper30) / Memory.grafana.creepcpuper30.length
+
+        Memory.grafana.pcper30 = Memory.grafana.pcper30 || []
+        Memory.grafana.pcper30[Game.time % 22] = Memory.cpu.pcCpu
+        Memory.grafana.pccpu30val = _.sum(Memory.grafana.pcper30) / Memory.grafana.pcper30.length
+
         if (Game.time % 10 === 0) {
-            if(Game.time%100===0){
-                Memory.grafana.hits={}
+            if (Game.time % 100 === 0) {
+                Memory.grafana.hits = {}
                 Object.keys(Memory.rooms).forEach(roomName => {
                     let room = Game.rooms[roomName]
                     if (!room) return
-                    let structures=room.find(FIND_STRUCTURES,{filter:o=>o.hits&&(o.structureType===STRUCTURE_RAMPART
-                            ||o.structureType===STRUCTURE_WALL)})
-                    let hits=Game.lodash.meanBy(structures,o=>o.hits)
-                    Memory.grafana.hits[roomName]=hits
+                    let structures = room.find(FIND_STRUCTURES, {
+                        filter: o => o.hits && (o.structureType === STRUCTURE_RAMPART
+                            || o.structureType === STRUCTURE_WALL)
+                    })
+                    let hits = Game.lodash.meanBy(structures, o => o.hits)
+                    Memory.grafana.hits[roomName] = hits
                 })
-                Memory.grafana.enemy={}
+                Memory.grafana.enemy = {}
             }
+            let reactionStatus={}
             let storageUse = {}
             let roomController = {}
             let Xresource = {}
@@ -141,6 +152,20 @@ module.exports.statistics = function () {
             Object.keys(Memory.rooms).forEach(roomName => {
                 let room = Game.rooms[roomName]
                 if (!room) return
+                if(room&&room.terminal){
+                    if(room.memory.reaction&&room.memory.reaction.status){
+                        if(room.memory.reaction.status==='react'){
+                            let lab1 = Game.getObjectById(room.memory.lab.input[0])
+                            reactionStatus[room.name]=1 - (lab1.store[lab1.mineralType] || 0) / lab1.store.getCapacity(lab1.mineralType)
+                        }else if(room.memory.reaction.status==='fill'||room.memory.reaction.status==='collect'){
+                            reactionStatus[room.name]=-1
+                        }else if(room.memory.reaction.status==='miss'){
+                            reactionStatus[room.name]=-2
+                        }else{
+                            reactionStatus[room.name]=-3
+                        }
+                    }
+                }
                 if (room && room.storage) {
                     storageUse[roomName] = room.storage.store[RESOURCE_ENERGY]
                 }
@@ -172,7 +197,7 @@ module.exports.statistics = function () {
             for (let pbRoom in Memory.powerPlan) {
                 let pb = undefined
                 let plan = Memory.powerPlan[pbRoom]
-                if (plan&&plan.pbid) {
+                if (plan && plan.pbid) {
                     pb = Game.getObjectById(plan.pbid)
                 }
                 if (!pb) {
@@ -204,12 +229,13 @@ module.exports.statistics = function () {
             Memory.grafana.gcl = Game.gcl
             Memory.grafana.cpu20 = 20
             Memory.grafana.pbProcess = pbProcess
+            Memory.grafana.reactionStatus = reactionStatus
         }
 
     }
     Memory.cpu.ticks++
     Memory.cpu.uses += Game.cpu.getUsed()
-    Memory.lastCpuUsed = Game.cpu.getUsed()
+    Memory.cpu.lastCpuUsed = Game.cpu.getUsed()
 
 }
 

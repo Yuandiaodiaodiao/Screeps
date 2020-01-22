@@ -27,24 +27,27 @@ module.exports.work = function (room) {
             type: ''
         }
     }
-    if (room.memory.reaction.status == 'miss') {
+    if (room.memory.reaction.status === 'miss') {
         if (room.memory.reaction.preBoost && room.memory.reaction.preBoost.length > 0) {
             room.memory.reaction.status = 'boost'
             room.memory.reaction.boostList = [
-                'XKHO2', 'XLHO2', 'XZH2O', 'XZHO2', 'XGHO2'
+                'XKHO2', 'XLHO2', 'XZH2O', 'XZHO2', 'XGHO2', 'XUH2O'
             ]
             return
         }
+        let minNum = 1e8
+        usefulBoostList.forEach(o => minNum = Math.min(minNum, room.terminal.store[o] || 0))
         for (let output in reaction) {
             const outputnum = terminal.store[output] ? terminal.store[output] : 0
-            if (outputnum < 3000 || (usefulBoostList.has(output) && outputnum < 6000)) {
-                if (reaction[output].every(obj => {
-                    return (terminal.store[obj] ? terminal.store[obj] : 0) >= 3000
-                })) {
-                    room.memory.reaction.status = 'fill'
-                    room.memory.reaction.type = output
-                    break
-                }
+            if (!reaction[output].every(obj => {
+                return (terminal.store[obj] ? terminal.store[obj] : 0) >= 3000
+            })) {
+                continue
+            }
+            if (outputnum < 3000 || (usefulBoostList.has(output) && outputnum <Math.max(12e3,Math.max(6000,minNum+3000)))){
+                room.memory.reaction.status = 'fill'
+                room.memory.reaction.type = output
+                break
             }
         }
     } else if (room.memory.reaction.status == 'fill') {
@@ -55,7 +58,7 @@ module.exports.work = function (room) {
             room.memory.reaction.time = REACTION_TIME[room.memory.reaction.type]
 
         }
-    } else if (room.memory.reaction.status == 'react') {
+    } else if (room.memory.reaction.status === 'react') {
         let lab1 = Game.getObjectById(room.memory.lab.input[0])
         let lab2 = Game.getObjectById(room.memory.lab.input[1])
         if (lab1.mineralAmount == 0 && lab2.mineralAmount == 0) {

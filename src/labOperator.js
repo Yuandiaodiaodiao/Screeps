@@ -1,3 +1,5 @@
+let powerSleep={}
+
 module.exports.get = function (creep, memory) {
     const gettarget = Game.getObjectById(memory.gettarget)
     let act = null
@@ -177,9 +179,9 @@ module.exports.labFill = function (creep, memory, room) {
     }
     return false
 }
-module.exports.dropAll=function (creep, memory, room) {
-    if(creep.store.getFreeCapacity()===0||(memory.status==='getting'&&creep.store.getFreeCapacity(memory.type)===0)||(memory.status==='filling'&&creep.store.getUsedCapacity(memory.type)===0)){
-        let type=_.max(_.filter(Object.keys(creep.store),o=>o!==RESOURCE_OPS),p=>creep.store[p]||0)
+module.exports.dropAll = function (creep, memory, room) {
+    if (creep.store.getFreeCapacity() === 0 || (memory.status === 'getting' && creep.store.getFreeCapacity(memory.type) === 0) || (memory.status === 'filling' && creep.store.getUsedCapacity(memory.type) === 0)) {
+        let type = _.max(_.filter(Object.keys(creep.store), o => o !== RESOURCE_OPS), p => creep.store[p] || 0)
         creep.memory = {
             type: type,
             status: 'filling',
@@ -188,4 +190,77 @@ module.exports.dropAll=function (creep, memory, room) {
         return true
     }
     return false
+}
+module.exports.oplab = function (creep, memory, room) {
+    if (!room.memory.reaction || room.memory.reaction.status !== 'react') {
+        return false
+    }
+    if (!creep.powers[PWR_OPERATE_LAB] || creep.powers[PWR_OPERATE_LAB].cooldown || (creep.store[RESOURCE_OPS] || 0) < 20) {
+        return false
+    }
+    if(powerSleep[creep.name]&&powerSleep[creep.name].oplabSleep&&powerSleep[creep.name].oplabSleep>Game.time){
+        return false
+    }
+    let ans = room.memory.lab.output.some(obj => {
+        let lab = Game.getObjectById(obj)
+        if (!lab.effects||!lab.effects[0]) {
+            creep.memory = {
+                power: PWR_OPERATE_LAB,
+                target: obj,
+                status: 'gopower'
+            }
+            return true
+        }
+    })
+    if(!ans){
+        powerSleep[creep.name]=powerSleep[creep.name]||{}
+        powerSleep[creep.name].oplabSleep=Game.time+(_.min(room.memory.lab.output,obj =>{
+            try{
+                return Game.getObjectById(obj).effects[0].ticksRemaining||999
+            }catch (e) {
+                return 999
+            }
+        })||1000)
+    }
+    if (ans) {
+        return true
+    }
+    return false
+
+}
+
+module.exports.genSource=function (creep, memory, room) {
+    if(!creep.powers[PWR_REGEN_SOURCE] || creep.powers[PWR_REGEN_SOURCE].cooldown){
+        return false
+    }
+    if(powerSleep[creep.name]&&powerSleep[creep.name].gensourceSleep&&powerSleep[creep.name].gensourceSleep>Game.time){
+        return false
+    }
+    let source=room.find(FIND_SOURCES)
+    let ans=source.some(o=>{
+            if (!o.effects||!o.effects[0]) {
+                creep.memory = {
+                    power: PWR_REGEN_SOURCE,
+                    target: o.id,
+                    status: 'gopower'
+                }
+                return true
+            }
+        })
+
+
+
+    if(!ans){
+        powerSleep[creep.name]=powerSleep[creep.name]||{}
+        powerSleep[creep.name].gensourceSleep=Game.time+(_.min(source,obj =>{
+            try{
+                return obj.effects[0].ticksRemaining||100
+            }catch (e) {
+                return 100
+            }
+        })||100)
+    }
+    return !!ans
+
+
 }

@@ -95,6 +95,7 @@ function work(creep) {
             filter: obj => obj.structureType == STRUCTURE_CONTAINER
         })[0]) {
             memory.status = 'mining'
+            require('main').handlemission(creep.room.name)
             memory.container = container.id
         }else{
             creep.room.createConstructionSite(creep.pos,STRUCTURE_CONTAINER)

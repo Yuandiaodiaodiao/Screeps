@@ -209,15 +209,19 @@ function autoRoad(room) {
             let minerals = room.find(FIND_MINERALS)
             targets = targets.concat(minerals)
         }
+        let center=room.storage||room.spawns[0]
+        if(!center){
+            return
+        }
         for (let source of targets) {
-            let ans = PathFinder.search(Game.tools.nearavailable(room.spawns[0].pos), {
+            let ans = PathFinder.search(Game.tools.nearavailable(center.pos), {
                 pos: source.pos,
                 range: 1
             }, {
                 plainCost: 2,
                 swampCost: 4,
                 roomCallback: Game.tools.roomc_nocreep,
-                maxRooms: 5
+                maxRooms: center.pos.roomName===source.pos.roomName?1:5
             })
             let path = ans.path
             let num = ans.path.length

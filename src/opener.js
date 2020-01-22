@@ -206,7 +206,7 @@ function miss() {
     for (let helpName in help) {
         let helproom = Game.rooms[helpName]
         if (helproom) {
-            if (helproom.storage) {
+            if (helproom.storage&&helproom.towers.length>0&&helproom.spawns.length>0&&helproom.extensions>CONTROLLER_STRUCTURES[STRUCTURE_EXTENSION][4]) {
                 continue
             }
         }

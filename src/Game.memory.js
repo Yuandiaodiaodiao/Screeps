@@ -2,6 +2,7 @@
  Module: Game.memory
  Author: Yuandiaodiaodiao
  Date:   2019.10.21
+ LastEdit:   2020.1.22
  Usage:
  module:main
  require('Game.memory')
@@ -19,23 +20,27 @@
  This module will allow you save your Object,Array,Variable
  in a global object called 'Game.memory'.
  you can just {let x=1 ; Game.memory.x=x}
+ and set x in dataStruct
  then when you reload your code, the variable 'x'
  may large probability in 'Game.memory'.
  This module suit to save Objects like CostMatrixCache PathCache.
-warning!!! you cant use RawMemory.setActiveSegments out the module
+ warning!!! you cant use RawMemory.setActiveSegments out the module
  only if you change the code to merge ActiveSegments
  you can init your datastruct in dataStruct
  全局储存器 用来将变量保存致ram中来节省Memory开销
  最大可存10*100k 并且相比于Memory cpu消耗极低
  注意 只能用来保存易失数据 如CostMatrix缓存 路径缓存,
  当push代码之后 您保存的数据可能会被回滚至(0,maxSaveFrequency)之前
-警告: 使用此模块后不能在其他位置使用RawMemory.setActiveSegments
+ 警告: 使用此模块后不能在其他位置使用RawMemory.setActiveSegments
  除非你自己将ActiveSegments的开启操作合并
  最好将自己的数据结构写入dataStruct
  Changelog:
  1.0: Initial publish
  2.0: add dataStruct
+ 2.1:save data dont need ActiveSegments
  */
+
+//-------------------config start--------------
 
 let segStart = 20
 //segId used from segStart to segStart+10 默认使用20Segments~30
@@ -44,14 +49,7 @@ let maxSaveFrequency = 1000
 //保存频率 全局reload后保存频率将从2 8 32 倍增至maxSaveFrequency
 
 
-
-
-
-
-
-
-
-
+//there are some sample function in the buttom
 
 const specialSave = {
     roomCache: function (cache) {
@@ -87,7 +85,12 @@ const dataStruct = {
     roomCachettl: {},
     openerCache: {},
 }
-Game.memory={}
+//-----------------config end---------------------
+
+
+//-----------------core code start-----------------
+
+Game.memory = {}
 let memory = undefined
 const initData = function () {
     for (let key in dataStruct) {
@@ -154,26 +157,11 @@ function work() {
             }
         }
         // console.log('readObject=' + JSON.stringify(readObject))
-        console.log('Game.memory.read length= '+config.len)
+        console.log('Game.memory.read length= ' + config.len)
         Game.memory = memory = readObject
         initData()
         status = 'check'
         RawMemory.setActiveSegments([])
-    } else if (status === 'save') {
-        let saveStr = preSaveStr
-        // console.log('save' + saveStr)
-        const len = saveStr.length
-        config.len = len
-        const segNum = Math.floor(len / 99e3)
-        for (let segid = segStart; segid <= segStart + segNum; ++segid) {
-            try {
-                RawMemory.segments[segid] = saveStr.substr((segid - segStart) * 99e3, 99e3)
-            } catch (e) {
-                console.log('seg ' + segid + ' save error' + e)
-            }
-        }
-        RawMemory.setActiveSegments([])
-        status = 'check'
     }
     if (startTime >= 3 && status === 'check' && startTime % frequency === 0) {
         frequency = Math.min(frequency * 4, maxSaveFrequency)
@@ -185,16 +173,47 @@ function work() {
                 saveTemp[key] = memory[key]
             }
         }
-        preSaveStr = JSON.stringify(saveTemp)
-        const len = preSaveStr.length
+        let saveStr = JSON.stringify(saveTemp)
+        const len = saveStr.length
         // console.log('Game.memory.save len= ' + len)
         const segNum = Math.floor(len / 99e3)
-        let openArray = []
+        // console.log('save' + saveStr)
+        config.len = len
         for (let segid = segStart; segid <= segStart + segNum; ++segid) {
-            openArray.push(segid)
+            try {
+                RawMemory.segments[segid] = saveStr.substr((segid - segStart) * 99e3, 99e3)
+            } catch (e) {
+                console.log('seg ' + segid + ' save error' + e)
+            }
         }
-        RawMemory.setActiveSegments(openArray)
-        status = 'save'
     }
     return true
 }
+
+//----------------core code end-------------------
+
+
+//-------sample--------
+/*
+this may help save costmatrix
+
+function zipCostMatrix(cost) {
+    let arr = new Uint32Array(cost._bits.buffer)
+    let ans = {}
+    arr.forEach((o, index) => {
+        if (o > 0) ans[index] = o
+    })
+    return ans
+}
+
+function unzipCostMatrix(cost) {
+    let arr = new Uint32Array(625)
+    for (let index in cost) {
+        arr[parseInt(index)] = cost[index]
+    }
+    let instance = Object.create(PathFinder.CostMatrix.prototype)
+    instance._bits = new Uint8Array(arr.buffer)
+    return instance
+}
+
+*/
