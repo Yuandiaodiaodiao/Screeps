@@ -33,7 +33,7 @@ function work(creep) {
     } else if (memory.status === 'upgrading') {
         let target = Game.getObjectById(memory.missionid)
         let container = Game.getObjectById(memory.container)
-        if (!container) {
+        if (!container || container.structureType !== STRUCTURE_CONTAINER) {
             container = creep.pos.findClosestByRange(FIND_STRUCTURES, {
                 filter: obj => obj.structureType === STRUCTURE_CONTAINER
             })
@@ -43,6 +43,7 @@ function work(creep) {
             upgradertime[creep.pos.roomName] = Game.time
         }
         const action = creep.upgradeController(target)
+
         if (action === ERR_NOT_IN_RANGE) {
             memory.status = 'going'
         } else if (action === ERR_NOT_ENOUGH_RESOURCES) {
@@ -137,7 +138,7 @@ function miss(room) {
     if (room.controller.level >= 4 && room.controller.ticksToDowngrade && room.controller.ticksToDowngrade < 3000 && role_num_fix[room.name].upgrader === 0) {
         role_num_fix[room.name].upgrader = 1
     }
-    if (room.controller.level === 8 && room.storage && room.storage.store[RESOURCE_ENERGY] / room.storage.store.getCapacity() >= 0.4 && Game.cpu.bucket > 8500) {
+    if (room.controller.level === 8 && room.storage && room.storage.store[RESOURCE_ENERGY] / room.storage.store.getCapacity() >= 0.9 && Game.cpu.bucket > 9000 && Object.keys(Memory.powerPlan).length === 0) {
         role_num_fix[room.name].upgrader = 1
     }
     if (!room.storage) {

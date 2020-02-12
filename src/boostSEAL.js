@@ -15,7 +15,7 @@ function born(spawnnow, creepname, memory) {
         creepname,
         {
             memory: {
-                status: 'pair',
+                status: 'goBoost',
                 boostStep: 0,
                 missionid: memory.targetRoomName,
                 step: 0,
@@ -54,19 +54,6 @@ function work(creep) {
             creep.room.memory.reaction.boostReady = false
 
         }
-    } else if (creep.memory.status === 'pair') {
-        if (creep.ticksToLive >= 1490) {
-            if (Game.flags['single' + creep.memory.missionid]) {
-                creep.memory.status = 'goBoost'
-
-            }
-        } else {
-            const spawn = creep.room.spawns.find(o => !o.spawning)
-            if (spawn) {
-                creep.moveTo(spawn, {range: 1})
-                spawn.renewCreep(creep)
-            }
-        }
     } else if (creep.memory.status === 'going') {
         let config = null
         try {
@@ -86,61 +73,44 @@ function work(creep) {
             creep.heal(creep)
         }
 
-    } else if (creep.memory.status == 'fighting') {
-        let range1Creep = creep.pos.findInRange(FIND_MY_CREEPS, 1)
-        let range3Creep = creep.pos.findInRange(FIND_MY_CREEPS, 3)
-        let goal = new RoomPosition(...creep.memory.goal)
-        let target = Game.getObjectById(creep.memory.pair)
-        let healT
-        if (creep.hitsMax - creep.hits < 400) {
-            let hurtCreep = _.max(range1Creep, o => o.hitsMax - o.hits)
-            let hurtCreep3 = _.max(range3Creep, o => o.hitsMax - o.hits)
-            if (hurtCreep && typeof hurtCreep === 'object' && hurtCreep.id && hurtCreep.hitsMax > hurtCreep.hits) {
-                healT = hurtCreep
-            } else if (creep.hitsMax > creep.hits) {
-                healT = creep
-            } else if (hurtCreep3 && typeof hurtCreep3 === 'object' && hurtCreep3.id && hurtCreep3.hitsMax > hurtCreep3.hits) {
-                healT=hurtCreep3
-            } else {
-                let outPut = range1Creep.find(o => o.getActiveBodyparts(ATTACK) || o.getActiveBodyparts(WORK))
-                if (outPut) {
-                    healT = outPut
-                    if (!target) {
-                        creep.memory.pair = outPut.id
-                        target = outPut
-                    }
-                }
-                if (!healT) {
-                    healT = creep
-                }
-            }
-        } else {
-            healT = creep
-        }
-        if (target && target.memory.pair !== creep.id) {
-            if (!creep.pos.isNearTo(target.pos)) {
-                creep.moveTo(target, {ignoreCreeps: false, range: 1})
-            }
-        }
+    } else if (creep.memory.status === 'fighting') {
 
-        if (!creep.pos.isNearTo(healT.pos) > 1 && !creep.getActiveBodyparts(RANGED_ATTACK)) {
-            creep.rangedHeal(healT)
+        let goal = new RoomPosition(...creep.memory.goal)
+        Game.war.moveAwayFromSide(creep)
+        creep.heal(creep)
+        let enemy = creep.pos.findInRange(FIND_HOSTILE_CREEPS, 3, {filter: o => o.pos.lookFor(LOOK_STRUCTURES).every(o => o.structureType !== STRUCTURE_RAMPART)})[0]
+        if (enemy) {
+            if (enemy.pos.isNearTo(creep)) {
+                creep.rangedMassAttack()
+            } else {
+                creep.rangedAttack(enemy)
+            }
         } else {
-            creep.heal(healT)
+            enemy = creep.pos.findInRange(FIND_HOSTILE_STRUCTURES, 3, {filter: o => o.hits})[0]
+            if (!enemy) enemy = creep.pos.findInRange(FIND_STRUCTURES, 3, {filter: o => o.hits})[0]
+            if(enemy&&enemy.owner){
+                creep.rangedMassAttack()
+            }else{
+                creep.rangedAttack(enemy)
+            }
         }
 
         const fix = Game.flags['fix' + creep.memory.missionid]
-
-        if (fix) {
+        if (enemy && enemy.pos.getRangeTo(fix.pos) <= 10) {
+            creep.moveTo(enemy, {range: enemy.body ? 0 : 1})
+        } else if (fix) {
             creep.moveTo(fix, {ignoreCreeps: false})
         }
-
-    } else if (creep.memory.status == 'rush') {
+        const fix1 = Game.flags['fix1' + creep.memory.missionid]
+        if (fix1) {
+            creep.moveTo(fix1, {ignoreCreeps: false})
+        }
+    } else if (creep.memory.status === 'rush') {
 
         if (creep.getActiveBodyparts(ATTACK) === 0 && creep.getActiveBodyparts(HEAL) === 0 && creep.getActiveBodyparts(RANGED_ATTACK) === 0) {
             return Game.war.workRush(creep)
         }
-        if (Game.time % 20 == 0) {
+        if (Game.time % 20 === 0) {
             Game.memory.roomCachettl[creep.pos.roomName] = 0
         }
         const enemys = Game.war.getEnemy(creep)
@@ -154,6 +124,7 @@ function work(creep) {
 
             let target = creep.pos.findClosestByRange(FIND_HOSTILE_STRUCTURES, {filter: obj => obj.hits && obj.structureType != STRUCTURE_RAMPART && (!obj.pos.lookFor(LOOK_STRUCTURES).some(obj => obj.structureType == STRUCTURE_RAMPART))})
             if (!target) target = creep.pos.findClosestByRange(FIND_HOSTILE_CONSTRUCTION_SITES, {filter: o => o.progress > 0})
+            if (!target) target = creep.pos.findClosestByRange(FIND_STRUCTURES, {filter: obj => obj.hits})
             if (target) {
                 creep.moveTo(target, {ignoreCreeps: false, reusePath: 10})
                 if (!target.ticksToLive && creep.pos.getRangeTo(target) <= 1 && !target.progressTotal && (target.structureType ? target.structureType != STRUCTURE_ROAD && target.structureType != STRUCTURE_CONTAINER : true)) {
@@ -177,31 +148,9 @@ function work(creep) {
 
 
                 }
-            } else {
-                creep.say('')
             }
         }
 
-
-    } else if (creep.memory.status === 'flagRush') {
-        creep.heal(creep)
-        let flag = Game.flags['heal' + creep.memory.missionid]
-        if (flag) {
-            creep.moveTo(flag.pos, {range: 1})
-        }
-        let enemy = creep.pos.findInRange(FIND_HOSTILE_CREEPS, 3, {filter: o => o.pos.lookFor(LOOK_STRUCTURES).every(o => o.structureType !== STRUCTURE_RAMPART)})
-        enemy = require('lodash-my').maxBy(enemy, Game.war.howDangerous)
-        if (enemy) {
-            if (enemy.pos.isNearTo(creep)) {
-                creep.rangedMassAttack()
-            } else {
-                creep.rangedAttack(enemy)
-            }
-        } else {
-            enemy = creep.pos.findInRange(FIND_HOSTILE_STRUCTURES, 3, {filter: o => o.hits})[0]
-            if (!enemy) creep.pos.findInRange(FIND_STRUCTURES, 3)[0]
-            creep.rangedAttack(enemy)
-        }
 
     } else if (creep.memory.status === 'sign') {
         creep.moveTo(creep.room.controller)

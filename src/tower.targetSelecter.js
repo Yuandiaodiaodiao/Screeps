@@ -4,25 +4,26 @@
  Date:   20200119
 
  Usage:
-    first you need import module prototype.Room.structures (it has write in 	code annotation bottom)
-    second require('tower.targetSelecter').solveCanBeAttack(room,targets)
-    @param room:your room object
-    @param targets: an array list creeps you want to attack :  [creep1,creep2,creep3]
-    @return target / undefined
-    when the module find an attackable target it will return
-    or if all targets cant be defeat it will return undefined
+ first you need import module prototype.Room.structures (it has write in    code annotation bottom)
+ second require('tower.targetSelecter').solveCanBeAttack(room,targets)
+ @param room:your room object
+ @param targets: an array list creeps you want to attack :  [creep1,creep2,creep3]
+ @return target / undefined
+ when the module find an attackable target it will return
+ or if all targets cant be defeat it will return undefined
  log
  v1.1 fix big bug
  */
-function isBoost(body,type) {
+function isBoost(body, type) {
     for (let part of body) {
         if (part.type === type) {
-            if (part.boost){
-              return true
+            if (part.boost) {
+                return true
             }
         }
     }
 }
+
 function solvedamage(dist) {
     if (dist <= 5) return 600
     else if (dist <= 20) return 600 - (dist - 5) * 30
@@ -42,20 +43,34 @@ function getheal(body) {
     }
     return healnumber
 }
-
+function getrangeHeal(body) {
+    let healnumber = 0
+    for (let part of body) {
+        if (part.type === 'heal') {
+            if (!part.boost)
+                healnumber += 4
+            else {
+                healnumber += BOOSTS.heal[part.boost].heal * 4
+            }
+        }
+    }
+    return healnumber
+}
 function checkTough(body) {
     let hits = 0
     let damagerate = 1
     let num = 0
     for (let part of body) {
         if (part.type === 'tough') {
-            if (part.boost){
+            if (part.boost) {
                 hits += 100 / BOOSTS.tough[part.boost].damage
                 damagerate += BOOSTS.tough[part.boost].damage
                 num++
-            }else{
+            } else {
                 break
             }
+        } else {
+            break
         }
     }
     return {
@@ -64,18 +79,36 @@ function checkTough(body) {
     }
 }
 
+module.exports.checkTough = checkTough
+
+function solveTowerDamage(room, target) {
+    return _.sum(room.towers, o => {
+        if (o.effects && o.effects.length > 0) {
+            return solvedamage(o.pos.getRangeTo(target.pos)) * POWER_INFO[PWR_OPERATE_TOWER].effect[o.effects[0].level]
+        } else {
+            return solvedamage(o.pos.getRangeTo(target.pos))
+        }
+    })
+}
+
+module.exports.solveTowerDamage = solveTowerDamage
+
 function solveCanBeAttack(room, targets) {
     for (let target of targets) {
-        let towerattack = 0
-        room.towers.forEach(o =>
-            towerattack += solvedamage(o.pos.getRangeTo(target.pos))
-        )
+        let towerattack = solveTowerDamage(room, target)
+
         let healNumber = 0
-        target.pos.findInRange(FIND_HOSTILE_CREEPS, 1).forEach(o =>
-            healNumber += getheal(o.body))
+        target.pos.findInRange(FIND_HOSTILE_CREEPS, 3).forEach(o =>{
+            if(target.pos.getRangeTo(o.pos)<=1){
+                healNumber += getheal(o.body)
+            }else{
+                healNumber += getrangeHeal(o.body)
+            }
+        }
+        )
 
         let tough = checkTough(target.body)
-        if (healNumber === 0 || healNumber < towerattack * tough.damage || towerattack > tough.hits) {
+        if (healNumber === 0 || healNumber < towerattack * tough.damage || (towerattack > tough.hits && towerattack > healNumber)) {
             return target
         }
     }
@@ -125,11 +158,11 @@ module.exports.isBoost = isBoost
  const multipleList = [
  STRUCTURE_SPAWN,        STRUCTURE_EXTENSION,    STRUCTURE_ROAD,         STRUCTURE_WALL,
  STRUCTURE_RAMPART,      STRUCTURE_KEEPER_LAIR,  STRUCTURE_PORTAL,       STRUCTURE_LINK,
- STRUCTURE_TOWER,        STRUCTURE_LAB,          STRUCTURE_CONTAINER,	STRUCTURE_POWER_BANK,
+ STRUCTURE_TOWER,        STRUCTURE_LAB,          STRUCTURE_CONTAINER,    STRUCTURE_POWER_BANK,
  ];
 
  const singleList = [
- STRUCTURE_OBSERVER,     STRUCTURE_POWER_SPAWN,  STRUCTURE_EXTRACTOR,	STRUCTURE_NUKER,
+ STRUCTURE_OBSERVER,     STRUCTURE_POWER_SPAWN,  STRUCTURE_EXTRACTOR,    STRUCTURE_NUKER,
  //STRUCTURE_TERMINAL,   STRUCTURE_CONTROLLER,   STRUCTURE_STORAGE,
  ];
 
@@ -140,7 +173,7 @@ module.exports.isBoost = isBoost
 }
 
 
-Room.prototype._checkRoomCache = function _checkRoomCache(){
+ Room.prototype._checkRoomCache = function _checkRoomCache(){
     // if cache is expired or doesn't exist
     if(!roomStructuresExpiration[this.name] || !roomStructures[this.name] || roomStructuresExpiration[this.name] < Game.time){
         roomStructuresExpiration[this.name] = Game.time + getCacheExpiration();
@@ -152,7 +185,7 @@ Room.prototype._checkRoomCache = function _checkRoomCache(){
     }
 }
 
-multipleList.forEach(function(type){
+ multipleList.forEach(function(type){
     Object.defineProperty(Room.prototype, type+'s', {
         get: function(){
             if(this['_'+type+'s'] && this['_'+type+'s_ts'] === Game.time){
@@ -174,7 +207,7 @@ multipleList.forEach(function(type){
     });
 });
 
-singleList.forEach(function(type){
+ singleList.forEach(function(type){
     Object.defineProperty(Room.prototype, type, {
         get: function(){
             if(this['_'+type] && this['_'+type+'_ts'] === Game.time){
@@ -195,5 +228,5 @@ singleList.forEach(function(type){
         configurable: true,
     });
 });
-*/
+ */
 

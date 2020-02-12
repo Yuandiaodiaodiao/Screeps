@@ -6,13 +6,14 @@ module.exports = {
 }
 var powerRoom = {
     'E28N46': ['E30N46', 'E30N47', 'E30N48', 'E30N49'],
-    'E27N38': ['E30N36', 'E30N35', 'E30N34', 'E30N33'],
-    'E29N38': ['E30N37', 'E30N38', 'E30N39'],
+    'E27N38': ['E27N40', 'E28N40', 'E30N36', 'E30N35', 'E30N34', 'E30N33'],
+    'E29N38': ['E29N40', 'E30N37', 'E30N38', 'E30N39'],
     'E29N41': ['E30N40', 'E31N40', 'E32N40', 'E33N40'],
-    'E25N43': ['E22N40', 'E23N40', 'E24N40', 'E25N40'],
-    'E27N42': ['E26N40', 'E27N40', 'E28N40', 'E29N40'],
+    'E25N43': [],
+    'E27N42': ['E22N40', 'E23N40', 'E24N40', 'E25N40', 'E26N40'],
     'E19N41': ['E18N40', 'E19N40', 'E20N40', 'E20N41', 'E20N39', 'E21N40'],
-    'E14N41': ['E12N40', 'E13N40', 'E14N40', 'E15N40', 'E16N40']
+    'E14N41': ['E12N40', 'E13N40', 'E14N40', 'E15N40', 'E16N40'],
+    'E11N32': ['E10N32', 'E10N33', 'E10N31']
 }
 /*
 
@@ -42,7 +43,7 @@ function miss() {
         const rooms = powerRoom[roomName]
         for (let roomn of rooms) {
             const roomc = Game.memory.observerCache[roomn]
-            if (Game.cpu.bucket > 3000 + 400 * Math.max(5, Object.keys(Memory.powerPlan).length) && roomc && roomc.powerBank && roomc.power >= 1500 && Game.time - roomc.startTime <= 1500 && !Memory.powerPlan[roomn] && Game.rooms[roomName].storage.store[RESOURCE_ENERGY] > 300000) {
+            if (Game.cpu.bucket >= 9000 + 300 * Object.keys(Memory.powerPlan).length && roomc && roomc.powerBank && roomc.power >= ( Object.keys(Memory.powerPlan).length>1?8000:6000) && Game.time - roomc.startTime <= 1000 && !Memory.powerPlan[roomn] && Game.rooms[roomName].storage.store[RESOURCE_ENERGY] > 300e3) {
                 const targetpos = new RoomPosition(roomc.pos[0], roomc.pos[1], roomn)
                 const ans = PathFinder.search(Game.rooms[roomName].spawns[0].pos, {pos: targetpos, range: 3}, {
                     plainCost: 1, swampCost: 5, roomCallback: Game.tools.roomc_nocreep, maxOps: 10000
@@ -121,11 +122,11 @@ function solveplan(roomn) {
         missions['power-c'] ? missions['power-c'][roomn] = undefined : undefined
         if (Game.time - plan.timelock > 5) {
             plan.status = 5
-           try{
-            Game.terminal.autoOrder(plan.spawnRoom)
-           }catch (e) {
-               console.log('powerBank error'+e)
-           }
+            try {
+                Game.terminal.autoOrder(plan.spawnRoom)
+            } catch (e) {
+                console.log('powerBank error' + e)
+            }
 
 
             Memory.powerPlan[roomn] = undefined

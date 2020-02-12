@@ -1,7 +1,6 @@
 Game.lodash = require('lodash-my')
-let actionCounter = require('actionCounter')
 
-actionCounter.warpActions()
+
 require('prototype.SpeedUp.getAllOrders')
 load()
 
@@ -70,6 +69,7 @@ var missions_ori = {
 function mission_generator(room) {
 
 // Memory.rooms[room.name].missions=missions
+    if (room.spawns.length === 0) return
     room.memory.missions = room.memory.missions || {}
     let thisroom = Memory.rooms[room.name]
     thisroom.missions = require('tools').deepcopy(missions_ori)
@@ -110,6 +110,21 @@ function mission_generator(room) {
         if (room.storage) {
             let centerlink = room.storage.pos.findClosestByRange(FIND_STRUCTURES, {filter: obj => obj.structureType == STRUCTURE_LINK})
             if (centerlink) thisroom.centerlink = centerlink.id
+            thisroom.wallLink = []
+            for (let link of room.links) {
+                if (link.pos.findInRange(FIND_SOURCES, 2).length > 0) {
+                    continue
+                }
+                if (link.pos.x <= 3 || link.pos.y <= 3 || link.pos.x >= 45 || link.pos.y >= 45) {
+                    continue
+                }
+                if (link.id != thisroom.centerlink) {
+                    thisroom.wallLink.push(link.id)
+                }
+            }
+            if (thisroom.wallLink.length === 0) {
+                thisroom.wallLink = undefined
+            }
         }
     }
     //findlab
@@ -374,6 +389,8 @@ function load() {
     Game.lodash = require('lodash-my')
     require('prototype.SpeedUp.getAllOrders').load()
     Game.runTime = Game.time - Memory.cpu.pushTime
+    Game.defend = require('defendController')
+    Game.reaction = require('reaction')
 
 }
 
@@ -381,7 +398,7 @@ var missionController = require('missionController')
 // profiler.enable()
 module.exports.loop = function () {
     if (shard()) return
-    actionCounter.init()
+
     load()
     try {
         require('Game.memory').work()
@@ -402,12 +419,25 @@ module.exports.loop = function () {
         // Game.memory.roomCache = {}
         for (let roomName in Memory.rooms) {
             try {
+
                 mission_generator(Game.rooms[roomName])
             } catch (e) {
                 console.log(roomName + 'mission_generator error ' + e)
             }
         }
 
+    }
+
+    if (Game.time % 50 === 0) {
+        for (let roomName in Memory.rooms) {
+            const room = Game.rooms[roomName]
+            try {
+                require('defendController').miss(room)
+
+            } catch (e) {
+                console.log('subprotecter error' + e)
+            }
+        }
     }
     if (Game.time % 10 == 0) {
 
@@ -449,7 +479,17 @@ module.exports.loop = function () {
         }
 
     }
+    if ((Game.time - 20) % 50 === 0) {
+        for (let roomName in Game.config.obterminal) {
+            try {
+                require('terminalObserver').work(roomName)
+            } catch (e) {
+                console.log('terminal ob error' + e)
+            }
+        }
 
+
+    }
     for (let roomName in Memory.rooms) {
         let room = Game.rooms[roomName]
         if (!room) continue
@@ -471,18 +511,14 @@ module.exports.loop = function () {
         } catch (e) {
             console.log('spawnerror' + e)
         }
-        try {
-            tower.work(room)
-        } catch (e) {
-            console.log(roomName + 'tower error ' + e)
-        }
+
         try {
             link.work(room)
         } catch (e) {
             console.log(roomName + 'link error ' + e)
         }
 
-        if (room.towers.length === 0 && room.find(FIND_HOSTILE_CREEPS).length > 0) {
+        if (room.towers.length === 0 && room.find(FIND_HOSTILE_CREEPS).length > 0 && (room.controller.level <= 3 || room.controller.level >= 8)) {
             room.controller.activateSafeMode()
         }
 
@@ -507,12 +543,16 @@ module.exports.loop = function () {
     timer()
     Object.values(Game.powerCreeps).forEach(obj => {
         try {
-            require('powerscreep').work(obj)
+            if (Game.time <= Game.rooms[obj.name].memory.runAwayTick && Game.rooms[obj.name].memory.runAwayTick - Game.time <= 100) {
+                require('nukeWall').pcRunAway(obj)
+            } else {
+                require('powerscreep').work(obj)
+            }
         } catch (e) {
             console.log('powerscreep ' + obj.name + e)
         }
     })
-    Memory.cpu.pcCpu=timer()
+    Memory.cpu.pcCpu = timer()
     if ((Game.time + 25) % 50 == 0) {
         try {
             require('powerBank').cache()
@@ -535,13 +575,14 @@ module.exports.loop = function () {
             }
         }
     }
+
     if (Game.time % 10 === 0) {
         for (let roomName in Memory.rooms) {
             let room = Game.rooms[roomName]
             let ticks = 100
             let rate = room.storage ? room.storage.store[RESOURCE_ENERGY] / room.storage.store.getCapacity() : 0
-            if (room.storage && rate > 0.9) {
-                ticks = Math.ceil(Math.round(Math.max(10, 50 - (rate - 0.9) * 800) / 10) * 10)
+            if (room.storage && rate >= 0.9) {
+                ticks = Math.ceil(Math.round(Math.max(10, 50 - (0.93 - 0.9) * 800) / 10)) * 10
             }
             if (Game.time % ticks === 0) {
                 try {
@@ -553,8 +594,14 @@ module.exports.loop = function () {
 
         }
     }
-
-    if (Game.time % 100 == 0) {
+    if ((Game.time - 25) % 100 === 0) {
+        try {
+            Game.terminal.avgT3()
+        } catch (e) {
+            console.log('main avgT3 error' + e)
+        }
+    }
+    if (Game.time % 100 === 0) {
 
 
         try {
@@ -570,6 +617,12 @@ module.exports.loop = function () {
                 require('wallWorker').miss(room)
             } catch (e) {
                 console.log('wallWorker.miss error' + e)
+            }
+            try {
+                require('nukeWall').miss(room)
+            } catch (e) {
+                console.log('nukeWall.miss error' + e)
+
             }
             try {
                 Game.factory.miss(room)
@@ -620,32 +673,41 @@ module.exports.loop = function () {
         try {
             if (!obj.spawning) {
                 const type = obj.name.split('_')[1]
-                if(type==='upgrader'||type==='wallWorker'){
-                    if(Game.cpu.bucket>3000){
+                let time = Game.cpu.getUsed()
+                if (type === 'wallWorker' || type === 'warCarry' || type === 'warWall') {
+                    if (!((Game.cpu.bucket < 9000 && Object.keys(Memory.powerPlan).length > 0) || Game.cpu.bucket < 3000)) {
                         require(type).work(obj)
                     }
-                }else if(type==='carryer'){
-                    if(Game.cpu.bucket>2000){
+                } else if (type === 'upgrader') {
+                    if (Game.cpu.bucket > 3000) {
+                    }
+                } else if (type === 'carryer') {
+                    if (Game.cpu.bucket > 2000) {
                         require(type).work(obj)
                     }
-                }else if(type === 'boostAttack' || type === 'boostHeal' || type === 'subprotecter'||type === 'destroyer'){
+                } else if (type === 'boostAttack' || type === 'boostHeal' || type === 'subprotecter' || type === 'destroyer' || type === 'SEAL') {
                     require(type).work(obj)
-                }else if(Game.cpu.bucket > 1000 ){
+                } else if (Game.cpu.bucket > 1000) {
                     require(type).work(obj)
-                }else if(Game.time%3!==0){
+                } else if (Game.time % 3 !== 0) {
                     require(type).work(obj)
+                }
+                let ticks = Game.cpu.getUsed() - time
+                if (ticks > Memory.highTicks) {
+                    console.log(`${Game.time % 1000} high cpu in ${obj.name}  cost=${ticks.toFixed(3)}`)
                 }
             }
         } catch (e) {
             console.log('role=' + obj.name + 'error' + e)
         }
     })
-    Memory.cpu.creepCpu=timer()
+    Memory.cpu.creepCpu = timer()
 
 
-    if (Game.time % 10 == 0) {
+    if (Game.time % 20 === 0) {
         Game.war.miss()
     }
+
     if (Game.market.credits > 2e6) {
         let tokens = Game.market.getAllOrders({type: ORDER_SELL, resourceType: SUBSCRIPTION_TOKEN})
         for (let x of tokens) {
@@ -655,8 +717,21 @@ module.exports.loop = function () {
         }
     }
 
-    if ((Game.time-20) % 100 === 0 && Memory.giveRoom) {
-        Game.tools.give(Memory.giveRoom, 'energy')
+    if ((Game.time - 20) % 10 === 0 && Memory.giveRoom) {
+        Game.tools.give(Memory.giveRoom, 'energy', 2000000)
+    }
+
+    for (let rooms in Game.rooms) {
+        let room = Game.rooms[rooms]
+        if (room.controller && room.controller.my) {
+            try {
+                tower.work(room)
+            } catch (e) {
+                console.log(rooms + 'tower error ' + e)
+            }
+
+        }
+
     }
     // if(Game.time%100==0){
     //     Game.getObjectById('5d5e20a452d12c73f02d996d').launchNuke(new RoomPosition(39,10,'E21N49')) //E25N43
@@ -665,7 +740,7 @@ module.exports.loop = function () {
     // }
 
     require('roomvisual').statistics()
-    actionCounter.save(100)
+
 }
 module.exports.handlemission = function (roomNamein) {
     timer()

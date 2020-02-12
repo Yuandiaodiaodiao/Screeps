@@ -2,7 +2,25 @@
 Object.defineProperty(global, 'guns', { get: report_T3 })
 Object.defineProperty(global, 'power', { get: report_power })
 Object.defineProperty(global, 'energy', { get: report_energy })
+Object.defineProperty(global, 'ok', { get: ok_queue })
+Object.defineProperty(global, 'no', { get: no_queue })
+function ok_queue() {
+try{
+    let que=Game.terminal.marketQueue.pop()
+    return que()
+}catch (e) {
+    console.log('ok_queue err'+e)
+}
 
+}
+function no_queue() {
+    try{
+        let que=Game.terminal.marketQueue.pop()
+       return '再您🐎的见'
+    }catch (e) {
+        console.log('ok_queue err'+e)
+    }
+}
 function report_power() {
     amountOf('power',true)
 }

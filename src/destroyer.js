@@ -19,6 +19,7 @@ function born(spawnnow, creepname, memory) {
                 missionid: memory.targetRoomName,
                 step: 0,
                 goal: memory.goal,
+                bornTick: Game.time
             }
         }
     )
@@ -50,21 +51,98 @@ function work(creep) {
             creep.memory.status = 'claim'
             delete creep.memory.step
         }
+        const target = creep.room.find(FIND_HOSTILE_CREEPS)[0]
+        if (target && target.pos.getRangeTo(creep.pos) <= 8) {
+            let boost = require('tower.targetSelecter').isBoost(target.body, RANGED_ATTACK)
+            if (boost) {
+                creep.memory.status = 'runAway'
+            }
+        }
+
+    } else if (creep.memory.status === 'runAway') {
+        if (Game.flags['dis' + creep.memory.missionid]) {
+            creep.moveTo((Game.flags['dis' + creep.memory.missionid].pos))
+            return
+        }
+        const target = creep.pos.findClosestByRange(FIND_HOSTILE_CREEPS)
+        let boost = require('tower.targetSelecter').isBoost(target.body, RANGED_ATTACK)
+        if (boost) {
+            if (target && target.pos.getRangeTo(creep.pos) <= 7) {
+                let ans = PathFinder.search(creep.pos, {pos: target.pos, range: 7}, {
+                    plainCost: 1, swampCost: 5, roomCallback: require('tools').roomc, maxRooms: 2, flee: true
+                })
+                creep.moveByPath(ans.path);
+                return
+            }
+        } else {
+            creep.memory.status = 'claim'
+        }
     } else if (creep.memory.status == 'claim') {
+        if (Game.flags['dis' + creep.memory.missionid]) {
+            creep.moveTo((Game.flags['dis' + creep.memory.missionid].pos))
+            return
+        }
         if (creep.pos.roomName == creep.memory.missionid) {
             const controller = Game.rooms[creep.memory.missionid].controller
-            const act = creep.claimController(controller)
-            if (act == ERR_NOT_IN_RANGE) {
-                creep.moveTo(controller, {ignoreCreeps: false})
-            } else if (act == OK || controller.my) {
-                creep.memory.status = 'destroy'
-            } else {
-                creep.attackController(controller)
+            if (controller.level === 0) {
+                Memory.army[creep.memory.missionid].body.destroyer={speedClaim:true}
             }
-        } else if (creep.pos.roomName == creep.memory.goal[2]) {
+            if (!controller.my) {
+
+                const act = creep.attackController(controller)
+                if (act === ERR_NOT_IN_RANGE) {
+                    if (creep.pos.findInRange(FIND_HOSTILE_CREEPS, 3).length > 0) {
+                        if (creep.getActiveBodyparts(MOVE) > 40) {
+                            creep.moveTo(controller, {swampCost: 1, plainCost: 1, ignoreCreeps: false, reusePath: 3})
+                        } else {
+                            creep.moveTo(controller, {ignoreCreeps: false, reusePath: 3})
+                        }
+                    } else {
+                        if (creep.getActiveBodyparts(MOVE) > 40) {
+                            creep.moveTo(controller, {swampCost: 1, plainCost: 1})
+                        } else {
+                            creep.moveTo(controller)
+                        }
+                    }
+                }
+                if (act === OK) {
+                    if (creep.memory.bornTick) {
+                        const config = Memory.army[creep.memory.missionid].from[creep.name.split('_')[0]]
+                        Memory.army[creep.memory.missionid].nextBorn = creep.memory.bornTick + 1000 - creep.ticksToLive
+                    } else {
+                        let block = 1000
+                        const config = Memory.army[creep.memory.missionid].from[creep.name.split('_')[0]]
+                        Memory.army[creep.memory.missionid].nextBorn = Game.time + block - config.path.length - 50 * 3
+                    }
+
+                } else if (act === ERR_TIRED && controller.upgradeBlocked && controller.upgradeBlocked > creep.ticksToLive) {
+                    if (!creep.memory.bornTick) {
+                        const config = Memory.army[creep.memory.missionid].from[creep.name.split('_')[0]]
+                        Memory.army[creep.memory.missionid].nextBorn = Game.time + controller.upgradeBlocked - config.path.length - 50 * 3
+                    }
+                    if (Memory.army[creep.memory.missionid].nextBorn <= Game.time) {
+                        creep.suicide()
+                        Game.defend.miss(creep.name.split('_')[0])
+                    }
+                }
+            } else {
+                const act = creep.claimController(controller)
+
+                if (act == ERR_NOT_IN_RANGE) {
+                    creep.moveTo(controller, {ignoreCreeps: false})
+                } else if (act == OK || controller.my) {
+                    creep.memory.status = 'destroy'
+                } else {
+                    creep.attackController(controller)
+                }
+            }
+
+        } else if (creep.pos.roomName === creep.memory.goal[2]) {
             const exitDir = Game.map.findExit(creep.room, creep.memory.missionid)
             const exit = creep.pos.findClosestByRange(exitDir)
             creep.moveTo(exit)
+        } else {
+            creep.moveTo(new RoomPosition(...creep.memory.goal))
         }
     } else if (creep.memory.status === 'destroy') {
         if (Game.flags['save']) {

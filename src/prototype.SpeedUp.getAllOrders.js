@@ -12,7 +12,7 @@
 let originFun = Game.market.getAllOrders
 let origingetOrderById = Game.market.getOrderById
 let ori = function (o) {
-    return 0
+    return o
 }
 const getAllOrders = function (filter) {
     let js = [JSON.parse, JSON.stringify]

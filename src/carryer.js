@@ -25,7 +25,7 @@ function work(creep) {
                             creep.suicide()
                         }
                     } catch (e) {
-                        console.log(`carryer suicide error ${e}`)
+                        console.log(`carryer suicide error 1${e} ${creep.name}`)
                     }
 
                 }
@@ -69,7 +69,7 @@ function work(creep) {
                                 memory.status = 'suicide'
                             }
                         } catch (e) {
-                            console.log('carryer suicide error' + e)
+                            console.log('carryer suicide error2' + e)
                         }
 
                     }
@@ -138,7 +138,7 @@ function born(spawnnow, creepname, memory) {
             'move': 8
         }
     }
-    if(!Game.getObjectById(memory.gettarget)){
+    if (!Game.getObjectById(memory.gettarget)) {
         return -12
     }
     if (spawnnow.pos.roomName === Game.getObjectById(memory.gettarget).pos.roomName) {

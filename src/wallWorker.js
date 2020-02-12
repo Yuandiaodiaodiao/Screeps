@@ -1,4 +1,5 @@
 function work(creep) {
+
     if (creep.carry.energy === 0) {
         creep.memory.status = 'getting'
         if (creep.ticksToLive < 10) {
@@ -9,8 +10,8 @@ function work(creep) {
         let target = Game.getObjectById(creep.memory.repairtarget)
         if (target) {
             const act = creep.repair(target)
-            let repairPos = new RoomPosition(...creep.memory.repairPos)
-            if (!creep.pos.isEqualTo(repairPos)) {
+            let repairPos = creep.memory.repairPos ? new RoomPosition(...creep.memory.repairPos) : undefined
+            if (!repairPos || !creep.pos.isEqualTo(repairPos)) {
                 if (!creep.memory.repairPos) {
                     const ans = PathFinder.search(Game.rooms[creep.memory.missionid].storage.pos, {
                         pos: target.pos,
@@ -19,7 +20,7 @@ function work(creep) {
                         plainCost: 2,
                         swampCost: 10,
                         roomCallback: require('tools').roomc_nocreep,
-                        maxRooms:1
+                        maxRooms: 1
                     })
                     const targetPos = _.last(ans.path) || creep.pos
                     creep.memory.repairPos = [targetPos.x, targetPos.y, targetPos.roomName]
@@ -32,7 +33,7 @@ function work(creep) {
                         plainCost: 2,
                         swampCost: 10,
                         roomCallback: require('tools').roomc,
-                        maxRooms:1
+                        maxRooms: 1
                     })
                     const targetPos = _.last(ans.path) || creep.pos
                     creep.memory.repairPos = [targetPos.x, targetPos.y, targetPos.roomName]
@@ -67,7 +68,7 @@ function born(spawnnow, creepname, memory) {
         plainCost: 2,
         swampCost: 10,
         roomCallback: require('tools').roomc_nocreep,
-        maxRooms:1
+        maxRooms: 1
     })
     if (ans.incomplete) {
         console.log(`${spawnnow.room.name} wallWorker.born ans.incom=${ans.incomplete} to ${target.pos} path=${JSON.stringify(ans.path)}`)
@@ -108,11 +109,15 @@ function born(spawnnow, creepname, memory) {
 }
 
 function miss(room) {
+    if (!room.memory.missions) return
     room.memory.missions.wallWorker = {}
-    if (room.controller.level === 8 && room.storage && room.storage.store[RESOURCE_ENERGY] / room.storage.store.getCapacity() > 0.5&&Game.cpu.bucket>9500) {
+    if (room.controller.level === 8 && room.storage && room.storage.store[RESOURCE_ENERGY] / room.storage.store.getCapacity() > 0.5 && Game.cpu.bucket > 10000) {
+
+
+
         room.memory.missions.wallWorker[room.name] = {
             roomName: room.name,
-            numfix:Math.min( Math.max(Game.cpu.bucket-9500,0)/500,Math.min(1, Math.ceil((room.storage.store[RESOURCE_ENERGY] / room.storage.store.getCapacity() - 0.5) / 0.04)))
+            numfix: Math.min(Math.max(Game.cpu.bucket - 9500, 0) / 500, Math.min(1, Math.ceil((room.storage.store[RESOURCE_ENERGY] / room.storage.store.getCapacity() - 0.5) / 0.04)))
         }
     } else {
         room.memory.missions.wallWorker = undefined

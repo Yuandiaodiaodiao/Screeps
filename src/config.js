@@ -9,8 +9,7 @@ var role_num_fix = {
         rattacker: 0,
         healer: 0,
     },
-    'E27N42': {
-    },
+    'E27N42': {},
     'E29N41': {
         farcarryer: 0,
     },
@@ -52,12 +51,44 @@ var role_num = {
     destroyer: 0
 }
 module.exports.role_num = role_num
-module.exports.price = {
-    'power':{
-        'sell':1.3,
-        'order':1.5
+let price = {}
+
+function solveAveragePrice(type, dayLen = 2) {
+    if (price[type]) return price[type]
+    let history = Game.market.getHistory(type)
+    history = history.slice(history.length - dayLen)
+    let max = _.max(history, o => o.avgPrice + o.stddevPrice)
+    let min = _.max(history, o => o.avgPrice - o.stddevPrice)
+    price[type] = {
+        maxPrice: max.avgPrice + max.stddevPrice,
+        minPrice: min.avgPrice - min.stddevPrice
     }
+    return price[type]
 }
 
-module.exports.userName='Yuandiaodiaodiao'
-module.exports.powerLimit=0.9
+module.exports.solveAveragePrice = solveAveragePrice
+let resources = ['energy', 'power', RESOURCE_CATALYST, RESOURCE_HYDROGEN, RESOURCE_OXYGEN, RESOURCE_UTRIUM, RESOURCE_ZYNTHIUM, RESOURCE_KEANIUM, RESOURCE_LEMERGIUM]
+for (let type of resources) {
+    try {
+        solveAveragePrice(type)
+    } catch (e) {
+        console.log('config price' + e)
+    }
+
+}
+price.power.sell = price.power.minPrice
+price.power.order = price.power.minPrice * 1.05
+
+module.exports.price = price
+// for (let type in price) {
+//     console.log(`price ${type} ${price[type].minPrice} ~ ${price[type].maxPrice}`)
+// }
+module.exports.userName = 'Yuandiaodiaodiao'
+module.exports.powerLimit = 0.9
+module.exports.obterminal = {
+    W12N9: {
+        limit: 8e3,
+        merge: false
+    }
+
+}

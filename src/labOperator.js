@@ -1,4 +1,4 @@
-let powerSleep={}
+let powerSleep = {}
 
 module.exports.get = function (creep, memory) {
     const gettarget = Game.getObjectById(memory.gettarget)
@@ -119,13 +119,13 @@ module.exports.boostMine = function (creep, memory, room) {
             const type = boostList[index]
             const lab = room.labs[index]
             Game.terminal.needBoost(room)
-            if (lab.mineralAmount < lab.mineralCapacity) {
+            if (lab.mineralAmount < lab.store.getCapacity(lab.mineralType || type)) {
                 memory.type = type
                 memory.gettarget = room.terminal.id
                 memory.filltarget = lab.id
                 memory.status = 'getting'
                 memory.nexts = 'filling'
-                memory.thor = lab.mineralCapacity - lab.mineralAmount
+                memory.thor = lab.store.getCapacity(lab.mineralType || type) - lab.mineralAmount
                 return true
             }
         }
@@ -198,12 +198,12 @@ module.exports.oplab = function (creep, memory, room) {
     if (!creep.powers[PWR_OPERATE_LAB] || creep.powers[PWR_OPERATE_LAB].cooldown || (creep.store[RESOURCE_OPS] || 0) < 20) {
         return false
     }
-    if(powerSleep[creep.name]&&powerSleep[creep.name].oplabSleep&&powerSleep[creep.name].oplabSleep>Game.time){
+    if (powerSleep[creep.name] && powerSleep[creep.name].oplabSleep && powerSleep[creep.name].oplabSleep > Game.time) {
         return false
     }
     let ans = room.memory.lab.output.some(obj => {
         let lab = Game.getObjectById(obj)
-        if (!lab.effects||!lab.effects[0]) {
+        if (!lab.effects || !lab.effects[0]) {
             creep.memory = {
                 power: PWR_OPERATE_LAB,
                 target: obj,
@@ -212,15 +212,15 @@ module.exports.oplab = function (creep, memory, room) {
             return true
         }
     })
-    if(!ans){
-        powerSleep[creep.name]=powerSleep[creep.name]||{}
-        powerSleep[creep.name].oplabSleep=Game.time+(_.min(room.memory.lab.output,obj =>{
-            try{
-                return Game.getObjectById(obj).effects[0].ticksRemaining||999
-            }catch (e) {
+    if (!ans) {
+        powerSleep[creep.name] = powerSleep[creep.name] || {}
+        powerSleep[creep.name].oplabSleep = Game.time + (_.min(room.memory.lab.output, obj => {
+            try {
+                return Game.getObjectById(obj).effects[0].ticksRemaining || 999
+            } catch (e) {
                 return 999
             }
-        })||1000)
+        }) || 1000)
     }
     if (ans) {
         return true
@@ -229,36 +229,70 @@ module.exports.oplab = function (creep, memory, room) {
 
 }
 
-module.exports.genSource=function (creep, memory, room) {
-    if(!creep.powers[PWR_REGEN_SOURCE] || creep.powers[PWR_REGEN_SOURCE].cooldown){
+module.exports.genSource = function (creep, memory, room) {
+    if (!creep.powers[PWR_REGEN_SOURCE] || creep.powers[PWR_REGEN_SOURCE].cooldown) {
         return false
     }
-    if(powerSleep[creep.name]&&powerSleep[creep.name].gensourceSleep&&powerSleep[creep.name].gensourceSleep>Game.time){
+    if (powerSleep[creep.name] && powerSleep[creep.name].gensourceSleep && powerSleep[creep.name].gensourceSleep > Game.time) {
         return false
     }
-    let source=room.find(FIND_SOURCES)
-    let ans=source.some(o=>{
-            if (!o.effects||!o.effects[0]) {
-                creep.memory = {
-                    power: PWR_REGEN_SOURCE,
-                    target: o.id,
-                    status: 'gopower'
-                }
-                return true
+    let source = room.find(FIND_SOURCES)
+    let ans = source.some(o => {
+        if (!o.effects || !o.effects[0]) {
+            creep.memory = {
+                power: PWR_REGEN_SOURCE,
+                target: o.id,
+                status: 'gopower'
             }
-        })
+            return true
+        }
+    })
 
 
-
-    if(!ans){
-        powerSleep[creep.name]=powerSleep[creep.name]||{}
-        powerSleep[creep.name].gensourceSleep=Game.time+(_.min(source,obj =>{
-            try{
-                return obj.effects[0].ticksRemaining||100
-            }catch (e) {
+    if (!ans) {
+        powerSleep[creep.name] = powerSleep[creep.name] || {}
+        powerSleep[creep.name].gensourceSleep = Game.time + (_.min(source, obj => {
+            try {
+                return obj.effects[0].ticksRemaining || 100
+            } catch (e) {
                 return 100
             }
-        })||100)
+        }) || 100)
+    }
+    return !!ans
+
+
+}
+
+module.exports.opTower = function (creep, memory, room) {
+    if (!creep.powers[PWR_OPERATE_TOWER] || creep.powers[PWR_OPERATE_TOWER].cooldown || (creep.store[RESOURCE_OPS] || 0) < 10) {
+        return false
+    }
+    if (powerSleep[creep.name] && powerSleep[creep.name].opTowerSleep && powerSleep[creep.name].opTowerSleep > Game.time) {
+        return false
+    }
+    let tower = room.towers
+    let ans = tower.some(o => {
+        if (!o.effects || !o.effects[0]) {
+            creep.memory = {
+                power: PWR_OPERATE_TOWER,
+                target: o.id,
+                status: 'gopower'
+            }
+            return true
+        }
+    })
+
+
+    if (!ans) {
+        powerSleep[creep.name] = powerSleep[creep.name] || {}
+        powerSleep[creep.name].opTowerSleep = Game.time + (_.min(tower, obj => {
+            try {
+                return obj.effects[0].ticksRemaining || 10
+            } catch (e) {
+                return 10
+            }
+        }) || 10)
     }
     return !!ans
 

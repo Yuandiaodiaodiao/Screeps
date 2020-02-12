@@ -79,7 +79,7 @@ RoomPosition.prototype =
      *
      * @type {function}
      *
-     * @param {number|Array<RoomPosition>|Array<RoomObject>} type See Room.find.
+     * @param {string[]} type See Room.find.
      * @param {object} [opts] An object containing pathfinding options (see Room.findPath)
      * @param {object|function|string} [opts.filter] Only the objects which pass the filter using the Lodash.filter method will be used.
      * @param {string} [opts.algorithm] One of the following constants:

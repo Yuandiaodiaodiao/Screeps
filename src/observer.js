@@ -65,7 +65,28 @@ function work() {
             if (invaderCore) {
                 Game.memory.observerCache[roomName].owner = 'Invader'
             }
-
+            if(roomName in Game.config.obterminal){
+                Game.memory.observerCache[roomName]=Game.memory.observerCache[roomName]||{}
+                let store={}
+                for(type in room.terminal.store){
+                    if(type.length>=5){
+                        store[type]=room.terminal.store[type]
+                    }
+                }
+                let storage={}
+                for(type in room.storage.store){
+                    if(type.length>=5){
+                        storage[type]=room.terminal.store[type]
+                    }
+                }
+                // console.log(`obroom=${room.name}\n terlimal=${JSON.stringify(store)} \n storage=${JSON.stringify(storage)}`)
+                if(Game.config.obterminal[roomName].merge){
+                    for(let type in storage){
+                        store[type]=(store[type]||0)+(storage[type]||0)
+                    }
+                }
+                Game.memory.observerCache[roomName].terminalstore=store
+            }
 
             const ttl = Game.memory.roomCachettl[roomName]
             if (!ttl || Game.time - ttl >= 500) {

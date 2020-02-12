@@ -9,6 +9,12 @@ function statusmiss(creep) {
             creep.memory.status = 'upgrade'
         } else {
             creep.memory.status = creep.memory.role
+            if (creep.memory.status === 'build') {
+                let target = creep.room.find(FIND_CONSTRUCTION_SITES)[0]
+                if (!target) {
+                    creep.memory.status = 'get'
+                }
+            }
         }
     } else {
         creep.memory.status = 'get'
@@ -66,11 +72,22 @@ function work(creep) {
     } else if (creep.memory.status === 'upgrade') {
         let target = creep.room.controller
         let act = creep.upgradeController(target)
-        if (act === ERR_NOT_IN_RANGE) {
-            creep.moveTo(target, {ignoreRoads: true})
+        if (act === ERR_NOT_IN_RANGE || target.pos.getRangeTo(creep) >= 3) {
+            creep.moveTo(target, {ignoreRoads: true, maxCost: 50, maxOps: 500, range: 2, ignoreCreeps: false})
         } else if (act === ERR_NOT_ENOUGH_ENERGY) {
             creep.memory.status = 'get'
         }
+        if (creep.room.terminal && creep.store.energy <= creep.getActiveBodyparts('work') * 2) {
+            creep.withdraw(creep.room.terminal, RESOURCE_ENERGY)
+            if (Game.time % 20 === 0) {
+                statusmiss(creep)
+                if (creep.memory.status === 'get') {
+                    creep.memory.status = 'upgrade'
+                }
+            }
+
+        }
+
     } else if (creep.memory.status === 'get') {
         let target = creep.pos.findClosestByRange(FIND_STRUCTURES, {filter: o => o.structureType == STRUCTURE_CONTAINER && o.store.energy > 500})
         if (!target) target = creep.room.terminal
@@ -80,12 +97,22 @@ function work(creep) {
             if (act === ERR_NOT_IN_RANGE) {
                 creep.moveTo(target, {reusePath: 20, ignoreRoads: true})
             } else {
+                target = creep.pos.findInRange(FIND_DROPPED_RESOURCES, 1)[0]
+                if (target) {
+                    creep.pickup(target)
+                }
                 statusmiss(creep)
 
             }
         } else {
+            target = creep.pos.findInRange(FIND_DROPPED_RESOURCES, 1)[0]
+            if (target) {
+                creep.pickup(target)
+                statusmiss(creep)
+            }
             creep.memory.status = 'mine'
             creep.memory.mineTarget = undefined
+
         }
     } else if (creep.memory.status === 'mine') {
         let target = Game.getObjectById(creep.memory.mineTarget)
@@ -171,12 +198,20 @@ function work(creep) {
 
 function born(spawnnow, creepname, memory = {}) {
 
-
-    let bodyparts = require('tools').generatebody({
+    let body = {
         'work': 15,
         'carry': 10,
         'move': 25
-    }, spawnnow)
+    }
+    let tRoom = Game.rooms[memory.roomName]
+    if (tRoom && tRoom.controller.level >= 6 && tRoom.terminal) {
+        body = {
+            'work': 22,
+            'carry': 6,
+            'move': 22
+        }
+    }
+    let bodyparts = require('tools').generatebody(body, spawnnow)
     return spawnnow.spawnCreep(
         bodyparts,
         creepname,
@@ -198,7 +233,7 @@ let help = {
     // 'E14N41':3
     // }
     'W5N31': {
-        'E1N29': 2
+        'E1N29': 3
     }
 }
 
@@ -206,7 +241,7 @@ function miss() {
     for (let helpName in help) {
         let helproom = Game.rooms[helpName]
         if (helproom) {
-            if (helproom.storage&&helproom.towers.length>0&&helproom.spawns.length>0&&helproom.extensions>CONTROLLER_STRUCTURES[STRUCTURE_EXTENSION][4]) {
+            if (helproom.storage && helproom.towers.length > 0 && helproom.spawns.length > 0 && helproom.extensions.length >= CONTROLLER_STRUCTURES[STRUCTURE_EXTENSION][4]) {
                 continue
             }
         }

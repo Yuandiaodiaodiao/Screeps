@@ -44,11 +44,11 @@ if (config.changemove) {
             const direction = +target
             const thisarray = [this.pos.x, this.pos.y, direction, Game.time]
             const lastM = lastMove[this.name] = lastMove[this.name] || thisarray
-            if ((this.room.storage && this.pos.getRangeTo(this.room.storage.pos) < 10) || (lastM[0] === this.pos.x && lastM[1] === this.pos.y && lastM[3] + 1 === Game.time && lastM[2] === direction) || (this.pos.x <= 1 || this.pos.x >= 49 || this.pos.y <= 1 || this.pos.y >= 49)) {
+            if ((!this.room.controller||!this.room.controller.my)||(this.room.storage && this.pos.getRangeTo(this.room.storage.pos) < 10) || (lastM[0] === this.pos.x && lastM[1] === this.pos.y && lastM[3] + 1 === Game.time && lastM[2] === direction) || (this.pos.x <= 1 || this.pos.x >= 49 || this.pos.y <= 1 || this.pos.y >= 49)) {
                 const tarpos = pos2direction(this.pos, direction)
                 if (tarpos) {
                     const tarcreep = tarpos.lookFor(LOOK_CREEPS)[0] || tarpos.lookFor(LOOK_POWER_CREEPS)[0]
-                    if (tarcreep && !moveCache.has(tarcreep.name)) {
+                    if (tarcreep && !moveCache.has(tarcreep.name)&&tarcreep.my) {
                         moveCache.add(tarcreep.name)
                         tarcreep._move((direction + 3) % 8 + 1)
                     }
@@ -164,10 +164,9 @@ function pos2direction(pos, direction) {
         return undefined
     } else {
         return new RoomPosition(tarpos.x, tarpos.y, pos.roomName)
-
     }
 }
-
+module.exports.pos2direction=pos2direction
 module.exports.clear = function () {
     moveCache.clear()
     if (Game.time % 1500 === 0) {

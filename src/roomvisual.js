@@ -1,15 +1,6 @@
 module.exports.work = function (room) {
 
-    if (Game.time % 5 == 0 && room.find(FIND_NUKES).length > 0) {
-        // room.visual.text('FUCK!', 25, 25, {color: 'red', font: 5})
-        console.log('NUKE!!!!!!!!!!')
-    }
 
-    // let ls=require('tools').extensionList[room.name]||[]
-    // for(let x in ls){
-    //     let pos=Game.getObjectById(ls[x]).pos
-    //     room.visual.text(''+x,pos.x, pos.y, {color: 'red', font: 0.5})
-    // }
     if (Memory.lastViewed === room.name && Game.time - Memory.lastViewedTime < 10) {
         room.visual.text('tick ' + Game.time % 100, 36, 21, {color: 'red', font: 0.5})
         room.visual.text(((Memory.cpu.uses / Memory.cpu.ticks).toFixed(1)) + "cpu", 36, 22, {color: 'red', font: 0.8})
@@ -20,7 +11,7 @@ module.exports.work = function (room) {
         let lazy = room.memory.lazy || 0
         room.visual.text(((busy / (busy + lazy) * 100).toFixed(1)) + '%spawn', 36, 24, {color: 'red', font: 0.5})
 
-        if (require('tools').extensionList && require('tools').extensionList[room.name]) {
+        if (Game.tools.extensionList[room.name]) {
             room.visual.text('extension OK', 36, 25, {color: 'red', font: 0.5})
         }
         let nukey = 1
@@ -45,7 +36,18 @@ module.exports.statistics = function () {
         let t2 = Game.cpu.getUsed()
     }
 
+    const flagDrawExt = Game.flags['drawExt']
+    if (flagDrawExt) {
+        let room = Game.rooms[flagDrawExt.pos.roomName]
+        let ls = Game.tools.extensionList[room.name] || []
+        for (let x in ls) {
+            let pos = (Game.tools.getExtByOrder(room, ls[x])||{}).pos
+            if(pos){
+                room.visual.text('' + x, pos.x, pos.y, {color: 'red', font: 0.5})
 
+            }
+        }
+    }
     const flagDraw = Game.flags['draw']
     if (flagDraw) {
         const roomName = flagDraw.pos.roomName
@@ -64,12 +66,12 @@ module.exports.statistics = function () {
             new RoomVisual(flagDraw.pos.roomName).text('no costMatrix' + JSON.stringify(costMatrix), 25, 23, {font: 0.8})
         }
 
-        new RoomVisual(flagDraw.pos.roomName).text(`time=${Game.time}`, 25, 24, {font: 0.8})
+        new RoomVisual(flagDraw.pos.roomName).text(`time=${Game.time}`, 5, 1, {font: 0.8})
         const cacheTTL = Game.memory.roomCachettl[roomName]
-        new RoomVisual(flagDraw.pos.roomName).text(`cacheTTL=${cacheTTL}`, 25, 25, {font: 0.8})
+        new RoomVisual(flagDraw.pos.roomName).text(`cacheTTL=${cacheTTL}`, 5, 2, {font: 0.8})
         const obCache = Game.memory.observerCache[roomName]
-        new RoomVisual(flagDraw.pos.roomName).text(`obCache=${JSON.stringify(obCache)}`, 25, 26, {font: 0.8})
-        new RoomVisual(flagDraw.pos.roomName).text(`roomCacheUse=${Game.memory.roomCacheUse[roomName]}`, 25, 27, {font: 0.8})
+        new RoomVisual(flagDraw.pos.roomName).text(`obCache=${JSON.stringify(obCache)}`, 5, 3, {font: 0.8})
+        new RoomVisual(flagDraw.pos.roomName).text(`roomCacheUse=${Game.memory.roomCacheUse[roomName]}`, 5, 4, {font: 0.8})
 
 
     }
@@ -126,8 +128,8 @@ module.exports.statistics = function () {
         Memory.grafana.pcper30[Game.time % 22] = Memory.cpu.pcCpu
         Memory.grafana.pccpu30val = _.sum(Memory.grafana.pcper30) / Memory.grafana.pcper30.length
 
-        if (Game.time % 10 === 0) {
-            if (Game.time % 100 === 0) {
+        if (Game.time % 22 === 0) {
+            if (Game.time % 110 === 0) {
                 Memory.grafana.hits = {}
                 Object.keys(Memory.rooms).forEach(roomName => {
                     let room = Game.rooms[roomName]
@@ -141,7 +143,9 @@ module.exports.statistics = function () {
                 })
                 Memory.grafana.enemy = {}
             }
-            let reactionStatus={}
+            let barHave = {}
+            let roomTypeHave = {}
+            let reactionStatus = {}
             let storageUse = {}
             let roomController = {}
             let Xresource = {}
@@ -152,20 +156,35 @@ module.exports.statistics = function () {
             Object.keys(Memory.rooms).forEach(roomName => {
                 let room = Game.rooms[roomName]
                 if (!room) return
-                if(room&&room.terminal){
-                    if(room.memory.reaction&&room.memory.reaction.status){
-                        if(room.memory.reaction.status==='react'){
+                if (room && room.terminal) {
+                    if (room.memory.reaction && room.memory.reaction.status) {
+                        if (room.memory.reaction.status === 'react') {
                             let lab1 = Game.getObjectById(room.memory.lab.input[0])
-                            reactionStatus[room.name]=1 - (lab1.store[lab1.mineralType] || 0) / lab1.store.getCapacity(lab1.mineralType)
-                        }else if(room.memory.reaction.status==='fill'||room.memory.reaction.status==='collect'){
-                            reactionStatus[room.name]=-1
-                        }else if(room.memory.reaction.status==='miss'){
-                            reactionStatus[room.name]=-2
-                        }else{
-                            reactionStatus[room.name]=-3
+                            reactionStatus[room.name] = 1 - (lab1.store[lab1.mineralType] || 0) / lab1.store.getCapacity(lab1.mineralType)
+                        } else if (room.memory.reaction.status === 'fill' || room.memory.reaction.status === 'collect') {
+                            reactionStatus[room.name] = -1
+                        } else if (room.memory.reaction.status === 'miss') {
+                            reactionStatus[room.name] = -2
+                        } else {
+                            reactionStatus[room.name] = -3
+                        }
+                    }
+
+                }
+                if (room && room.terminal) {
+                    let mineral = room.find(FIND_MINERALS)[0]
+                    if (mineral) {
+                        let type = mineral.mineralType
+                        roomTypeHave[type] = roomTypeHave[type] || 0
+                        roomTypeHave[type] += (room.terminal.store[type] || 0)
+                        if (room.factory) {
+                            let bar = require('factory').produce[type]
+                            barHave[bar] = barHave[bar] || 0
+                            barHave[bar] += (room.factory.store[bar] || 0) + (room.terminal.store[bar] || 0)
                         }
                     }
                 }
+
                 if (room && room.storage) {
                     storageUse[roomName] = room.storage.store[RESOURCE_ENERGY]
                 }
@@ -230,6 +249,9 @@ module.exports.statistics = function () {
             Memory.grafana.cpu20 = 20
             Memory.grafana.pbProcess = pbProcess
             Memory.grafana.reactionStatus = reactionStatus
+            Memory.grafana.barHave = barHave
+            Memory.grafana.roomTypeHave = roomTypeHave
+
         }
 
     }

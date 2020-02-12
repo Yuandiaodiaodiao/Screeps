@@ -1,10 +1,47 @@
 let lodash = require('lodash-my')
 
+module.exports.avgT3 = function () {
+    for (let roomName in Memory.rooms) {
+        let room = Game.rooms[roomName]
+        let t3limit = Game.reaction.produceLimit
+        try {
+            let terminal = room.terminal
+            let storage = room.storage
+            if (!terminal || !terminal.my || !storage) continue
+            if (room.spawns.length === 0) continue
+            if (terminal.cooldown) continue
+            for (let type in t3limit) {
+                if (type in terminal.store) {
+                    let limitNum = t3limit[type]
+                    if (terminal.store[type] >= limitNum && limitNum - 3e3 > 0) {
+                        for (let room2Name in Memory.rooms) {
+                            let room2 = Game.rooms[room2Name]
+                            if (!room2.terminal || !room2.terminal.my || !room2.storage) continue
+                            if (room2.spawns.length === 0) continue
+                            if (!room2.terminal.store[type] || room2.terminal.store[type] <= limitNum - 6e3) {
+                                let ans = terminal.send(type, 3e3, room2Name)
+                                if (ans === OK) {
+                                    console.log(`${room.name} send ${room2Name} ${3e3}${type}`)
+                                    return ans
+                                }
+                            }
+                        }
+
+
+                    }
+                }
+            }
+        } catch (e) {
+            console.log('avgT3' + roomName + e)
+        }
+    }
+}
+
 module.exports.work = function (room, rate) {
     let terminal = room.terminal
     if (!terminal || !terminal.my) return
-
-    if (Game.time % 100 === 0 && terminal && room.storage && room.storage.store[RESOURCE_ENERGY] / room.storage.store.getCapacity() > 0.7) {
+    if (room.spawns.length === 0) return
+    if (Game.time % 100 === 0 && terminal && room.storage && room.storage.store[RESOURCE_ENERGY] / room.storage.store.getCapacity() > 0.65 && room.controller.level === 8) {
         const helpRoomNameList = _.filter(Object.keys(Memory.rooms), roomName => {
             let room2 = Game.rooms[roomName]
             return ((room2.storage && (room.storage.store[RESOURCE_ENERGY] / room.storage.store.getCapacity() - room2.storage.store[RESOURCE_ENERGY] / room2.storage.store.getCapacity()) > 0.2) || (!room2.storage))
@@ -14,7 +51,13 @@ module.exports.work = function (room, rate) {
             return Game.rooms[roomName].storage ? Game.rooms[roomName].storage.store[RESOURCE_ENERGY] : 0
         })
         if (targetRoomName && targetRoomName !== Infinity) {
-            return terminal.send(RESOURCE_ENERGY, 6000, targetRoomName)
+            let maxsend = Game.tools.solveMaxSend(room.name, targetRoomName, RESOURCE_ENERGY, room.terminal)
+            if (maxsend > 6000) {
+                let ans = terminal.send(RESOURCE_ENERGY, 6000, targetRoomName)
+                if (ans) {
+                    return ans
+                }
+            }
             // console.log(`${room.name} help ${targetRoomName} ${RESOURCE_ENERGY} 6000`)
         }
     }
@@ -31,10 +74,20 @@ module.exports.work = function (room, rate) {
                     if (!terminals) continue
                     // console.log('send='+ rooms.name+' last='+(terminals.store.getCapacity() - _.sum(terminals.store) ))
                     if (terminals && (terminals.store[type] || 0) < 3000 && terminals.store.getCapacity() - _.sum(terminals.store) > 3000) {
-                        return terminal.send(type, 3000, rooms.name)
+                        let maxsend = Game.tools.solveMaxSend(room.name, rooms.name, type, room.terminal)
+                        if (maxsend > 3000) {
+                            let ans = terminal.send(type, 3000, rooms.name)
+                            if (ans) {
+                                return ans
+                            }
+                        }
                     }
                 }
             }
+        } else if ((terminal.store[type] || 0) <= 6000) {
+            let buyNum = 8e3 - (terminal.store[type] || 0)
+
+            Game.terminal.autoBuy(room.name, type, buyNum, Game.config.price[type].minPrice, Game.config.price[type].maxPrice)
         }
 
     }
@@ -48,27 +101,41 @@ module.exports.work = function (room, rate) {
                 if (!terminals) continue
                 const powerLast = (terminals.store[RESOURCE_POWER] || 0)
                 if (powerLast < 1500) {
-                    return terminal.send(RESOURCE_POWER, Math.max(0, 2000 - powerLast), rooms.name)
+                    let maxsend = Game.tools.solveMaxSend(room.name, rooms.name, RESOURCE_POWER, room.terminal)
+                    if (maxsend > Math.max(0, 2000 - powerLast)) {
+                        let ans = terminal.send(RESOURCE_POWER, Math.max(0, 2000 - powerLast), rooms.name)
+                        if (ans) {
+                            return ans
+                        }
+                    }
                 }
             }
         }
     }
 
-    if ((terminal.store[RESOURCE_GHODIUM] || 0) >= 3000) {
+    if ((terminal.store[RESOURCE_GHODIUM] || 0) < 3000) {
         for (let roomNames in Memory.rooms) {
             let rooms = Game.rooms[roomNames]
             if (rooms.controller.level === 8) {
                 let terminals = rooms.terminal
                 if (!terminals) continue
-                if ((terminals.store[RESOURCE_GHODIUM] || 0) < 1500) {
-                    return terminal.send(RESOURCE_GHODIUM, 1000, rooms.name)
-
+                if ((terminals.store[RESOURCE_GHODIUM] || 0) >= 6000) {
+                    let maxsend = Game.tools.solveMaxSend(room.name, rooms.name, RESOURCE_GHODIUM, room.terminal)
+                    if (maxsend > 3000) {
+                        let ans = terminal.send(RESOURCE_GHODIUM, 3000, rooms.name)
+                        if (ans) {
+                            return ans
+                        }
+                    }
                 }
             }
         }
     }
-
-
+    if (require('tower').bigEnemy[room.name]) {
+        if (terminal.store[RESOURCE_OPS] < 5e3) {
+            let act = Game.tools.give(room.name, RESOURCE_OPS, 4000)
+        }
+    }
     return handlesell(room.name)
 }
 module.exports.handlesell = handlesell
@@ -85,13 +152,14 @@ function handlesell(roomName) {
         }
     }
     const storage = room.storage
-    if (storage && terminal && terminal.store[RESOURCE_ENERGY] >= 5e3 && storage.store[RESOURCE_ENERGY] / storage.store.getCapacity() > 0.8) {
-        let act = sellSome(room, terminal, RESOURCE_ENERGY, 5000)
+    if (storage && terminal && terminal.store[RESOURCE_ENERGY] >= 5e3 && storage.store[RESOURCE_ENERGY] / storage.store.getCapacity() > 0.8 && room.controller.level >= 8) {
+        let act = sellSome(room, terminal, RESOURCE_ENERGY, 6000)
+
         if (act === OK) {
             return act
         }
     }
-    if (terminal && mineral && terminal.store.getUsedCapacity(Game.factory.produce[type]) > 500) {
+    if (terminal && mineral && terminal.store.getUsedCapacity(Game.factory.produce[type]) > 40e3) {
         let act = sellSome(room, terminal, Game.factory.produce[type], terminal.store.getUsedCapacity(Game.factory.produce[type]) - 500, 0.25)
         if (act === OK) {
             return act
@@ -108,25 +176,40 @@ function handlesell(roomName) {
 
 }
 
+let blackList = new Set(['W1N11', 'W1N13', 'W11N8', 'W9N16', 'W7N19'
+    , 'W5N13', 'W4N21', 'W3N15', 'W3N12', 'W2N13', 'W2N12', 'W2N11', 'W1N18',
+    'W9N19', 'W1N12', 'W1N7', 'W1N4', 'W1S1', 'W1S4', 'E2N9', 'E1N14',
+    'E1N11', 'E1S9', 'E4N21', 'E1N25', 'E9N9', 'E21S28', 'W1N21', 'E2S31', 'E8N22', 'W2N24', 'E9N1', 'E11N14', 'E11S9', 'E11S31', 'W3N31'])
+
 function sellSome(room, terminal, type, amount, minPrice) {
     const allorders = Game.market.getAllOrders({resourceType: type})
-    const mineorder = _.filter(allorders, obj => obj.type === ORDER_BUY && obj.amount >= (type === RESOURCE_ENERGY ? 1000 : 1) && obj.price >= (minPrice || (type === RESOURCE_ENERGY ? 0 : 0.04)))
+    const mineorder = _.filter(allorders, obj => obj.type === ORDER_BUY && (!blackList.has(obj.roomName)) && obj.amount >= (type === RESOURCE_ENERGY ? 1000 : 1) && obj.price >= (minPrice || (type === RESOURCE_ENERGY ? 0 : 0.04)))
+
     if (mineorder.length === 0) return -10
     let failedset = new Set()
     let ans = ERR_TIRED
     while (ans === ERR_TIRED && failedset.size <= 4) {
-        const order = lodash.maxBy(mineorder, obj => failedset.has(obj.id) ? -100 : obj.price * 1000 - Game.market.calcTransactionCost(1000, room.name, obj.roomName) * 0.004)
+
+        const order = lodash.maxBy(mineorder, obj => failedset.has(obj.id) ? -1e9 : obj.price * 1000 - Game.market.calcTransactionCost(1000, room.name, obj.roomName) * Game.config.price.energy.minPrice)
         // console.log(`room ${room.name} try order= ${JSON.stringify(order)}`)
         const energycost = Game.market.calcTransactionCost(1000, room.name, order.roomName) / 1000
-        const maxsend = type === RESOURCE_ENERGY ? terminal.store[RESOURCE_ENERGY] / (1 + energycost) : terminal.store[RESOURCE_ENERGY] / energycost
+        const maxsend = type === RESOURCE_ENERGY ? terminal.store[RESOURCE_ENERGY] / (1 + energycost) - 20 : terminal.store[RESOURCE_ENERGY] / energycost
         const maxsell = Math.min(amount, order.amount)
         const sell = Math.min((terminal.store[type] || 0), Math.min(maxsend, maxsell))
         ans = Game.market.deal(order.id, sell, room.name)
         if (ans === OK) {
+            if (sell >= order.amount) {
+                let idx = allorders.findIndex(o => o.id === order.id)
+                allorders.splice(idx, 1)
+            }
             console.log('room:' + room.name + ' sell ' + order.roomName + ' ' + sell + ' ' + type)
+            return ans
+        } else {
+            console.log(`${room.name} try sell ${order.roomName} ${sell}${type} false because${ans} args=${JSON.stringify([order.id, sell, room.name])}`)
         }
         failedset.add(order.id)
     }
+    return ans
 
 
 }
@@ -183,31 +266,54 @@ module.exports.change = function (type, price) {
 
     })
 }
+module.exports.increasePrice = function (roomName, type, price, buyorsell) {
+    _.filter(Game.market.orders, order => order.resourceType === type &&
+        order.type === buyorsell && order.roomName === roomName
+    ).forEach(o => {
+        // console.log('change'+o.id)
+        if (o.remainingAmount === 0) {
+            Game.market.cancelOrder(o.id)
+        } else {
+            if (o.price < price) {
+                Game.market.changeOrderPrice(o.id, price)
+            }
+        }
 
+    })
+}
 module.exports.solveOrderNum = function (roomN, type = 'power', sell = ORDER_SELL) {
-    let noworder = _.filter(Game.market.orders, o => o.roomName === roomN
-        && o.resourceType === type
-        && o.type === sell)
+    let noworder = _.filter(Object.values(Game.market.orders), o => {
+        let condi = o.roomName === roomN
+            && o.resourceType === type
+            && o.type === sell
+        if (condi) {
+            return true
+        } else {
+            return false
+        }
+    })
     let ordernum = Game.lodash.sumBy(noworder, o => {
-        console.log(JSON.stringify(o))
-        try{
+        try {
             if (o.remainingAmount === 0) {
                 Game.market.cancelOrder(o.id)
             }
-        }catch (e) {
+        } catch (e) {
             console.log('cancelorder error')
         }
 
         if (o && o.remainingAmount) {
             return o.remainingAmount
-        }else{
-            return 1e7
+        } else {
+            return 1e9
         }
-    }) || 1e7
+    }) || 1e9
+    if (noworder.length === 0) {
+        ordernum = 0
+    }
     return ordernum
 }
 module.exports.autoOrder = function (roomN, type = 'power') {
-    if(!(Game.rooms[roomN].controller&&Game.rooms[roomN].controller.my))return
+    if (!(Game.rooms[roomN].controller && Game.rooms[roomN].controller.my)) return
     let ordernum = Game.terminal.solveOrderNum(roomN)
     let nownum = Game.rooms[roomN].terminal.store.getUsedCapacity(RESOURCE_POWER) || 0
     console.log('orderNum=' + ordernum + 'nownum=' + nownum)
@@ -221,4 +327,49 @@ module.exports.autoOrder = function (roomN, type = 'power') {
         })
     }
     return false
+}
+module.exports.autoBuy = function (roomN, type, targetNum, MinPrice, MaxPrice) {
+    if (!(Game.rooms[roomN].controller && Game.rooms[roomN].controller.my)) return
+    let ordernum = Game.terminal.solveOrderNum(roomN, type, ORDER_BUY)
+
+    let allorders = Game.market.getAllOrders({resourceType: type})
+    let maxPrice = _.max(allorders, o => {
+        if (o.type === ORDER_BUY && o.amount > 1000 && (!(o.roomName in Memory.rooms))) {
+            return o.price
+        } else {
+            return 0
+        }
+    })
+    let price = Math.min(MaxPrice, Math.max(MinPrice, maxPrice.price + 0.001))
+    let buyNum = targetNum - ordernum
+    Game.terminal.increasePrice(roomN, type, price - 0.001, ORDER_BUY)
+    if (buyNum > (type === RESOURCE_ENERGY ? 30e3 : 2000)) {
+        console.log(`I have order=${ordernum} i wanto buy ${type} at ${price} for ${buyNum}`)
+
+        Game.terminal.increasePrice(roomN, type, price, ORDER_BUY)
+        return Game.market.createOrder({
+            type: ORDER_BUY,
+            resourceType: type,
+            price: price,
+            totalAmount: buyNum,
+            roomName: roomN
+        })
+    }
+    return false
+}
+let marketQueue = []
+module.exports.marketQueue = marketQueue
+module.exports.sellOrder = function (room, type, num, price) {
+    marketQueue.push(
+        () => {
+            return Game.market.createOrder({
+                type: ORDER_SELL,
+                resourceType: type,
+                price: price,
+                totalAmount: num,
+                roomName: room.name
+            })
+        }
+    )
+    return (`from${room.name}sell ${num} ${type} at${price} ?`)
 }

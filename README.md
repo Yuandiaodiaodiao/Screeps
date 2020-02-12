@@ -131,7 +131,34 @@ Game.war.init(['E23N41',[10,2,'E23N40'],{destroyer:1},['E19N41'],{destroyer:{cla
 Game.war.init(['E21N43',[46,13,'E20N43'],{boostAttack:1,boostHeal:1},['E19N41'],{boostHeal:{heallv6:true},boostAttack:{attacklv6:true}},['boost','keep']])  
 Game.war.init(['E21N43',[46,13,'E20N43'],{destroyer:1},['E19N41'],{destroyer:{claim25:true}},['keep']])  
 Game.war.init(['E11N32',[14,14,'E11N32'],{SEAL:1},['E14N41'],{SEAL:{wall:true}},['keep']])  
+Game.war.init(['W4N21',[34,1,'W4N20'],{SEAL:1},['E1N29'],{SEAL:{heal15:true}},['keep']])
+Game.war.init(['E0N29',[25,25,'E0N29'],{SEAL:1},['E1N29'],{SEAL:{ra10:true}},['keep']])
+Game.war.init(['E1N30',[25,25,'E1N30'],{SEAL:1},['E1N29'],{SEAL:{ra10:true}},['keep']])
+Game.war.init(['E0N30',[25,40,'E0N30'],{SEAL:1},['E1N29'],{SEAL:{ra10:true}},['keep']])
+Game.war.init(['E1N25',[4,11,'E1N24'],{destroyer:1},['E1N29'],{destroyer:{claim25:true}},['keep']]) 
+Game.war.init(['E0N23',[25,25,'E0N23'],{boostHeal:1},['E1N29'],{boostHeal:{heallv7:true}},['keep','boost']]) 
+Game.war.init(['E14N39',[24,5,'E14N39'],{SEAL:1},['E14N41'],{SEAL:{wall:true}},['keep']])
+Game.war.init(['E14N39',[24,5,'E14N39'],{SEAL:1},['E1N29'],{SEAL:{wall:true}},['keep']])
+Game.war.init(['E2N28',[22,44,'E2N29'],{boostAttack:1,boostHeal:1},['E1N29'],{boostHeal:{heallv6:true},boostAttack:{attacklv6:true}},['boost','keep']])  
+Game.war.init(['W1N26',[6,44,'W0N26'],{boostAttack:1,boostHeal:1},['E1N29'],{boostHeal:{heallv6:true},boostAttack:{attacklv6:true}},['boost','keep']])  
+Game.war.init(['E1N23',[9,18,'E1N23'],{destroyer:1},['E1N29'],{destroyer:{claim25:true}},['keep']]) 
+Game.war.init(['W1N26',[40,3,'W1N26'],{destroyer:1},['E1N29'],{destroyer:{claim25:true}},['keep']]) 
+Game.war.init(['E2N28',[9,5,'E2N28'],{destroyer:1},['E1N29'],{destroyer:{claim25:true}},['keep']]) 
+Game.war.init(['W2N30',[6,35,'W1N30'],{SEAL:1},['E1N29'],{SEAL:{heal15:true}},['keep']])
 
+Game.war.init(['W3N31',[26,4,'W3N30'],{boostAttack:1,boostHeal:1},['E1N29'],{boostHeal:{heallv7:true},boostAttack:{attacklv7:true}},['boost','keep']])  
+Game.war.init(['E0N23',[25,25,'E0N23'],{boostSEAL:1},['E1N29'],{boostSEAL:{tough:5,heal:5,ranged_attack:15,move:25}},['keep','boost']]) 
+
+Game.war.init(['E1N23',[9,18,'E1N23'],{destroyer:1,SEAL:1},['E1N29'],{destroyer:{speedClaim:true},SEAL:{heal15:true}},['keep']]) 
+
+Game.war.init(['E0N23',[25,25,'E0N23'],{boostSEAL:1},['E1N29'],{boostSEAL:{tough:5,heal:10,ranged_attack:10,move:25}},['keep','boost']]) 
+Game.war.init(['W5N30',[44,6,'W5N30'],{SEAL:1},['E1N29'],{SEAL:{ra10:true}},['keep']])
+Game.war.init(['W1N37',[3,29,'W0N37'],{destroyer:1,SEAL:1},['E1N29'],{destroyer:{claim25:true},SEAL:{heal15:true}},['keep']]) 
+Game.war.init(['E0N23',[25,25,'E0N23'],{boostAttack:1,boostHeal:1},['E1N29'],{boostHeal:{heallv7:true},boostAttack:{alv8:true}},['boost','keep']])  
+
+Game.war.init(['W0N32',[25,25,'W0N32'],{SEAL:1},['E1N29'],{SEAL:{ra10:true}},['keep']])
+Game.war.init(['E1N23',[25,25,'E0N23'],{destroyer:1,SEAL:1},['E1N29'],{destroyer:{claim25:true},SEAL:{heal15:true}},['keep']]) 
+Game.war.init(['W5N31',[22,38,'W5N31'],{SEAL:1},['E1N29'],{SEAL:{attack:25,move:25}},['keep']]) 
 
 # 其他  
 刷墙效率=刷墙数量Q/(刷墙时间+路程时间 * 2)  

@@ -1,9 +1,12 @@
-
+var sources = {}
 var minerals = {}
 let labOp = require('labOperator')
 
 function work(creep) {
     const room = Game.rooms[creep.name]
+    if(!room){
+        return require('warPc').work(creep)
+    }
     if (!creep.room) {
         if (!creep.ticksToLive) {
             if (!creep.spawnCooldownTime) {
@@ -12,14 +15,13 @@ function work(creep) {
         }
         return
     }
-
     let memory = creep.memory
-    if (memory.status == 'miss') {
+    if (memory.status === 'miss') {
         memory = creep.memory = {}
         const ops = creep.carry[RESOURCE_OPS] || 0
         if (creep.ticksToLive && creep.ticksToLive < 200) {
             memory.status = 'renewing'
-        } else if (creep.powers[PWR_OPERATE_EXTENSION] && !creep.powers[PWR_GENERATE_OPS].cooldown) {
+        } else if (creep.powers[PWR_GENERATE_OPS] && !creep.powers[PWR_GENERATE_OPS].cooldown) {
             let act = creep.usePower(PWR_GENERATE_OPS)
             if (act == ERR_INVALID_ARGS) {
                 memory.status = 'enable'
@@ -36,13 +38,19 @@ function work(creep) {
                 fillthor: ops - 120,
             }
 
-        } else if (ops >= 2 && creep.powers[PWR_OPERATE_EXTENSION] && !creep.powers[PWR_OPERATE_EXTENSION].cooldown && room.energyAvailable / room.energyCapacityAvailable < 0.9) {
+        } else if (ops >= 2 && creep.powers[PWR_OPERATE_EXTENSION] && !creep.powers[PWR_OPERATE_EXTENSION].cooldown && room.energyAvailable / room.energyCapacityAvailable < 0.9&& room.storage&&room.storage.store.energy>10e3) {
+            let target = room.storage
+            if (room.terminal.store.energy > 40000) {
+                target = room.terminal
+            }
             creep.memory = {
                 power: PWR_OPERATE_EXTENSION,
-                target: room.storage.id,
+                target: target.id,
                 status: 'gopower'
             }
-        } else if (labOp.genSource(creep, memory, room)) {
+        } else if (!require('tower').bigEnemy[room.name] && labOp.genSource(creep, memory, room)) {
+
+        } else if ((require('tower').bigEnemy[room.name]||Game.time<require('nukeWall').towerHelp[room.name]) && labOp.opTower(creep, memory, room)) {
 
         } else if (ops < 100 && (room.terminal.store[RESOURCE_OPS] || 0) > (100 - ops)) {
             creep.memory = {
@@ -74,6 +82,12 @@ function work(creep) {
 
         } else if (!room.controller.isPowerEnabled) {
             memory.status = 'enable'
+        } else if (room.terminal.store[RESOURCE_ENERGY] > 18000 && _.sum(room.storage.store) / room.storage.store.getCapacity() < 0.95) {
+            memory.type = RESOURCE_ENERGY
+            memory.gettarget = room.terminal.id
+            memory.filltarget = room.storage.id
+            memory.status = 'getting'
+            memory.nexts = 'filling'
         } else if (ops >= 10 && creep.powers[PWR_OPERATE_OBSERVER] && !creep.powers[PWR_OPERATE_OBSERVER].cooldown) {
             creep.memory = {
                 power: PWR_OPERATE_OBSERVER,
@@ -99,17 +113,17 @@ function work(creep) {
         }
         memory = creep.memory
     } else if (memory.status === 'sleep') {
-        if (Game.time % 5 == 0) {
+        if (Game.time % 5 === 0) {
             memory.status = 'miss'
 
-            if (!minerals[creep.name]) {
-                const mine = room.find(FIND_MINERALS)[0]
-                if (!mine.ticksToRegeneration) {
-                    minerals[creep.name] = mine.id
-                } else {
-                    delete minerals[creep.name]
-                }
-            }
+            // if (!minerals[creep.name]) {
+            //     const mine = room.find(FIND_MINERALS)[0]
+            //     if (!mine.ticksToRegeneration) {
+            //         minerals[creep.name] = mine.id
+            //     } else {
+            //         delete minerals[creep.name]
+            //     }
+            // }
         } else return
     }
     if (memory.status === 'filling') {

@@ -53,7 +53,7 @@ function work(creep) {
             if(creep.carryCapacity-creep.carry.energy>0){
                 const act = creep.harvest(target)
                 if (act == ERR_NOT_IN_RANGE) {
-                    creep.moveTo(target)
+                    creep.moveTo(target,{range:1})
                 }
             }
 

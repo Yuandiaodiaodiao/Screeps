@@ -4,6 +4,10 @@ module.exports = {
 };
 var tools = require('tools')
 
+function havePc(creep) {
+    let pc = Game.powerCreeps[creep.room.name]
+    return (pc && pc.ticksToLive && pc.level >= 10 && !Game.defend.defendRoom.includes(creep.room.name))
+}
 
 function work(creep) {
     //fill
@@ -16,7 +20,7 @@ function work(creep) {
 
     if (memory.status === 'fillextension') {
         let step = memory.step || 0
-        let extensionList = require('tools').extensionList[room.name] || require('tools').solveExtension(room)
+        let extensionList = Game.tools.extensionList[room.name] || Game.tools.solveExtension(room)
         if (!extensionList) {
             memory.status = 'getting'
             console.log('err no extensionList')
@@ -24,8 +28,8 @@ function work(creep) {
         }
         let target = null
 
-        while ((target = Game.getObjectById(extensionList[step]))) {
-            if (target.store.getFreeCapacity('energy')===0) {
+        while ((target = Game.tools.getExtByOrder(room, step))) {
+            if (target.store.getFreeCapacity('energy') === 0) {
                 step++
                 continue
             }
@@ -41,7 +45,7 @@ function work(creep) {
                 } else {
                     step++
                     //pre move
-                    if ((target = Game.getObjectById(extensionList[step])) && !creep.pos.isNearTo(target) && target.energy < target.energyCapacity) {
+                    if ((target = Game.tools.getExtByOrder(room, step)) && !creep.pos.isNearTo(target) && target.energy < target.energyCapacity) {
                         creep.moveTo(target, {reusePath: 10})
                     }
                 }
@@ -58,22 +62,31 @@ function work(creep) {
         } else {
             memory.step = step
         }
-    } else if (memory.status == 'miss') {
+    } else if (memory.status === 'miss') {
         let target = _.find(room.spawns, o => o.energy < 250)
         if (!target) target = _.find(room.towers, o => o.energy / o.energyCapacity < 0.75)
-        if (!target && room.energyAvailable / room.energyCapacityAvailable > 0.9) {
+        if (!target && room.energyAvailable / room.energyCapacityAvailable > havePc(creep) ? 0.4 : 0.9) {
             if (room.terminal && room.terminal.my && room.terminal.store[RESOURCE_ENERGY] < 1e4) {
                 target = room.terminal
             } else if (room.nuker && room.nuker.energy < room.nuker.energyCapacity && room.storage.store[RESOURCE_ENERGY] / room.storage.store.getCapacity() > 0.4) {
                 target = room.nuker
             } else if (room.powerSpawn && room.powerSpawn.energy < 5000 - 1600 && room.storage.store[RESOURCE_ENERGY] / room.storage.store.getCapacity() > Game.config.powerLimit) {
                 target = room.powerSpawn
-            } else if (room.factory && room.factory.store.getUsedCapacity(RESOURCE_ENERGY) < 1e4) {
+            } else if (room.factory && room.factory.store.getUsedCapacity(RESOURCE_ENERGY) < 8e3) {
                 target = room.factory
             }
         } else if (!target) {
-            memory.status = 'fillextension'
-            memory.step = 0
+
+            if (havePc(creep)) {
+                if (room.energyAvailable / room.energyCapacityAvailable < 0.4) {
+                    memory.status = 'fillextension'
+                    memory.step = 0
+                }
+            } else {
+                memory.status = 'fillextension'
+                memory.step = 0
+            }
+
         }
         if (target) {
             memory.target = target.id
@@ -94,10 +107,18 @@ function work(creep) {
     } else if (memory.status == 'sleep' && Game.time % 5 == 0) {
         if (creep.ticksToLive < 20) {
             memory.status = 'suicide'
-        } else if ((room.energyAvailable < room.energyCapacityAvailable - (room.controller.level>=5?200:50))) {
-            memory.status = 'fillextension'
-            memory.step = 0
-        } else {
+        } else if ((room.energyAvailable < room.energyCapacityAvailable - (room.controller.level >= 5 ? 200 : 50))) {
+            if (havePc(creep)) {
+                if (room.energyAvailable / room.energyCapacityAvailable < 0.4) {
+                    memory.status = 'fillextension'
+                    memory.step = 0
+                }
+            } else {
+                memory.status = 'fillextension'
+                memory.step = 0
+            }
+        }
+        if (memory.status === 'sleep') {
             memory.status = 'miss'
         }
     }
@@ -115,7 +136,7 @@ function work(creep) {
         }
         if (!target || target.store.energy === 0) {
             target = creep.pos.findClosestByPath(FIND_STRUCTURES, {
-                filter: obj => obj.store && obj.store[RESOURCE_ENERGY] > 0 &&(obj.structureType===STRUCTURE_CONTAINER)
+                filter: obj => obj.store && obj.store[RESOURCE_ENERGY] > 0 && (obj.structureType === STRUCTURE_CONTAINER)
             })
         }
         if (target && target.store[RESOURCE_ENERGY] > 0) {
@@ -125,8 +146,8 @@ function work(creep) {
             } else if (action == OK || action == ERR_FULL) {
                 if (memory.step && (!require('tower').enemy[room.name])) {
                     memory.status = 'fillextension'
-                    let extensionList = require('tools').extensionList[room.name] || require('tools').solveExtension(room)
-                    if (target = Game.getObjectById(extensionList[0])) {
+                    let extensionList = Game.tools.extensionList[room.name] || Game.tools.solveExtension(room)
+                    if ((target = Game.tools.getExtByOrder(room, 0))) {
                         if (target.energy < target.energyCapacity) {
                             memory.step = 0
                         }
@@ -194,7 +215,7 @@ function born(spawnnow, creepname, memory, isonly) {
             if (maxbody == 1 || tools.bodycost(body) <= 300) break
         }
     }
-    if(ans===OK){
+    if (ans === OK) {
         require('tools').solveExtension(spawnnow.room)
     }
     return ans

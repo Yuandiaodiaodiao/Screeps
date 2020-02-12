@@ -1,20 +1,20 @@
 function work(creep) {
-    if(!creep.memory.status){
+    if (!creep.memory.status) {
         const room = Game.rooms[creep.memory.missionid]
-        const action=creep.reserveController(room.controller)
-        if (action== ERR_NOT_IN_RANGE) {
+        const action = creep.reserveController(room.controller)
+        if (action == ERR_NOT_IN_RANGE) {
             creep.moveTo(room.controller)
-        }else if(action==ERR_NOT_OWNER){
+        } else if (action == ERR_NOT_OWNER) {
             creep.attackController(room.controller)
         }
-    }else{
+    } else {
         const room = Game.rooms[creep.memory.missionid]
-        if(room){
-            creep.moveTo(room.controller,{reusePath: 50,plainCost: 1, swampCost: 5})
-            if(creep.pos.getRangeTo(room.controller)<=1){
-                creep.memory.status=undefined
-                creep.memory._move=undefined
-                creep.signController(creep.room.controller,'☕')
+        if (room) {
+            creep.moveTo(room.controller, {reusePath: 50, plainCost: 1, swampCost: 5})
+            if (creep.pos.getRangeTo(room.controller) <= 1) {
+                creep.memory.status = undefined
+                creep.memory._move = undefined
+                creep.signController(creep.room.controller, '☕')
             }
         }
     }
@@ -49,8 +49,9 @@ function miss(room) {
     //分配reserver
     const thisroom = room.memory
     const missions = thisroom.missions
+    if (!missions) return
     if (!thisroom.subroom) thisroom.subroom = []
-    missions.reserver={}
+    missions.reserver = {}
     for (let subroom of thisroom.subroom) {
         const roomb = Game.rooms[subroom]
         if (!roomb) continue
@@ -63,13 +64,13 @@ function miss(room) {
             }
         }
     }
-    if(_.size(missions.reserver)==0){
-        missions.reserver=undefined
+    if (_.size(missions.reserver) == 0) {
+        missions.reserver = undefined
     }
 }
 
 module.exports = {
     'work': work,
     'born': born,
-    'miss':miss,
+    'miss': miss,
 };

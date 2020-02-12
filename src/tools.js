@@ -199,8 +199,8 @@ function getRoomCostMatrix(room) {
         }
     )
     room.find(FIND_MY_CONSTRUCTION_SITES).forEach(struct => {
-           if (struct.structureType !== STRUCTURE_CONTAINER &&
-               struct.structureType !== STRUCTURE_ROAD&&
+            if (struct.structureType !== STRUCTURE_CONTAINER &&
+                struct.structureType !== STRUCTURE_ROAD &&
                 (struct.structureType !== STRUCTURE_RAMPART ||
                     !struct.my)) {
                 cantgo++
@@ -236,52 +236,84 @@ function testmemory() {
     console.log('memory prase=' + (t2 - t1).toFixed(4) + ' stringify=' + (t3 - t2).toFixed(4))
 }
 
-var extensionList = {}
+let extensionList = {}
+
+function checkExtensionList(room) {
+    if (room.memory.extList && room.memory.extList.ttl > Game.time) {
+        return extensionList[room.name] = room.memory.extList.list
+    } else {
+        return solveExtension(room)
+    }
+}
+
+function getExtByOrder(room, index) {
+    if (checkExtensionList(room))
+        return room.extensions[extensionList[room.name][index]]
+
+}
+
+let extensionCache = {}
+
+function genExtensionCache(room) {
+    if (checkExtensionList(room))
+        return extensionCache[room.name] || solveExtensionCache(room)
+
+}
+
+function solveExtensionCache(room) {
+    extensionCache[room.name] = extensionList[room.name].map(o => {
+        let ext = getExtByOrder(room, o)
+        return {id: ext.id}
+    })
+    return extensionCache[room.name]
+}
 
 function solveExtension(room) {
     try {
-        if (Game.runTime <=0) {
+        if (Game.runTime <= 0) {
             return undefined
         }
         let tar = room.storage || _.head(room.spawns) || undefined
         if (!tar) return extensionList[room.name] = []
-        let t1 = Game.cpu.getUsed()
-        const maxnum = Math.floor((Math.min(33, Math.floor((room.energyCapacityAvailable - room.spawns.length * 300) / 150 * 2)) * 50) / EXTENSION_ENERGY_CAPACITY[room.controller.level])
+
+        room.memory.extList = room.memory.extList || {list: undefined, ttl: Game.time}
+        if (room.memory.extList.ttl > Game.time&&getExtByOrder(room,0)) {
+            extensionList[room.name] = room.memory.extList.list
+            return
+        }
+        const maxnum = Math.floor((Math.min(32, Math.floor((room.energyCapacityAvailable - room.spawns.length * 300) / 150 * 2)) * 50) / EXTENSION_ENERGY_CAPACITY[room.controller.level])
         // console.log('maxnum=' + maxnum + 'room=' + room.name)
         let nownum = maxnum
         let pos = nearavailable(tar.pos)
-        let used = new Set()
-        let position = []
         let idlist = []
-        let target = null
-        let n = 1
+        let target
+        let extensions = Array.from(room.extensions)
 
-        while ((target = pos.findClosestByPath(FIND_STRUCTURES, {filter: obj => obj.structureType == STRUCTURE_EXTENSION && !used.has(obj.id)}))) {
+        while ((target = pos.findClosestByPath(extensions))) {
             if (!pos.isNearTo(target)) {
                 let ans = PathFinder.search(pos, {pos: target.pos, range: 1}, {
                     plainCost: 0xff,
                     swampCost: 0xff,
                     roomCallback: Game.tools.roomc_nocreep,
                 })
-                // for (let x of ans.path) {
-                //     if (position.length == 0 || !_.last(position).isEqualTo(x)) {
-                //         position.push(x)
-                //     }
-                // }
-                // if(!_.last(ans.path)){
-                //     console.log('no _.last(ans.path) in'+pos.roomName+pos.x+pos.y+`target.pos= ${JSON.stringify(target.pos)}`)
-                // }
                 pos = _.last(ans.path)
             }
-            idlist.push(target.id)
-            used.add(target.id)
+            let index = extensions.findIndex(o => o.id === target.id)
+            extensions.splice(index, 1)
+            let oriIndex = room.extensions.findIndex(o => o.id === target.id)
+            // console.log(`目标id=${target.id} 寻找范围=${JSON.stringify(room.extensions)}`)
+            idlist.push(oriIndex)
             --nownum
-            if (nownum == 0) {
+            if (nownum === 0) {
                 nownum = maxnum
                 pos = nearavailable(tar.pos)
             }
         }
-        return extensionList[room.name] = idlist
+        room.memory.extList.list = idlist
+        room.memory.extList.ttl = Game.time + 1000
+        extensionList[room.name] = idlist
+        solveExtensionCache(room)
+        return idlist
     } catch (e) {
         console.log('fail solve ' + room.name + 'in' + Game.time)
         console.log('solveExtension error' + e)
@@ -375,20 +407,13 @@ if (!StructureSpawn.prototype._spawnCreep) {
 
             body = bodyarray
         }
-        if (!extensionList[this.room.name]) {
-            solveExtension(this.room)
-        }
-        if (!options.energyStructures && extensionList[this.room.name]) {
-            let es = []
-            extensionList[this.room.name].forEach(o => {
-                if (bodycosts > 0) {
-                    let ext = Game.getObjectById(o)
-                    bodycosts -= ext.energy
-                    es.push(ext)
-                }
-            })
-            this.room.spawns.forEach(o => es.push(o))
-            options.energyStructures = es
+
+        if (!options.energyStructures && checkExtensionList(this.room)) {
+            let es = extensionCache[this.room.name]
+            if (es) {
+                this.room.spawns.forEach(o => es.push(o))
+                options.energyStructures = es
+            }
         }
         return this._spawnCreep(body, name, options)
     }
@@ -435,7 +460,14 @@ function suicide(creep, target) {
 
 
 function moveByLongPath(pathArray, creep) {
+    if (!pathArray) {
+        return ERR_NOT_IN_RANGE
+    }
+    if (creep.memory.step >= pathArray.length - 1) {
+        return OK
+    }
     let pos = new RoomPosition(...pathArray[creep.memory.step])
+
     if (creep.pos.isEqualTo(pos)) {
         creep.memory.step++
         pos = new RoomPosition(...pathArray[creep.memory.step])
@@ -446,10 +478,7 @@ function moveByLongPath(pathArray, creep) {
     } else {
         creep.moveTo(pos, {plainCost: 1, swampCost: 5, reusePath: 20})
     }
-    if (creep.memory.step >= pathArray.length - 1) {
-        delete creep.memory.step
-        return OK
-    }
+
     return ERR_NOT_IN_RANGE
 }
 
@@ -474,24 +503,26 @@ function unzipCostMatrix(cost) {
 
 function give(targetRoomName, type, number = 4000) {
 
-
+    let startNum = number
     Object.keys(Memory.rooms).forEach(roomName => {
         let room = Game.rooms[roomName]
-        if (!room) return
-        if (type === RESOURCE_ENERGY && o.storage.store[type] < 1000e3) {
+        if (!room || !room.storage || !room.terminal || room.controller.level < 8 || targetRoomName === roomName) return
+        if (type === RESOURCE_ENERGY && room.storage.store[type] < 600e3) {
             return
         }
         let have = room.terminal.store[type] || 0
-        if (have > 0 && number > 10) {
+        if (have > 0 && number > 10 && !room.terminal.cooldown) {
             let maxsend = solveMaxSend(roomName, targetRoomName, type, room.terminal)
             let cansend = Math.min(maxsend, Math.min(number, have))
-            let act = o.terminal.send(type, cansend, targetRoomName)
+            if (type === 'energy' && cansend < 3000) return
+            let act = room.terminal.send(type, cansend, targetRoomName)
             if (act === OK) {
                 number -= cansend
-                console.log(`${o.name} send ${targetRoomName} ${cansend}${type}`)
+                console.log(`${roomName} send ${targetRoomName} ${cansend}${type}`)
             }
         }
     })
+    return number < startNum;
 
 }
 
@@ -519,16 +550,54 @@ function solveMaxSend(fromR, toR, type, terminal) {
     const maxsend = type === RESOURCE_ENERGY ? terminal.store[RESOURCE_ENERGY] / (1 + energycost) : terminal.store[RESOURCE_ENERGY] / energycost
     return maxsend
 }
-function removeSite(roomName,build=false){
-    let room=Game.rooms[roomName]
-    room.find(FIND_CONSTRUCTION_SITES).forEach(o=>{
-        if(!build||(build&&o.progress===0)){
+
+function removeSite(roomName, build = false) {
+    let room = Game.rooms[roomName]
+    room.find(FIND_CONSTRUCTION_SITES).forEach(o => {
+        if (!build || (build && o.progress === 0)) {
             o.remove()
         }
     })
 }
+
+function buy(type, price, amount, room) {
+    return Game.market.createOrder(ORDER_BUY, type, price, amount, room)
+}
+
+function changeCostMatrix(room, creep) {
+    let costMatrix = Game.memory.roomCache[room.name]
+    if (costMatrix) {
+        try {
+            if (creep.body.some(bodypart => bodypart.type === RANGED_ATTACK)) {
+                for (let i = -3; i <= 3; ++i) {
+                    for (let j = -3; j <= 3; ++j) {
+                        costMatrix.set(Math.max(0, Math.min(49, creep.pos.x + i)),
+                            Math.max(0, Math.min(49, creep.pos.y + j)),
+                            0xff
+                        )
+                    }
+                }
+            } else if (creep.body.some(bodypart => bodypart.type === ATTACK)) {
+                for (let i = -1; i <= 1; ++i) {
+                    for (let j = -1; j <= 1; ++j) {
+                        costMatrix.set(Math.max(0, Math.min(49, creep.pos.x + i)),
+                            Math.max(0, Math.min(49, creep.pos.y + j)),
+                            0xff
+                        )
+                    }
+                }
+            }
+        } catch (e) {
+            console.log('changeCostMatrix err' + e)
+        }
+    }
+}
+
 module.exports = {
-    'removeSite':removeSite,
+    'solveMaxSend': solveMaxSend,
+    'changeCostMatrix': changeCostMatrix,
+    'buy': buy,
+    'removeSite': removeSite,
     'removeSubRoom': removeSubRoom,
     'addSubRoom': addSubRoom,
     'give': give,
@@ -557,6 +626,6 @@ module.exports = {
     'unzipCostMatrix': unzipCostMatrix,
     'isHighway': isHighway,
     'allnearavailable': allnearavailable,
-    'walkable': walkable
-
+    'walkable': walkable,
+    'getExtByOrder': getExtByOrder
 };

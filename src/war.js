@@ -1,8 +1,9 @@
-if (!Creep.prototype._say) {
-    Creep.prototype._say = Creep.prototype.say
-    Creep.prototype.say = function (msg, pub = true) {
-        return this._say(msg, pub)
-    }
+let oriSay = Creep.prototype.say
+Creep.prototype.say = function (msg, pub = true) {
+    return oriSay.call(this, msg, pub)
+}
+PowerCreep.prototype.say = function (msg, pub = true) {
+    return oriSay.call(this, msg, pub)
 }
 if (!Creep.prototype._rangedMassAttack) {
     Creep.prototype._rangedMassAttack = Creep.prototype.rangedMassAttack
@@ -18,6 +19,19 @@ if (!Creep.prototype._rangedAttack) {
         const ans = this._rangedAttack(target)
         if (ans === OK) {
             this.say('🏹')
+        }
+        return ans
+
+    }
+}
+
+
+if (!Creep.prototype._attack) {
+    Creep.prototype._attack = Creep.prototype.attack
+    Creep.prototype.attack = function (target) {
+        const ans = this._attack(target)
+        if (ans === OK) {
+            this.say('👊')
         }
         return ans
 
@@ -130,6 +144,45 @@ function miss(filterName) {
                 }
             }
             const config = from[fromRoomName]
+
+            if (config.path) {
+                for (let role in creeps) {
+                    const body = genbody(plan.body ? plan.body[role] : undefined)
+                    let cost = config.cost
+                    if (role === 'destroyer') {
+                        cost = 0
+                        // console.log('' + Game.time + 'genmission' + fromRoomName + role + 'to' + targetRoomName)
+                    }
+                    let teamNum
+                    if (role === 'boostAttack') {
+                        teamNum = plan.teamNum
+                    }
+                    fromRoom.memory.missions[role] = Memory.rooms[fromRoomName].missions[role] || {}
+                    fromRoom.memory.missions[role][targetRoomName] = {
+                        goal: wait,
+                        cost: cost,
+                        targetRoomName: targetRoomName,
+                        numfix: creeps[role],
+                        body: body,
+                        teamNum: teamNum
+                    }
+
+                }
+
+            }
+            if (plan.nextBorn && plan.nextBorn > Game.time) {
+                for (let fromRoomName in from) {
+                    for (let role in creeps) {
+                        if (role === 'destroyer') {
+                            // console.log('' + Game.time + 'cancel' + fromRoomName + role + 'to' + targetRoomName)
+                            if (Memory.rooms[fromRoomName].missions[role]) {
+                                Memory.rooms[fromRoomName].missions[role][targetRoomName] = undefined
+                            }
+                        }
+
+                    }
+                }
+            }
             if ((!config.pathttl || Game.time - config.pathttl > 3000) && (config.failedtimes ? config.failedtimes <= 90 : true)) {
                 const ans = PathFinder.search(fromRoom.spawns[0].pos, {pos: goal, range: 2}, {
                     plainCost: 1,
@@ -152,6 +205,8 @@ function miss(filterName) {
                         console.log(`from${fromRoomName}to${targetRoomName}failed${config.failedtimes}times`)
                     }
                     continue
+                }else{
+                    config.failedtimes=1
                 }
                 console.log(`from${fromRoomName}to${targetRoomName}use ops${ans.ops} cost${ans.cost}`)
                 const path = []
@@ -161,30 +216,17 @@ function miss(filterName) {
                 config.path = path
                 console.log(`pathstr=${JSON.stringify(path)}`)
                 config.pathttl = Game.time
-                if(config.cost!==-1){
+                if (config.cost !== -1) {
                     config.cost = ans.cost
                 }
 
 
             }
-            if (config.path) {
-                for (let role in creeps) {
-                    const body = genbody(plan.body ? plan.body[role] : undefined)
-                    fromRoom.memory.missions[role] = Memory.rooms[fromRoomName].missions[role] || {}
-                    fromRoom.memory.missions[role][targetRoomName] = {
-                        goal: wait,
-                        cost: config.cost,
-                        targetRoomName: targetRoomName,
-                        numfix: creeps[role],
-                        body: body
-                    }
-
-                }
-
-            }
 
 
         }
+
+
         const room = Game.rooms[targetRoomName]
         if (room && !plan.keep) {
             if (room.controller.owner && !room.controller.my && room.spawns.length == 0 && room.find(FIND_HOSTILE_CREEPS).length == 0) {
@@ -385,6 +427,11 @@ function genbody(body) {
             'move': 19,
             'heal': 15,
         }
+    } else if (body.ra10) {
+        body = {
+            'ranged_attack': 10,
+            'move': 10
+        }
     } else if (body.wall) {
         body = {
             'work': 25,
@@ -413,6 +460,12 @@ function genbody(body) {
             'move': 25,
             'heal': 15,
         }
+    } else if (body.heal17) {
+        body = {
+            'ranged_attack': 8,
+            'move': 25,
+            'heal': 17,
+        }
     } else if (body.wall33) {
         body = {
             'work': 33,
@@ -438,9 +491,9 @@ function genbody(body) {
         }
     } else if (body.heallv8) {
         body = {
-            'tough': 12,
+            'tough': 14,
             'move': 10,
-            'heal': 28
+            'heal': 26
         }
     } else if (body.heallv7) {
         body = {
@@ -448,6 +501,19 @@ function genbody(body) {
             'move': 10,
             'ranged_attack': 10,
             'heal': 20,
+        }
+    } else if (body.heallv75) {
+        body = {
+            'tough': 10,
+            'move': 10,
+            'ranged_attack': 5,
+            'heal': 25,
+        }
+    } else if (body.speedClaim) {
+        body = {
+            'tough': 3,
+            'move': 42,
+            'claim': 5,
         }
     } else if (body.heallv6) {
         body = {
@@ -460,6 +526,12 @@ function genbody(body) {
         body = {
             'tough': 12,
             'work': 28,
+            'move': 10,
+        }
+    } else if (body.alv8) {
+        body = {
+            'tough': 15,
+            'attack': 25,
             'move': 10,
         }
     } else if (body.attacklv7) {
@@ -650,6 +722,12 @@ function moveAwayFromSide(creep) {
     else if (creep.pos.x === 49) creep.move(LEFT)
     else if (creep.pos.y === 0) creep.move(BOTTOM)
     else if (creep.pos.y === 49) creep.move(TOP)
+}
+
+module.exports.isSide = isSide
+
+function isSide(creep) {
+    return (creep.pos.x === 0 || creep.pos.x === 49 || creep.pos.y === 0 || creep.pos.y === 49)
 }
 
 /*

@@ -15,12 +15,59 @@ function gen_reaction() {
 let usefulBoostList = new Set([
     'XKHO2', 'XLHO2', 'XZH2O', 'XZHO2', 'XGHO2', 'XUH2O'
 ])
+let usefult3 = new Set([
+    'XKHO2', 'XLHO2', 'XZH2O', 'XZHO2', 'XGHO2', 'XUH2O', 'XLH2O'
+])
+let t3 = new Set(['XKHO2', 'XKH2O', 'XLHO2', 'XLH2O', 'XZH2O', 'XZHO2', 'XGHO2', 'XUH2O', 'XUHO2', 'XGH2O'])
+module.exports.usefult3 = usefult3
 const reaction = gen_reaction()
+const produceLimit = {
+    'XKHO2': 12e3,
+    'XKH2O': 3e3,
+    'XLHO2': 12e3,
+    'XLH2O': 12e3,
+    'XZH2O': 12e3,
+    'XZHO2': 12e3,
+    'XGHO2': 12e3,
+    'XUH2O': 12e3,
+    'XUHO2': 3e3,
+    'XGH2O': 3e3,
+    'G': 6e3,
+}
+module.exports.produceLimit=produceLimit
+function solveCanProduce(room, type) {
+    let terminal = room.terminal
+    if ((terminal.store[type] || 0) >= 3000) {
+        //可以反应
+        return true
+    } else {
+        if ((type in reaction)) {
+            //可以合成
+            let ans=reaction[type].map(subType=>solveCanProduce(room, subType))
+            if(ans.every(o=>o===true)){
+                //做当前反应
+                return type
+            }else if(ans.some(o=>o===false)){
+                //缺原料
+                return false
+            }else{
+                //做下层反应
+                return ans.find(o=>o!==true)
+            }
+        } else {
+            //缺原料
+            return false
+        }
+    }
+
+}
+
+module.exports.solveCanProduce = solveCanProduce
 module.exports.reaction = reaction
 module.exports.work = function (room) {
 
     const terminal = room.terminal
-    if (!terminal || room.controller.level != 8 || !room.memory.lab.ok) return
+    if (!terminal || room.controller.level !== 8 || !room.memory.lab.ok) return
     if (!room.memory.reaction) {
         room.memory.reaction = {
             status: 'miss',
@@ -35,21 +82,30 @@ module.exports.work = function (room) {
             ]
             return
         }
-        let minNum = 1e8
-        usefulBoostList.forEach(o => minNum = Math.min(minNum, room.terminal.store[o] || 0))
-        for (let output in reaction) {
-            const outputnum = terminal.store[output] ? terminal.store[output] : 0
-            if (!reaction[output].every(obj => {
-                return (terminal.store[obj] ? terminal.store[obj] : 0) >= 3000
-            })) {
+
+        let minVal = 99e8
+        let minType = undefined
+        for (let output in produceLimit) {
+            let ans = solveCanProduce(room, output)
+            if (ans === false) {
                 continue
             }
-            if (outputnum < 3000 || (usefulBoostList.has(output) && outputnum <Math.max(12e3,Math.max(6000,minNum+3000)))){
-                room.memory.reaction.status = 'fill'
-                room.memory.reaction.type = output
-                break
+            const outputnum = terminal.store[output] || 0
+            if (outputnum < minVal && outputnum < produceLimit[output]) {
+                minVal = outputnum
+                minType = output
             }
         }
+        if (minType && minVal < produceLimit[minType]) {
+            let produce = solveCanProduce(room, minType)
+            if (produce === true) {
+                produce = minType
+            }
+            room.memory.reaction.status = 'fill'
+            room.memory.reaction.type = produce
+            console.log('room.name=' + `${room.name} mineType=${minType} min=${minVal}`)
+        }
+
     } else if (room.memory.reaction.status == 'fill') {
         let lab1 = Game.getObjectById(room.memory.lab.input[0])
         let lab2 = Game.getObjectById(room.memory.lab.input[1])
@@ -61,7 +117,7 @@ module.exports.work = function (room) {
     } else if (room.memory.reaction.status === 'react') {
         let lab1 = Game.getObjectById(room.memory.lab.input[0])
         let lab2 = Game.getObjectById(room.memory.lab.input[1])
-        if (lab1.mineralAmount == 0 && lab2.mineralAmount == 0) {
+        if (lab1.mineralAmount <= 20 || lab2.mineralAmount <= 20) {
             room.memory.reaction.status = 'collect'
             room.memory.reaction.type = undefined
             room.memory.reaction.time = undefined

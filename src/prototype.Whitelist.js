@@ -32,7 +32,10 @@
 let whiteList = new Set([
     'o4kapuk',
     'WheatEars',
-    'fangxm'
+    'fangxm',
+    'czc',
+    'EricGuo',
+    'qnz'
 ])
 
 function getWhitelist() {

@@ -28,7 +28,7 @@ function work(creep) {
         }
 
     } else if (creep.memory.status == 'dig') {
-        if(Game.time%5==0){
+        if(Game.time%5===0){
             let target = creep.pos.findClosestByRange(FIND_HOSTILE_CREEPS)
             if (target && creep.pos.getRangeTo(target) <= 5) {
                 creep.memory.status='fight'
@@ -48,9 +48,9 @@ function work(creep) {
         } else {
             creep.memory.sleep=undefined
             const act = creep.attack(pb)
-            if (act == ERR_NOT_IN_RANGE) {
+            if (act === ERR_NOT_IN_RANGE) {
                 creep.moveTo(pb)
-            } else if (act == OK) {
+            } else if (act === OK) {
                 creep.memory.digtick = (creep.memory.digtick || 0) + 1
             }
         }

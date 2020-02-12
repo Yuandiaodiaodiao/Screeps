@@ -96,6 +96,7 @@ function born(spawnnow, creepname, memory) {
 
 function miss(room) {
     //terminalmamager
+    if(!room.memory.missions)return
     room.memory.missions.terminalmanager = {}
     const terminal = room.terminal
     if (terminal) {
@@ -114,9 +115,12 @@ function miss(room) {
                 room.memory.reaction && (room.memory.reaction.status === 'collect' || (room.memory.reaction.status === 'boost' && !room.memory.reaction.boostReady) || room.memory.reaction.status === 'fill')
             ))
         ) {
-            room.memory.missions.terminalmanager[room.name] = {
-                roomName: room.name,
+            if(!Game.powerCreeps[room.name]){
+                room.memory.missions.terminalmanager[room.name] = {
+                    roomName: room.name,
+                }
             }
+
         }
     }
     if (_.size(room.memory.missions.terminalmanager) == 0) {

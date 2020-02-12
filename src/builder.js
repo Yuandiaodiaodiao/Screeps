@@ -83,6 +83,13 @@ function born(spawnnow, creepname, memory) {
         'carry': 9,
         'move': 17
     }
+    if(memory.small){
+        body={
+            work:1,
+            carry:1,
+            move:2
+        }
+    }
     let bodyarray = require('tools').generatebody(body, spawnnow)
     return spawnnow.spawnCreep(
         bodyarray,
@@ -98,10 +105,17 @@ function born(spawnnow, creepname, memory) {
 }
 
 function miss(room) {
+    if(!room.memory.missions)return
     room.memory.missions.builder = {}
-    if (require('tools').findrooms(room, FIND_CONSTRUCTION_SITES).length > 0 && (!(room.storage && room.storage.store[RESOURCE_ENERGY] / room.storage.store.getCapacity() < 0.1))) {
+    let sites=require('tools').findrooms(room, FIND_CONSTRUCTION_SITES)
+    if (sites.length>0 && (!(room.storage && room.storage.store[RESOURCE_ENERGY] / room.storage.store.getCapacity() < 0.1))) {
+      let small
+        if(sites.every(o=>o.structureType===STRUCTURE_WALL||o.structureType===STRUCTURE_RAMPART)){
+            small=true
+        }
         room.memory.missions.builder[room.name] = {
-            roomName: room.name
+            roomName: room.name,
+            small:small
         }
     } else {
         room.memory.missions.builder = undefined
