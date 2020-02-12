@@ -1,6 +1,31 @@
+2020-02-12
+==========
+
+  * 春节大更新
+    builder 只修墙和rampart会出 一个小的
+    控制台交易对话系统
+    动态每日价格
+    自动刷墙 背包刷墙
+    自动定时1000tick紫球
+    工厂原矿自动压缩
+    存入memory的ext顺序表
+    添加optower
+    大修墙link反向输出
+    miner寻路到 range1
+    nuke自动顶住 pc逃跑
+    观察terminal
+    re'action自动反应
+    seal看守模式
+    t3化合物自动平均
+    化合物共享
+    tower 5 1分打
+    计算effect的tower伤害
+    todo:战斗Pc
+
 2020-01-22
 ==========
 
+  * Update CHANGELOG.md
   * bug fix
     添加性能统计
     搬运工无目标禁止出生
