@@ -52,6 +52,17 @@ var role_num = {
 }
 module.exports.role_num = role_num
 let price = {}
+let funcQueue = []
+module.exports.funcQueue = funcQueue
+module.exports.dofuncQueue = function () {
+    for (let x of funcQueue) {
+        try {
+            x()
+        } catch (e) {
+            console.log('funcQueue err' + e)
+        }
+    }
+}
 
 function solveAveragePrice(type, dayLen = 2) {
     if (price[type]) return price[type]

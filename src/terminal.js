@@ -1,5 +1,67 @@
 let lodash = require('lodash-my')
+let avgRoom = 'E19N41'
+module.exports.fillOverT3 = function () {
+    let room2 = Game.rooms[avgRoom]
+    if (room2.terminal.cooldown) return
+    for (let roomName in Memory.rooms) {
+        let room = Game.rooms[roomName]
+        let t3limit = Game.reaction.produceLimit
+        if (roomName === avgRoom) continue
+        try {
+            let terminal = room.terminal
+            let storage = room.storage
+            if (!terminal || !terminal.my || !storage) continue
+            if (room.spawns.length === 0) continue
+            for (let type in t3limit) {
+                if (type in terminal.store) {
+                    let limitNum = t3limit[type]
+                    if (limitNum - terminal.store[type] < 3000 && (limitNum - terminal.store[type] > 0) && limitNum >= 12e3) {
+                        let needsend = limitNum - terminal.store[type]
+                        let ans = room2.terminal.send(type, needsend, roomName)
+                        if (ans === OK) {
+                            console.log(` ${room2.name}send${room.name}  ${needsend}${type}`)
+                            return ans
+                        }
+                    }
+                }
+            }
+        } catch (e) {
+            console.log('avgT3' + roomName + e)
+        }
+    }
+}
 
+
+module.exports.sendOverT3 = function () {
+    for (let roomName in Memory.rooms) {
+        let room = Game.rooms[roomName]
+        let t3limit = Game.reaction.produceLimit
+        if (roomName === avgRoom) continue
+        try {
+            let terminal = room.terminal
+            let storage = room.storage
+            if (!terminal || !terminal.my || !storage) continue
+            if (room.spawns.length === 0) continue
+            if (terminal.cooldown) continue
+            for (let type in t3limit) {
+                if (type in terminal.store) {
+                    let limitNum = t3limit[type]
+                    if (terminal.store[type] > limitNum && limitNum >= 12e3) {
+                        let needsend = terminal.store[type] - limitNum
+                        let room2 = Game.rooms[avgRoom]
+                        let ans = terminal.send(type, needsend, room2.name)
+                        if (ans === OK) {
+                            console.log(`${room.name} send ${room2.name} ${needsend}${type}`)
+                            return ans
+                        }
+                    }
+                }
+            }
+        } catch (e) {
+            console.log('avgT3' + roomName + e)
+        }
+    }
+}
 module.exports.avgT3 = function () {
     for (let roomName in Memory.rooms) {
         let room = Game.rooms[roomName]
@@ -19,11 +81,14 @@ module.exports.avgT3 = function () {
                             if (!room2.terminal || !room2.terminal.my || !room2.storage) continue
                             if (room2.spawns.length === 0) continue
                             if (!room2.terminal.store[type] || room2.terminal.store[type] <= limitNum - 6e3) {
-                                let ans = terminal.send(type, 3e3, room2Name)
-                                if (ans === OK) {
-                                    console.log(`${room.name} send ${room2Name} ${3e3}${type}`)
-                                    return ans
+                                if (Game.tools.solveMaxSend(roomName, room2Name, type, terminal) >= 3e3) {
+                                    let ans = terminal.send(type, 3e3, room2Name)
+                                    if (ans === OK) {
+                                        console.log(`${room.name} send ${room2Name} ${3e3}${type}`)
+                                        return ans
+                                    }
                                 }
+
                             }
                         }
 
@@ -166,7 +231,7 @@ function handlesell(roomName) {
         }
     }
 
-    if (storage && terminal && (terminal.store[RESOURCE_POWER] || 0) > 0) {
+    if (storage && terminal && (terminal.store[RESOURCE_POWER] || 0) > 10e3) {
         let act = sellSome(room, terminal, RESOURCE_POWER, 2500, Game.config.price.power.sell)
         if (act === OK) {
             return act
@@ -199,12 +264,17 @@ function sellSome(room, terminal, type, amount, minPrice) {
         ans = Game.market.deal(order.id, sell, room.name)
         if (ans === OK) {
             if (sell >= order.amount) {
-                let idx = allorders.findIndex(o => o.id === order.id)
-                allorders.splice(idx, 1)
+
+            } else {
+                order.amount -= sell
             }
             console.log('room:' + room.name + ' sell ' + order.roomName + ' ' + sell + ' ' + type)
             return ans
         } else {
+            if (ans === ERR_INVALID_ARGS) {
+                let idx = allorders.findIndex(o => o.id === order.id)
+                allorders.splice(idx, 1)
+            }
             console.log(`${room.name} try sell ${order.roomName} ${sell}${type} false because${ans} args=${JSON.stringify([order.id, sell, room.name])}`)
         }
         failedset.add(order.id)
@@ -220,22 +290,20 @@ function needBoost(room) {
     const terminal = room.terminal
     if (room.memory.reaction.status === 'boost') {
         let type = _.find(room.memory.reaction.boostList, o => (terminal.store[o] || 0) < 3000)
-        let need = 3000 - (terminal.store[type] || 0)
         for (let roomNames in Memory.rooms) {
             if (roomNames == room.name) continue
             let rooms = Game.rooms[roomNames]
-            if (rooms.controller.level == 8) {
+            if (rooms.controller.level === 8) {
                 let terminals = rooms.terminal
                 if (!terminals) continue
                 const last = (terminals.store[type] || 0)
                 if (last > 0) {
-                    let act = terminals.send(type, Math.min(last, need), room.name)
-                    if (act == OK) {
-                        need -= Math.min(last, need)
+                    let act = terminals.send(type, Math.min(last, 3000), room.name)
+                    if (act === OK) {
+                        return
                     }
                 }
             }
-            if (need <= 0) break
         }
     }
 }

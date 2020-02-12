@@ -15,6 +15,9 @@ function statusmiss(creep) {
                     creep.memory.status = 'get'
                 }
             }
+            if(  creep.memory.status === 'get'){
+                creep.memory.status='upgrade'
+            }
         }
     } else {
         creep.memory.status = 'get'

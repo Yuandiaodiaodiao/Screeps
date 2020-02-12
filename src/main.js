@@ -601,6 +601,20 @@ module.exports.loop = function () {
             console.log('main avgT3 error' + e)
         }
     }
+    if ((Game.time - 24) % 100 === 0) {
+        try {
+            Game.terminal.sendOverT3()
+        } catch (e) {
+            console.log('main sendOverT3 error' + e)
+        }
+    }
+    if ((Game.time - 13) % 100 === 0) {
+        try {
+            Game.terminal.fillOverT3()
+        } catch (e) {
+            console.log('main sendOverT3 error' + e)
+        }
+    }
     if (Game.time % 100 === 0) {
 
 
@@ -733,11 +747,8 @@ module.exports.loop = function () {
         }
 
     }
-    // if(Game.time%100==0){
-    //     Game.getObjectById('5d5e20a452d12c73f02d996d').launchNuke(new RoomPosition(39,10,'E21N49')) //E25N43
-    //     Game.getObjectById('5d58a050ea104379d90eb36e').launchNuke(new RoomPosition(32,24,'E22N49')) //E28N46
-    //     Game.getObjectById('5d5b0a943a990a6377228922').launchNuke(new RoomPosition(37,11,'E21N45'))
-    // }
+
+    Game.config.dofuncQueue()
 
     require('roomvisual').statistics()
 
