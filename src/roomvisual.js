@@ -41,8 +41,8 @@ module.exports.statistics = function () {
         let room = Game.rooms[flagDrawExt.pos.roomName]
         let ls = Game.tools.extensionList[room.name] || []
         for (let x in ls) {
-            let pos = (Game.tools.getExtByOrder(room, ls[x])||{}).pos
-            if(pos){
+            let pos = (Game.tools.getExtByOrder(room, ls[x]) || {}).pos
+            if (pos) {
                 room.visual.text('' + x, pos.x, pos.y, {color: 'red', font: 0.5})
 
             }
@@ -153,6 +153,12 @@ module.exports.statistics = function () {
             let Nuke = {}
             let terminalUse = {}
             let spawning = {}
+            let pbCache = require('powerBank').powerRoomGrafana
+            for (let key in pbCache) {
+                if (pbCache[key] < Game.time - 5000) {
+                    delete pbCache[key]
+                }
+            }
             Object.keys(Memory.rooms).forEach(roomName => {
                 let room = Game.rooms[roomName]
                 if (!room) return
@@ -251,6 +257,7 @@ module.exports.statistics = function () {
             Memory.grafana.reactionStatus = reactionStatus
             Memory.grafana.barHave = barHave
             Memory.grafana.roomTypeHave = roomTypeHave
+            Memory.grafana.pbCache = pbCache
 
         }
 

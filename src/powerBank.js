@@ -1,8 +1,11 @@
+let powerRoomGrafana = {}
+
 module.exports = {
     'miss': miss,
     'solveplan': solveplan,
     'cache': cache,
-    'logcache': logcache
+    'logcache': logcache,
+    'powerRoomGrafana': powerRoomGrafana
 }
 var powerRoom = {
     'E28N46': ['E30N46', 'E30N47', 'E30N48', 'E30N49'],
@@ -43,7 +46,10 @@ function miss() {
         const rooms = powerRoom[roomName]
         for (let roomn of rooms) {
             const roomc = Game.memory.observerCache[roomn]
-            if (Memory.grafana.cpuavg + 0.6 * Object.keys(Memory.powerPlan).length < 18 &&Game.cpu.bucket >= 9000 &&Game.cpu.bucket >= 9000 + 200 * Object.keys(Memory.powerPlan).length && roomc && roomc.powerBank && roomc.power >= (Object.keys(Memory.powerPlan).length * 1000 + 5000) && Game.time - roomc.startTime <= 1000 && !Memory.powerPlan[roomn] && Game.rooms[roomName].storage.store[RESOURCE_ENERGY] > 300e3) {
+            if (roomc && roomc.powerBank) {
+                powerRoomGrafana[roomn + roomc.power] = Game.time
+            }
+            if (Memory.grafana.cpuavg + 0.6 * Object.keys(Memory.powerPlan).length < 18 && Game.cpu.bucket >= 9000 && Game.cpu.bucket >= 9000 + 200 * Object.keys(Memory.powerPlan).length && roomc && roomc.powerBank && roomc.power >= (Object.keys(Memory.powerPlan).length * 1000 + 5000) && Game.time - roomc.startTime <= 1000 && !Memory.powerPlan[roomn] && Game.rooms[roomName].storage.store[RESOURCE_ENERGY] > 300e3) {
                 const targetpos = new RoomPosition(roomc.pos[0], roomc.pos[1], roomn)
                 const ans = PathFinder.search(Game.rooms[roomName].spawns[0].pos, {pos: targetpos, range: 3}, {
                     plainCost: 1, swampCost: 5, roomCallback: Game.tools.roomc_nocreep, maxOps: 10000
