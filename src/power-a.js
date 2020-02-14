@@ -43,6 +43,21 @@ function work(creep) {
 
         if (creep.memory.sleep && --creep.memory.sleep > 0) return
         const pb = creep.room.powerBanks[0]
+        if(creep.ticksToLive===1&&pb.hits>creep.getActiveBodyparts(ATTACK)*30){
+            //挖不完了
+            //重新激活
+            Memory.powerPlan[creep.memory.missionid].status = 1
+            const act = creep.attack(pb)
+            if (act === ERR_NOT_IN_RANGE) {
+                creep.moveTo(pb)
+            } else if (act === OK) {
+                creep.memory.digtick = (creep.memory.digtick || 0) + 1
+            }
+            //produce attack
+            require('powerBank').solveplan(creep.memory.missionid)
+            return;
+        }
+
         if (pb && pb.hits < 1000 && pb.ticksToDecay > 10 && creep.ticksToLive > 10 && creep.room.find(FIND_MY_CREEPS, {filter: obj => obj.name.split('_')[1] == 'power-c'}).length < powerp.carry) {
             creep.memory.sleep = 5
         } else {
