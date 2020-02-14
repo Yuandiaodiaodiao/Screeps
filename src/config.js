@@ -97,9 +97,9 @@ module.exports.price = price
 module.exports.userName = 'Yuandiaodiaodiao'
 module.exports.powerLimit = 0.9
 module.exports.obterminal = {
-    W12N9: {
-        limit: 8e3,
-        merge: false
-    }
+    // W12N9: {
+    //     limit: 8e3,
+    //     merge: false
+    // }
 
 }

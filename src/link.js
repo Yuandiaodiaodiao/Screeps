@@ -1,6 +1,6 @@
 function work(room) {
 
-    if (Game.defend.defendRoom.includes(room.name) && Memory.wallNum[room.name] > 1&& room.memory.wallLink&& room.memory.wallLink.length>0) {
+    if (Game.defend.defendRoom.includes(room.name) && Game.defend.wallWorkLength[room.name] > 0 && room.memory.wallLink && room.memory.wallLink.length > 0) {
         let wallLinks = room.memory.wallLink.map(o => Game.getObjectById(o)).filter(o => o.store.energy < 300)
         let wallIt = wallLinks.values()
         let otherLink = room.links.filter(o => (!(room.memory.wallLink.includes(o.id))))

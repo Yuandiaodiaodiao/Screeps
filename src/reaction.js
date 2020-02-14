@@ -32,12 +32,15 @@ const produceLimit = {
     'XUH2O': 12e3,
     'XUHO2': 3e3,
     'XGH2O': 3e3,
-    'G': 6e3,
+    'G': 3e3,
 }
 module.exports.produceLimit=produceLimit
-function solveCanProduce(room, type) {
+function solveCanProduce(room, type,top=false,debug=false) {
     let terminal = room.terminal
-    if ((terminal.store[type] || 0) >= 3000) {
+    if(debug){
+        console.log('type='+type+terminal.store[type])
+    }
+    if ((terminal.store[type] || 0) >= 3000&&!top) {
         //可以反应
         return true
     } else {
@@ -86,7 +89,7 @@ module.exports.work = function (room) {
         let minVal = 99e8
         let minType = undefined
         for (let output in produceLimit) {
-            let ans = solveCanProduce(room, output)
+            let ans = solveCanProduce(room, output,true)
             if (ans === false) {
                 continue
             }
@@ -97,7 +100,7 @@ module.exports.work = function (room) {
             }
         }
         if (minType && minVal < produceLimit[minType]) {
-            let produce = solveCanProduce(room, minType)
+            let produce = solveCanProduce(room, minType,true)
             if (produce === true) {
                 produce = minType
             }

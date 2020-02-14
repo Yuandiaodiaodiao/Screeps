@@ -387,7 +387,7 @@ function load() {
     Game.observer = require('observer')
     Game.RoomPlanner = require('RoomPlanner')
     Game.lodash = require('lodash-my')
-    require('prototype.SpeedUp.getAllOrders').load()
+    // require('prototype.SpeedUp.getAllOrders').load()
     Game.runTime = Game.time - Memory.cpu.pushTime
     Game.defend = require('defendController')
     Game.reaction = require('reaction')

@@ -75,7 +75,10 @@ function work(creep) {
     if (creep.memory.status === 'go') {
         if (creep.pos.roomName == creep.memory.targetpos[2]) {
             let target = Game.getObjectById(creep.memory.target)
-
+            if (!target) {
+                creep.memory.status = 'miss'
+                return;
+            }
             if (target.ticksToLive) {
                 creep.memory.status = 'fight'
             } else {
@@ -92,10 +95,10 @@ function work(creep) {
             creep.heal(creep)
             if (Game.war.howDangerous(target) <= 1) {
                 creep.moveTo(target)
-                if(creep.pos.getRangeTo(target) <= 1){
+                if (creep.pos.getRangeTo(target) <= 1) {
                     creep.rangedMassAttack()
                     creep.attack(target)
-                }else{
+                } else {
                     creep.rangedAttack(target)
                 }
             } else if (creep.pos.getRangeTo(target) >= 3) {

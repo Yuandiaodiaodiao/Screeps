@@ -6,7 +6,8 @@ Memory.defend.wallLock = Memory.defend.wallLock || {}
 let defendNumLimit = {
     'E11N32': 4
 }
-
+let wallWorkLength={}
+module.exports.wallWorkLength=wallWorkLength
 function miss(room) {
     if (typeof (room) === 'string') {
         room = Game.rooms[room]
@@ -58,6 +59,7 @@ function miss(room) {
         room.memory.missions.warWall = undefined
         room.memory.missions.warCarry = undefined
     }
+    wallWorkLength[room.name]=wallWorker.length
     if (wallWorker.length > 0) {
 
         let roomWalls = room.find(FIND_STRUCTURES, {

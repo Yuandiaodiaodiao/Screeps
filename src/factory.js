@@ -41,7 +41,7 @@ function miss(room) {
     factory.store[produceType]=factory.store[produceType]||0
     terminal.store[mineType]=terminal.store[mineType]||0
     terminal.store[produceType]=terminal.store[produceType]||0
-    if (terminal.store.getUsedCapacity(mineType) > (memory.status === 'fill' ? 60e3 : 70e3) && factory.store.getUsedCapacity(mineType) < 10e3) {
+    if (terminal.store.getUsedCapacity(mineType) > (memory.status === 'fill' ? 40e3 : 50e3) && factory.store.getUsedCapacity(mineType) < 10e3) {
         //矿太少了 terminal里正好矿多 压缩 填进factory 并且factory里不多余
         memory.status = 'fill'
         memory.fillType = mineType

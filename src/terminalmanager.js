@@ -96,26 +96,27 @@ function born(spawnnow, creepname, memory) {
 
 function miss(room) {
     //terminalmamager
-    if(!room.memory.missions)return
+    if (!room.memory.missions) return
     room.memory.missions.terminalmanager = {}
     const terminal = room.terminal
     if (terminal) {
-        if (!Game.powerCreeps[room.name]  && terminal.store[RESOURCE_POWER] > 1400 && room.storage.store[RESOURCE_ENERGY] / room.storage.store.getCapacity() > Game.config.powerLimit && room.powerSpawn) {
+        if (!Game.powerCreeps[room.name] && terminal.store[RESOURCE_POWER] > 1400 && room.storage.store[RESOURCE_ENERGY] / room.storage.store.getCapacity() > Game.config.powerLimit && room.powerSpawn) {
             room.memory.missions.terminalmanager[room.name] = {
                 roomName: room.name,
                 capacity: 100,
                 role: 'power',
             }
         }
-        if (terminal.store[RESOURCE_ENERGY] > 90e3 ||
-            (room.controller.level<8&&terminal.store[RESOURCE_ENERGY]>30e3) ||
-            (!Game.powerCreeps[room.name] && terminal.store[RESOURCE_GHODIUM] && terminal.store[RESOURCE_GHODIUM] >= 1000 && room.nuker && room.nuker.store[RESOURCE_GHODIUM] < 5000)
+        if (terminal.store[RESOURCE_ENERGY] > 90e3
+            || (room.controller.level < 8 && terminal.store[RESOURCE_ENERGY] > 30e3)
+            || (!Game.powerCreeps[room.name] && terminal.store[RESOURCE_GHODIUM] && terminal.store[RESOURCE_GHODIUM] >= 1000 && room.nuker && room.nuker.store[RESOURCE_GHODIUM] < 5000)
             || (!Game.powerCreeps[room.name] && (
                 room.memory.factory && (room.memory.factory.status === 'fill' || room.memory.factory.status === 'get') ||
                 room.memory.reaction && (room.memory.reaction.status === 'collect' || (room.memory.reaction.status === 'boost' && !room.memory.reaction.boostReady) || room.memory.reaction.status === 'fill')
             ))
+            || (!Game.powerCreeps[room.name] && Game.defend.wallWorkLength[room.name] > 0)
         ) {
-            if(!Game.powerCreeps[room.name]){
+            if (!Game.powerCreeps[room.name]) {
                 room.memory.missions.terminalmanager[room.name] = {
                     roomName: room.name,
                 }
