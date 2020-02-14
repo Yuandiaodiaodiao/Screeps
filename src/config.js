@@ -44,8 +44,8 @@ var role_num = {
     subprotecter: 1,
     terminalmanager: 1,
     farcarryer: 0,
-    'power-a': 0,
     'power-b': 0,
+    'power-a': 0,
     'power-c': 0,
     SEAL: 0,
     destroyer: 0

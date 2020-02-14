@@ -96,17 +96,19 @@ function solveplan(roomn) {
     if (plan.status <= 3 && Game.time - plan.startTime > 5000 + 1500) plan.status = 4
     if (plan.status == 1) {
         //attack healer注入
-        missions["power-a"] = missions["power-a"] || {}
-        missions['power-a'][roomn] = missions['power-a'][roomn] || {
-            roomn: roomn,
-            cost: plan.roadcost,
-            numfix: 1
-        }
+       //优先生产power-b
         missions["power-b"] = missions["power-b"] || {}
         missions['power-b'][roomn] = missions['power-b'][roomn] || {
             roomn: roomn,
             cost: plan.roadcost,
             numfix: 2
+        }
+
+        missions["power-a"] = missions["power-a"] || {}
+        missions['power-a'][roomn] = missions['power-a'][roomn] || {
+            roomn: roomn,
+            cost: plan.roadcost,
+            numfix: 1
         }
     } else if (plan.status == 2) {
         //attack
