@@ -15,8 +15,8 @@ function statusmiss(creep) {
                     creep.memory.status = 'get'
                 }
             }
-            if(  creep.memory.status === 'get'){
-                creep.memory.status='upgrade'
+            if (creep.memory.status === 'get') {
+                creep.memory.status = 'upgrade'
             }
         }
     } else {
@@ -63,7 +63,13 @@ function work(creep) {
         creep.memory.cost = cost
         creep.memory.step = 0
         creep.memory.path = path
-        creep.memory.status = 'go'
+        creep.memory.status = 'beforego'
+    } else if (creep.memory.status === 'beforego') {
+        creep.moveTo(creep.room.storage, {range: 1})
+        let act = creep.withdraw(creep.room.storage, RESOURCE_ENERGY)
+        if (act === ERR_FULL) {
+            creep.memory.status = 'go'
+        }
     } else if (creep.memory.status === 'go') {
         const act = Game.tools.moveByLongPath(creep.memory.path, creep)
         if (act === OK) {
@@ -235,8 +241,8 @@ let help = {
     // 'E11N32':{
     // 'E14N41':3
     // }
-    'W5N31': {
-        'E1N29': 3
+    'W15N32': {
+        'W5N31': 2
     }
 }
 

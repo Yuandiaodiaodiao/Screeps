@@ -29,6 +29,7 @@ function work(creep) {
         const act = Game.tools.moveByLongPath(powerp.position, creep)
         if (act == OK) {
             creep.memory.status = 'get'
+            powerp.carryArrive=(powerp.carryArrive||0)+1
         }
     } else if (creep.memory.status == 'get') {
         // console.log('poerpstatus=' + powerp.status)

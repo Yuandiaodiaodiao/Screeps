@@ -47,9 +47,9 @@ function miss() {
         for (let roomn of rooms) {
             const roomc = Game.memory.observerCache[roomn]
             if (roomc && roomc.powerBank) {
-                powerRoomGrafana[roomn + roomc.power] = Game.time
+                powerRoomGrafana[roomn + '_' + roomc.power] = Game.time
             }
-            if (Memory.grafana.cpuavg + 0.6 * Object.keys(Memory.powerPlan).length < 18 && Game.cpu.bucket >= 9000 && Game.cpu.bucket >= 9000 + 200 * Object.keys(Memory.powerPlan).length && roomc && roomc.powerBank && roomc.power >= (Object.keys(Memory.powerPlan).length * 1000 + 5000) && Game.time - roomc.startTime <= 1000 && !Memory.powerPlan[roomn] && Game.rooms[roomName].storage.store[RESOURCE_ENERGY] > 300e3) {
+            if (Memory.grafana.cpuavg + 0.6 * Object.keys(Memory.powerPlan).length < 18 && Game.cpu.bucket >= 9000 && Game.cpu.bucket >= 9000 + 200 * Object.keys(Memory.powerPlan).length && roomc && roomc.powerBank && roomc.power >= (Object.keys(Memory.powerPlan).length * 500 + 5000) && Game.time - roomc.startTime <= 1000 && !Memory.powerPlan[roomn] && Game.rooms[roomName].storage.store[RESOURCE_ENERGY] > 300e3) {
                 const targetpos = new RoomPosition(roomc.pos[0], roomc.pos[1], roomn)
                 const ans = PathFinder.search(Game.rooms[roomName].spawns[0].pos, {pos: targetpos, range: 3}, {
                     plainCost: 1, swampCost: 5, roomCallback: Game.tools.roomc_nocreep, maxOps: 10000
@@ -96,13 +96,7 @@ function solveplan(roomn) {
     if (plan.status <= 3 && Game.time - plan.startTime > 5000 + 1500) plan.status = 4
     if (plan.status == 1) {
         //attack healer注入
-       //优先生产power-b
-        missions["power-b"] = missions["power-b"] || {}
-        missions['power-b'][roomn] = missions['power-b'][roomn] || {
-            roomn: roomn,
-            cost: plan.roadcost,
-            numfix: 2
-        }
+        //优先生产power-b
 
         missions["power-a"] = missions["power-a"] || {}
         missions['power-a'][roomn] = missions['power-a'][roomn] || {
@@ -110,6 +104,13 @@ function solveplan(roomn) {
             cost: plan.roadcost,
             numfix: 1
         }
+        missions["power-b"] = missions["power-b"] || {}
+        missions['power-b'][roomn] = missions['power-b'][roomn] || {
+            roomn: roomn,
+            cost: plan.roadcost,
+            numfix: 2
+        }
+
     } else if (plan.status == 2) {
         //attack
         missions['power-a'] ? missions['power-a'][roomn] = undefined : undefined

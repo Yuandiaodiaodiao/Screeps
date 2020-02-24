@@ -511,7 +511,7 @@ function give(targetRoomName, type, number = 4000) {
             return
         }
         let have = room.terminal.store[type] || 0
-        if (have > 0 && number > 10 && !room.terminal.cooldown) {
+        if (have > 0 && number > 0 && !room.terminal.cooldown) {
             let maxsend = solveMaxSend(roomName, targetRoomName, type, room.terminal)
             let cansend = Math.min(maxsend, Math.min(number, have))
             if (type === 'energy' && cansend < 3000) return

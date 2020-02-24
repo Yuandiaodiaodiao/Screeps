@@ -1,5 +1,7 @@
 let lodash = require('lodash-my')
 let avgRoom = 'E19N41'
+
+
 module.exports.fillOverT3 = function () {
     let room2 = Game.rooms[avgRoom]
     if (room2.terminal.cooldown) return
@@ -106,7 +108,7 @@ module.exports.work = function (room, rate) {
     let terminal = room.terminal
     if (!terminal || !terminal.my) return
     if (room.spawns.length === 0) return
-    if (Game.time % 100 === 0 && terminal && room.storage && room.storage.store[RESOURCE_ENERGY] / room.storage.store.getCapacity() > 0.65 && room.controller.level === 8) {
+    if (terminal && room.storage && room.storage.store[RESOURCE_ENERGY] / room.storage.store.getCapacity() > 0.65 && room.controller.level === 8) {
         const helpRoomNameList = _.filter(Object.keys(Memory.rooms), roomName => {
             let room2 = Game.rooms[roomName]
             return ((room2.storage && (room.storage.store[RESOURCE_ENERGY] / room.storage.store.getCapacity() - room2.storage.store[RESOURCE_ENERGY] / room2.storage.store.getCapacity()) > 0.2) || (!room2.storage))
@@ -206,26 +208,30 @@ module.exports.work = function (room, rate) {
 module.exports.handlesell = handlesell
 
 function handlesell(roomName) {
+    if (Game.runTime <= 2) return
     const room = Game.rooms[roomName]
     const terminal = room.terminal
     const mineral = room.find(FIND_MINERALS)[0]
     const type = mineral.mineralType
-    if (terminal && mineral && terminal.store[type] / terminal.store.getCapacity() > 75e3) {
-        let act = sellSome(room, terminal, type, terminal.store[type] - terminal.store.getCapacity() * 0.25)
+    if (terminal.cooldown > 0) return
+    if (terminal && mineral && terminal.store[type] > 60e3) {
+        let act = sellSome(room, terminal, type, terminal.store[type] - 50e3, 0.02)
         if (act === OK) {
             return act
+        } else {
+            console.log(`${room.name} sell ${type} error=${act} `)
         }
     }
     const storage = room.storage
     if (storage && terminal && terminal.store[RESOURCE_ENERGY] >= 5e3 && storage.store[RESOURCE_ENERGY] / storage.store.getCapacity() > 0.8 && room.controller.level >= 8) {
-        let act = sellSome(room, terminal, RESOURCE_ENERGY, 6000)
+        let act = sellSome(room, terminal, RESOURCE_ENERGY, 6000, storage.store[RESOURCE_ENERGY] / storage.store.getCapacity() > 0.9 ? 0 : Game.config.price.energy.minPrice)
 
         if (act === OK) {
             return act
         }
     }
     if (terminal && mineral && terminal.store.getUsedCapacity(Game.factory.produce[type]) > 40e3) {
-        let act = sellSome(room, terminal, Game.factory.produce[type], terminal.store.getUsedCapacity(Game.factory.produce[type]) - 500, 0.25)
+        let act = sellSome(room, terminal, Game.factory.produce[type], terminal.store.getUsedCapacity(Game.factory.produce[type]) - 40e3, Game.config.price[Game.factory.produce[type]].minPrice / 1.05)
         if (act === OK) {
             return act
         }
@@ -241,33 +247,81 @@ function handlesell(roomName) {
 
 }
 
-let blackList = new Set(['W1N11', 'W1N13', 'W11N8', 'W9N16', 'W7N19'
-    , 'W5N13', 'W4N21', 'W3N15', 'W3N12', 'W2N13', 'W2N12', 'W2N11', 'W1N18',
-    'W9N19', 'W1N12', 'W1N7', 'W1N4', 'W1S1', 'W1S4', 'E2N9', 'E1N14',
-    'E1N11', 'E1S9', 'E4N21', 'E1N25', 'E9N9', 'E21S28', 'W1N21', 'E2S31', 'E8N22', 'W2N24', 'E9N1', 'E11N14', 'E11S9', 'E11S31', 'W3N31'])
+// let blackList = new Set(['W1N37', 'W9N12', 'W11N19', 'W1N11', 'W1N13', 'W11N8', 'W9N16', 'W7N19'
+//     , 'W5N13', 'W4N21', 'W3N15', 'W3N12', 'W2N13', 'W2N12', 'W2N11', 'W1N18',
+//     'W9N19', 'W1N12', 'W1N7', 'W1N4', 'W1S1', 'W1S4', 'E2N9', 'E1N14',
+//     'E1N11', 'E1S9', 'E4N21', 'E1N25', 'E9N9', 'E21S28', 'W1N21', 'E2S31', 'E8N22', 'W2N24', 'E9N1', 'E11N14', 'E11S9', 'E11S31', 'W3N31', 'E11S22'])
+
+let MarketCache = {}
 
 function sellSome(room, terminal, type, amount, minPrice) {
-    const allorders = Game.market.getAllOrders({resourceType: type})
-    const mineorder = _.filter(allorders, obj => obj.type === ORDER_BUY && (!blackList.has(obj.roomName)) && obj.amount >= (type === RESOURCE_ENERGY ? 1000 : 1) && obj.price >= (minPrice || (type === RESOURCE_ENERGY ? 0 : 0.04)))
 
-    if (mineorder.length === 0) return -10
+    let allorders
+    if (type === RESOURCE_ENERGY) {
+        if (!MarketCache[type] || MarketCache[type].ttl !== Game.time) {
+            MarketCache[type] = {
+                orders: Game.market.getAllOrders({resourceType: type}),
+                ttl: Game.time
+            }
+        }
+        allorders = MarketCache[type].orders
+    } else {
+        allorders = Game.market.getAllOrders({resourceType: type})
+    }
+
+    const mineorder = _.filter(allorders, obj => {
+        if (obj.type === ORDER_BUY && obj.amount >= (type === RESOURCE_ENERGY ? 1000 : 2) && obj.price >= (minPrice || (type === RESOURCE_ENERGY ? 0 : 0.04))) {
+            if (Game.memory.dealBlackList.has(obj.roomName)) {
+                return false
+            } else if (Game.memory.dealWhiteList.has(obj.roomName) || Game.tools.isHighway(obj.roomName)) {
+                return true
+            } else {
+                Game.observer.observer_queue.add({
+                    roomName: obj.roomName,
+                    callBack: (roomObj) => {
+                        let roomUser = roomObj.controller && roomObj.controller.owner && roomObj.controller.owner.username
+                        if (!roomUser) {
+                            console.log('ob roomUser= ' + JSON.stringify(roomObj.controller.owner))
+                            return
+                        }
+                        if (require('prototype.Whitelist').blackList.has(roomObj.controller.owner.username)) {
+                            Game.memory.dealBlackList.add(roomObj.name)
+                        } else {
+                            Game.memory.dealWhiteList.add(roomObj.name)
+                        }
+                    }
+                })
+                return false
+            }
+        }
+        return false
+    })
+
+    if (mineorder.length === 0) {
+        // allorders.forEach(o => {
+        //     if (o.type === ORDER_BUY) {
+        //         const {id, roomName, amount, price} = o
+        //         console.log(`${id} ${roomName} ${amount} ${price}`)
+        //     }
+        // })
+        return -13
+    }
     let failedset = new Set()
     let ans = ERR_TIRED
     while (ans === ERR_TIRED && failedset.size <= 4) {
-
-        const order = lodash.maxBy(mineorder, obj => failedset.has(obj.id) ? -1e9 : obj.price * 1000 - Game.market.calcTransactionCost(1000, room.name, obj.roomName) * Game.config.price.energy.minPrice)
+        let order
+        if (type === RESOURCE_ENERGY) {
+            order = lodash.minBy(mineorder, obj => failedset.has(obj.id) ? 1e9 : 1000 / obj.price + Game.market.calcTransactionCost(1000 / obj.price, room.name, obj.roomName))
+        } else {
+            order = lodash.maxBy(mineorder, obj => failedset.has(obj.id) ? -1e9 : obj.price * 1000 - Game.market.calcTransactionCost(1000, room.name, obj.roomName) * Game.config.price.energy.minPrice)
+        }
         // console.log(`room ${room.name} try order= ${JSON.stringify(order)}`)
         const energycost = Game.market.calcTransactionCost(1000, room.name, order.roomName) / 1000
         const maxsend = type === RESOURCE_ENERGY ? terminal.store[RESOURCE_ENERGY] / (1 + energycost) - 20 : terminal.store[RESOURCE_ENERGY] / energycost
-        const maxsell = Math.min(amount, order.amount)
-        const sell = Math.min((terminal.store[type] || 0), Math.min(maxsend, maxsell))
+        const sell = _.min([(terminal.store[type] || 0), maxsend, amount, order.amount - 1])
         ans = Game.market.deal(order.id, sell, room.name)
         if (ans === OK) {
-            if (sell >= order.amount) {
-
-            } else {
-                order.amount -= sell
-            }
+            order.amount -= sell
             console.log('room:' + room.name + ' sell ' + order.roomName + ' ' + sell + ' ' + type)
             return ans
         } else {
@@ -283,6 +337,9 @@ function sellSome(room, terminal, type, amount, minPrice) {
 
 
 }
+
+
+module.exports.sellSome = sellSome
 
 module.exports.needBoost = needBoost
 

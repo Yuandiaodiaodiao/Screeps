@@ -161,7 +161,7 @@ function mission_generator(room) {
                 filter: structure => structure.structureType == STRUCTURE_CONTAINER
             })[0]
             const link = source.pos.findInRange(FIND_STRUCTURES, 2, {
-                filter: structure => structure.structureType == STRUCTURE_LINK && structure.my == true
+                filter: structure => structure.structureType == STRUCTURE_LINK && structure.my == true&&structure.isActive()
             })[0]
             if (room.controller.level < 8) {
                 if (link && container) {
@@ -206,6 +206,7 @@ function mission_generator(room) {
                 }).cost
                 if (container.pos.roomName !== room.name) {
                     for (let obj of canfill) {
+                        if(!obj.isActive())continue
                         let nowcost = PathFinder.search(container.pos, {pos: obj.pos, range: 1}, {
                             plainCost: 2, swampCost: 10, roomCallback: require('tools').roomc_nocreep
                         }).cost
@@ -402,6 +403,10 @@ module.exports.loop = function () {
     load()
     try {
         require('Game.memory').work()
+        if(Game.time%100e3===0){
+            Game.memory.dealBlackList=new Set()
+            Game.memory.dealWhiteList=new Set()
+        }
     } catch (e) {
         console.log('main.Game.memory error' + e)
     }
@@ -435,7 +440,7 @@ module.exports.loop = function () {
                 require('defendController').miss(room)
 
             } catch (e) {
-                console.log('subprotecter error' + e)
+                console.log('defendController error' + e)
             }
         }
     }
@@ -694,6 +699,7 @@ module.exports.loop = function () {
                     }
                 } else if (type === 'upgrader') {
                     if (Game.cpu.bucket > 3000) {
+                        require(type).work(obj)
                     }
                 } else if (type === 'carryer') {
                     if (Game.cpu.bucket > 2000) {

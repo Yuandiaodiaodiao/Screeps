@@ -37,7 +37,13 @@ let whiteList = new Set([
     'EricGuo',
     'qnz'
 ])
-
+let blackList=new Set(
+    [
+        'Atanner',
+        'Yoner'
+    ]
+)
+module.exports.blackList=blackList
 function getWhitelist() {
     //----return your whiteList here-------------------
     return whiteList

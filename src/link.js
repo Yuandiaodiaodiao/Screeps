@@ -1,6 +1,6 @@
 function work(room) {
 
-    if (Game.defend.defendRoom.includes(room.name) && Game.defend.wallWorkLength[room.name] > 0 && room.memory.wallLink && room.memory.wallLink.length > 0) {
+    if (Game.defend.defendRoom.includes(room.name) && Memory.wallNum[room.name] > 1 && Game.defend.wallWorkLength[room.name] > 1 && room.memory.wallLink && room.memory.wallLink.length > 0) {
         let wallLinks = room.memory.wallLink.map(o => Game.getObjectById(o)).filter(o => o.store.energy < 300)
         let wallIt = wallLinks.values()
         let otherLink = room.links.filter(o => (!(room.memory.wallLink.includes(o.id))))
@@ -18,9 +18,11 @@ function work(room) {
         if (!centerlink) return
         if (centerlink.energy > 0) return
         for (let link of room.links) {
-            if (link.id == centerlink.id || link.cooldown != 0 || link.energy < 750) continue
-            link.transferEnergy(centerlink)
-            return
+            if (link.id === centerlink.id || link.cooldown !== 0 || link.energy < 750) continue
+            let ans = link.transferEnergy(centerlink)
+            if (ans === OK) {
+                break
+            }
         }
     }
 

@@ -85,7 +85,21 @@ function work(creep) {
         if (creep.pos.roomName == creep.memory.missionid) {
             const controller = Game.rooms[creep.memory.missionid].controller
             if (controller.level === 0) {
-                Memory.army[creep.memory.missionid].body.destroyer={speedClaim:true}
+                try{
+                    Memory.army[creep.memory.missionid].body.destroyer={speedClaim:true}
+                }catch (e) {
+
+                }
+                const act = creep.claimController(controller)
+
+                if (act == ERR_NOT_IN_RANGE) {
+                    creep.moveTo(controller, {ignoreCreeps: false})
+                } else if (act == OK || controller.my) {
+                    creep.memory.status = 'destroy'
+                } else {
+                    creep.attackController(controller)
+                }
+
             }
             if (!controller.my) {
 
@@ -146,6 +160,7 @@ function work(creep) {
         }
     } else if (creep.memory.status === 'destroy') {
         if (Game.flags['save']) {
+            creep.signController(creep.room.controller,'just stay here no powerbank no depo')
             creep.memory.status = 'suicide'
             return
         }
@@ -195,7 +210,7 @@ function work(creep) {
         const tot = wall + swamp + plain
         const strsign = `☕ mine:${mine} sources:${source}\n\n plain:${(plain / tot * 100).toFixed(0)}% swamp:${(swamp / tot * 100).toFixed(0)}% wall:${(wall / tot * 100).toFixed(0)}%  `
         if (Game.flags['save']) {
-            creep.signController(creep.room.controller, 'Traveler')
+            creep.signController(creep.room.controller, 'just stay here no powerbank no depo')
         } else if (creep.room.controller.sign && (creep.room.controller.sign.text.indexOf('overmind') !== -1 || creep.room.controller.sign.text.indexOf('OVERMIND') !== -1)) {
             creep.signController(creep.room.controller, 'Non-coding players unwelcome outside shard0 - expect summary execution')
         } else {
@@ -207,7 +222,6 @@ function work(creep) {
     }
 
 }
-
 module.exports = {
     'work': work,
     'born': born,

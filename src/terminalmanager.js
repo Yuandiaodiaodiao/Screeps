@@ -18,7 +18,10 @@ function work(creep) {
             memory.filltarget = room.storage.id
             memory.status = 'getting'
             memory.nexts = 'filling'
-        } else if (labOp.labFill(creep, memory, room)) {
+        }else if (creep.ticksToLive < 50) {
+            creep.memory.status = 'suicide'
+        }
+        else if (labOp.labFill(creep, memory, room)) {
 
         } else if (labOp.fillNuke(creep, memory, room)) {
 
@@ -31,9 +34,6 @@ function work(creep) {
         } else if (labOp.boostMine(creep, memory, room)) {
 
         } else if (labOp.labCollect(creep, memory, room)) {
-
-        } else if (creep.ticksToLive < 50) {
-            creep.memory.status = 'suicide'
 
         } else if (_.sum(creep.carry) > 0) {
             for (let type in creep.carry) {
@@ -100,7 +100,7 @@ function miss(room) {
     room.memory.missions.terminalmanager = {}
     const terminal = room.terminal
     if (terminal) {
-        if (!Game.powerCreeps[room.name] && terminal.store[RESOURCE_POWER] > 1400 && room.storage.store[RESOURCE_ENERGY] / room.storage.store.getCapacity() > Game.config.powerLimit && room.powerSpawn) {
+        if (!Game.powerCreeps[room.name] && room.controller.level=== 8&&terminal.store[RESOURCE_POWER] > 1400 && room.storage.store[RESOURCE_ENERGY] / room.storage.store.getCapacity() > Game.config.powerLimit && room.powerSpawn) {
             room.memory.missions.terminalmanager[room.name] = {
                 roomName: room.name,
                 capacity: 100,
@@ -116,7 +116,7 @@ function miss(room) {
             ))
             || (!Game.powerCreeps[room.name] && Game.defend.wallWorkLength[room.name] > 0)
         ) {
-            if (!Game.powerCreeps[room.name]) {
+            if (!Game.powerCreeps[room.name]||!Game.powerCreeps[room.name].ticksToLive) {
                 room.memory.missions.terminalmanager[room.name] = {
                     roomName: room.name,
                 }

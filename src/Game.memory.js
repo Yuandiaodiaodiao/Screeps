@@ -64,6 +64,12 @@ const specialSave = {
             }
         }
         return temp
+    },
+    dealWhiteList(wlist) {
+        return Array.from(wlist || [])
+    },
+    dealBlackList(blist) {
+        return Array.from(blist || [])
     }
 }
 const specialLoad = {
@@ -76,6 +82,12 @@ const specialLoad = {
             }
         }
         return cache
+    },
+    dealWhiteList(wlist) {
+        return new Set(wlist || [])
+    },
+    dealBlackList(blist) {
+        return new Set(blist || [])
     }
 }
 const dataStruct = {
@@ -84,6 +96,8 @@ const dataStruct = {
     roomCacheUse: {},
     roomCachettl: {},
     openerCache: {},
+    dealWhiteList: new Set(),
+    dealBlackList: new Set()
 }
 //-----------------config end---------------------
 
@@ -150,10 +164,15 @@ function work() {
         for (let key in readObject) {
             try {
                 if (specialLoad[key]) {
-                    readObject[key] = specialLoad[key](readObject[key])
+                        readObject[key] = specialLoad[key](readObject[key])
                 }
             } catch (e) {
                 console.log('Game.memory.read.specialLoad error' + e + " key= " + key)
+            }
+        }
+        for (let key in dataStruct) {
+            if (!(key in readObject)) {
+                readObject[key] = dataStruct[key]
             }
         }
         // console.log('readObject=' + JSON.stringify(readObject))

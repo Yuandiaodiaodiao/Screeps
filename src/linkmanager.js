@@ -8,7 +8,7 @@ function work(creep) {
     const container = Game.getObjectById(memory.container)
     const storage = creep.room.storage
 
-    if (!(Game.defend.defendRoom.includes(creep.room.name)&&Memory.wallNum[creep.room.name] > 1)) {
+    if (!(Game.defend.defendRoom.includes(creep.room.name) && Memory.wallNum[creep.room.name] > 1 && Game.defend.wallWorkLength[creep.room.name] > 1)) {
         if (memory.status == 'miss') {
             const upgrader = Game.time - (require('upgrader').upgradertime[creep.pos.roomName] || Game.time)
             memory._move = undefined

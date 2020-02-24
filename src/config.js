@@ -44,14 +44,13 @@ var role_num = {
     subprotecter: 1,
     terminalmanager: 1,
     farcarryer: 0,
-    'power-b': 0,
     'power-a': 0,
+    'power-b': 0,
     'power-c': 0,
     SEAL: 0,
     destroyer: 0
 }
 module.exports.role_num = role_num
-let price = {}
 let funcQueue = []
 module.exports.funcQueue = funcQueue
 module.exports.dofuncQueue = function () {
@@ -64,21 +63,29 @@ module.exports.dofuncQueue = function () {
     }
 }
 
+let price = {}
 function solveAveragePrice(type, dayLen = 2) {
     if (price[type]) return price[type]
     let history = Game.market.getHistory(type)
-    history = history.slice(history.length - dayLen)
-    let max = _.max(history, o => o.avgPrice + o.stddevPrice)
-    let min = _.max(history, o => o.avgPrice - o.stddevPrice)
-    price[type] = {
-        maxPrice: max.avgPrice + max.stddevPrice,
-        minPrice: min.avgPrice - min.stddevPrice
+    if(!history)return
+    if(!history.slice)return
+    try{
+        history = history.slice(history.length - dayLen)
+        let max = _.max(history, o => o.avgPrice + o.stddevPrice)
+        let min = _.min(history, o => o.avgPrice - o.stddevPrice)
+        price[type] = {
+            maxPrice: max.avgPrice + max.stddevPrice,
+            minPrice: min.avgPrice - min.stddevPrice
+        }
+    }catch (e) {
+        console.log(type+'solveAveragePrice error'+e+JSON.stringify(history))
     }
+
     return price[type]
 }
 
 module.exports.solveAveragePrice = solveAveragePrice
-let resources = ['energy', 'power', RESOURCE_CATALYST, RESOURCE_HYDROGEN, RESOURCE_OXYGEN, RESOURCE_UTRIUM, RESOURCE_ZYNTHIUM, RESOURCE_KEANIUM, RESOURCE_LEMERGIUM]
+let resources =RESOURCES_ALL
 for (let type of resources) {
     try {
         solveAveragePrice(type)

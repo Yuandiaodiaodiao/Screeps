@@ -159,6 +159,7 @@ module.exports.statistics = function () {
                     delete pbCache[key]
                 }
             }
+
             Object.keys(Memory.rooms).forEach(roomName => {
                 let room = Game.rooms[roomName]
                 if (!room) return
@@ -258,6 +259,7 @@ module.exports.statistics = function () {
             Memory.grafana.barHave = barHave
             Memory.grafana.roomTypeHave = roomTypeHave
             Memory.grafana.pbCache = pbCache
+            Memory.grafana.GameTick = Game.time
 
         }
 

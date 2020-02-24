@@ -9,7 +9,15 @@ function work() {
     if (observer_queue.size == 0) return
     let observers = []
     Memory.observer.forEach(o => observers.push(Game.getObjectById(o)))
-    for (let roomName of observer_queue) {
+    for (let roomNameO of observer_queue) {
+        let roomName
+        let callBack
+        if(typeof(roomNameO)==='string'){
+            roomName=roomNameO
+        }else{
+            roomName=roomNameO.roomName
+            callBack=roomNameO.callBack
+        }
         const room = Game.rooms[roomName]
         if (!room) {
             //不可见
@@ -94,7 +102,13 @@ function work() {
                 Game.memory.roomCache[roomName] = costs
                 Game.memory.roomCachettl[roomName] = Game.time
             }
-
+            if(callBack){
+                try{
+                    callBack(room)
+                }catch (e) {
+                    console.log('observer callback error'+e+roomName)
+                }
+            }
 
         }
     }

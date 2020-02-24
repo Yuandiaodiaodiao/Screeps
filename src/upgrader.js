@@ -11,7 +11,11 @@ function work(creep) {
                 filter: obj => obj.structureType === STRUCTURE_CONTAINER
             }), o => o.pos.getRangeTo(target.pos))
             if (container) memory.container = container.id
+            else {
+                console.log('no container upgrade' + creep.name)
+            }
         }
+
         let workPos
         if (memory.workPos) {
             workPos = new RoomPosition(...memory.workPos)

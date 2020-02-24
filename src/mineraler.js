@@ -21,7 +21,7 @@ function work(creep) {
     if (creep.memory.status == 'going') {
         let target = Game.getObjectById(creep.memory.container)
         if (target) {
-            creep.moveTo(target,{reusePath: 50})
+            creep.moveTo(target,{reusePath: 50,range:1})
             if (creep.pos.getRangeTo(target) === 0) {
                 creep.memory.status = 'mining'
             }
