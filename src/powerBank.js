@@ -150,7 +150,7 @@ function cache() {
         const rooms = powerRoom[roomName]
         for (let roomn of rooms) {
             if (!Memory.powerPlan[roomn])
-                require('observer').observer_queue.add(roomn)
+                require('observer').observer_queue[roomn]={roomName:roomn}
         }
     }
 }

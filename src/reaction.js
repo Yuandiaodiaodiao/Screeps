@@ -94,7 +94,7 @@ module.exports.work = function (room) {
                 continue
             }
             const outputnum = terminal.store[output] || 0
-            if (outputnum < minVal && outputnum < produceLimit[output]) {
+            if (outputnum < minVal && outputnum < produceLimit[output]-50) {
                 minVal = outputnum
                 minType = output
             }

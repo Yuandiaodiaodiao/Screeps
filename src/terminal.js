@@ -243,6 +243,14 @@ function handlesell(roomName) {
             return act
         }
     }
+    if(roomName==='E19N41'){
+        if (storage && terminal) {
+            let act = sellSome(room, terminal, 'XGH2O', 3000, 2)
+            if (act === OK) {
+                return act
+            }
+        }
+    }
 
 
 }
@@ -255,7 +263,9 @@ function handlesell(roomName) {
 let MarketCache = {}
 
 function sellSome(room, terminal, type, amount, minPrice) {
-
+    if(!(terminal.store[type]>0)){
+        return -13
+    }
     let allorders
     if (type === RESOURCE_ENERGY) {
         if (!MarketCache[type] || MarketCache[type].ttl !== Game.time) {
@@ -276,7 +286,7 @@ function sellSome(room, terminal, type, amount, minPrice) {
             } else if (Game.memory.dealWhiteList.has(obj.roomName) || Game.tools.isHighway(obj.roomName)) {
                 return true
             } else {
-                Game.observer.observer_queue.add({
+                Game.observer.observer_queue[obj.roomName]={
                     roomName: obj.roomName,
                     callBack: (roomObj) => {
                         let roomUser = roomObj.controller && roomObj.controller.owner && roomObj.controller.owner.username
@@ -290,7 +300,7 @@ function sellSome(room, terminal, type, amount, minPrice) {
                             Game.memory.dealWhiteList.add(roomObj.name)
                         }
                     }
-                })
+                }
                 return false
             }
         }
@@ -318,7 +328,7 @@ function sellSome(room, terminal, type, amount, minPrice) {
         // console.log(`room ${room.name} try order= ${JSON.stringify(order)}`)
         const energycost = Game.market.calcTransactionCost(1000, room.name, order.roomName) / 1000
         const maxsend = type === RESOURCE_ENERGY ? terminal.store[RESOURCE_ENERGY] / (1 + energycost) - 20 : terminal.store[RESOURCE_ENERGY] / energycost
-        const sell = _.min([(terminal.store[type] || 0), maxsend, amount, order.amount - 1])
+        const sell = _.min([(terminal.store[type] || 0), maxsend, amount, type in Game.reaction.produceLimit?order.amount:order.amount-1])
         ans = Game.market.deal(order.id, sell, room.name)
         if (ans === OK) {
             order.amount -= sell

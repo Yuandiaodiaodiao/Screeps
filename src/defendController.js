@@ -31,8 +31,8 @@ function miss(room) {
     if (Game.cpu.bucket < 3000 || Memory.defend.wallLock[room.name]) {
         Memory.wallNum[room.name] = 0
     } else {
-        let numPerBucket = (Game.cpu.bucket - 3000) / defendNumLimit[room.name]
-        Memory.wallNum[room.name] = Math.ceil(Math.max(0, Game.cpu.bucket / numPerBucket))
+        let numPerBucket = (7e3) / defendNumLimit[room.name]
+        Memory.wallNum[room.name] = Math.ceil(Math.max(0, (Game.cpu.bucket-3000) / numPerBucket))
         if (Object.keys(Memory.powerPlan).length > 0) {
             Memory.wallNum[room.name] = 0
         }

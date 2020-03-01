@@ -154,11 +154,11 @@ function roomc_nocreep(roomName) {
     if (!room && Game.memory.observerCache[roomName] && Game.memory.observerCache[roomName].owner) {
         return false
     } else if (!Game.memory.observerCache[roomName]) {
-        observer.observer_queue.add(roomName)
+        observer.observer_queue[roomName]={roomName:roomName}
         Game.memory.roomCacheUse[roomName] = Game.time
         return false
     } else if (!Game.memory.observerCache[roomName].time) {
-        observer.observer_queue.add(roomName)
+        observer.observer_queue[roomName]={roomName:roomName}
         Game.memory.roomCacheUse[roomName] = Game.time
         return false
     } else if (Game.memory.roomCacheUse[roomName] && Game.time - Game.memory.roomCacheUse[roomName] > 500) {
@@ -176,7 +176,7 @@ function roomc_nocreep(roomName) {
         Game.memory.roomCachettl[roomName] = Game.time
         Game.memory.roomCacheUse[roomName] = Game.time
     } else {
-        observer.observer_queue.add(roomName)
+        observer.observer_queue[roomName]={roomName:roomName}
         Game.memory.roomCacheUse[roomName] = Game.time
         return false
     }

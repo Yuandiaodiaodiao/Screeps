@@ -115,12 +115,19 @@ function work(room) {
         let hurtCreep = _.min(targets.filter(o => o.hits < o.hitsMax), o => {
             return selecter.checkTough(o.body).hits
         })
-        if (hurtCreep && hurtCreep !== Infinity) {
+        if (hurtCreep && hurtCreep !== Infinity && (!room.memory.tower.findHurtTimes || room.memory.tower.findHurtTimes < 20)
+            && (room.memory.tower.lasthits || 5001) > hurtCreep.hits
+        ) {
             room.visual.text('hurt', hurtCreep.pos,
                 {color: 'red', lineStyle: 'dashed'})
             room.towers.forEach(o => o.attack(hurtCreep))
             attackSucc = true
+            room.memory.tower.lasthits = hurtCreep.hits
+            room.memory.tower.findHurtTimes = (room.memory.tower.findHurtTimes || 0) + 1
+
         } else {
+            room.memory.tower.lasthits=undefined
+            room.memory.tower.findHurtTimes = 0
             memory.firestatus = ''
             memory.testSleep = Game.time + Math.floor(Math.random() * 3) + 3
         }

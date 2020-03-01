@@ -1,5 +1,5 @@
 function work(targetRoom){
-    Game.observer.observer_queue.add(targetRoom)
+    Game.observer.observer_queue[targetRoom]={roomName:targetRoom}
     let usefult3=require('reaction').usefult3
     let obcache=Game.memory.observerCache[targetRoom]
     let limit=Game.config.obterminal[targetRoom].limit

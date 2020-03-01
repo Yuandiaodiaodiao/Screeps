@@ -1,23 +1,19 @@
-var observer_queue = new Set()
+let observer_queue = {}
 
 // var observerCache = undefined
 
 function work() {
     if (!Game.memory.observerCache) Game.memory.observerCache = {}
-    if (!observer_queue) observer_queue = new Set()
+    if (!observer_queue) observer_queue = {}
     let used = new Set()
-    if (observer_queue.size == 0) return
+    if (Object.keys(observer_queue).legnth === 0) return
     let observers = []
     Memory.observer.forEach(o => observers.push(Game.getObjectById(o)))
-    for (let roomNameO of observer_queue) {
-        let roomName
-        let callBack
-        if(typeof(roomNameO)==='string'){
-            roomName=roomNameO
-        }else{
-            roomName=roomNameO.roomName
-            callBack=roomNameO.callBack
-        }
+    for (let roomNameO in observer_queue) {
+
+        let roomName=observer_queue[roomNameO].roomName
+        let callBack=observer_queue[roomNameO].callBack
+
         const room = Game.rooms[roomName]
         if (!room) {
             //不可见
@@ -33,7 +29,7 @@ function work() {
             }
             if (flag === false) {
                 if (observers.every(o => Game.map.getRoomLinearDistance(o.pos.roomName, roomName) > 10)) {
-                    observer_queue.delete(roomName)
+                    delete observer_queue[roomName]
                     delete Game.memory.observerCache[roomName]
                     delete Game.memory.roomCache[roomName]
                     delete Game.memory.roomCacheUse[roomName]
@@ -43,7 +39,16 @@ function work() {
             if (used.size === Memory.observer.length) break
         } else {
             //可见
-            observer_queue.delete(roomName)
+            delete observer_queue[roomName]
+            if(callBack){
+                try{
+                    callBack(room)
+                    continue
+                }catch (e) {
+                    console.log('observer callback error'+e+roomName)
+                }
+            }
+
             Game.memory.observerCache[roomName] = {}
             const controller = room.controller
             const spawn = room.spawns.length
@@ -102,13 +107,7 @@ function work() {
                 Game.memory.roomCache[roomName] = costs
                 Game.memory.roomCachettl[roomName] = Game.time
             }
-            if(callBack){
-                try{
-                    callBack(room)
-                }catch (e) {
-                    console.log('observer callback error'+e+roomName)
-                }
-            }
+
 
         }
     }
@@ -129,7 +128,7 @@ function find() {
 function cache() {
     for (let roomName in Game.memory.observerCache) {
         if (Game.memory.observerCache[roomName].time && Game.time - Game.memory.observerCache[roomName].time > 1000) {
-            observer_queue.add(roomName)
+            observer_queue[roomName]={roomName:roomName}
         }
     }
     for (let roomName in Game.memory.roomCache) {
