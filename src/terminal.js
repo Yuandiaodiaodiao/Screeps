@@ -71,7 +71,7 @@ module.exports.avgT3 = function () {
         try {
             let terminal = room.terminal
             let storage = room.storage
-            if (!terminal || !terminal.my || !storage) continue
+            if (!terminal || !terminal.my || !storage || !room.memory.missions || !room.memory.lab || !room.memory.lab.ok) continue
             if (room.spawns.length === 0) continue
             if (terminal.cooldown) continue
             for (let type in t3limit) {
@@ -106,29 +106,50 @@ module.exports.avgT3 = function () {
 
 module.exports.work = function (room, rate) {
     let terminal = room.terminal
-    if (!terminal || !terminal.my) return
-    if (room.spawns.length === 0) return
-    if (terminal && room.storage && room.storage.store[RESOURCE_ENERGY] / room.storage.store.getCapacity() > 0.65 && room.controller.level === 8) {
-        const helpRoomNameList = _.filter(Object.keys(Memory.rooms), roomName => {
+    if (!terminal || !terminal.my||!terminal.isActive()) return
+    // if (terminal && room.storage && room.storage.store[RESOURCE_ENERGY] / room.storage.store.getCapacity() > 0.65 && room.controller.level === 8) {
+    //     const helpRoomNameList = _.filter(Object.keys(Memory.rooms), roomName => {
+    //         let room2 = Game.rooms[roomName]
+    //         return ((room2.storage && (room.storage.store[RESOURCE_ENERGY] / room.storage.store.getCapacity() - room2.storage.store[RESOURCE_ENERGY] / room2.storage.store.getCapacity()) > 0.2) || (!room2.storage))
+    //             && room2.terminal && room2.terminal.my && room2.terminal.store[RESOURCE_ENERGY] <= 90000
+    //     })
+    //     const targetRoomName = lodash.minBy(helpRoomNameList, roomName => {
+    //         return Game.rooms[roomName].storage ? Game.rooms[roomName].storage.store[RESOURCE_ENERGY] : 0
+    //     })
+    //     if (targetRoomName && targetRoomName !== Infinity) {
+    //         let maxsend = Game.tools.solveMaxSend(room.name, targetRoomName, RESOURCE_ENERGY, room.terminal)
+    //         if (maxsend > 6000) {
+    //             let ans = terminal.send(RESOURCE_ENERGY, 6000, targetRoomName)
+    //             if (ans) {
+    //                 return ans
+    //             }
+    //         }
+    //         // console.log(`${room.name} help ${targetRoomName} ${RESOURCE_ENERGY} 6000`)
+    //     }
+    // }
+    // console.log('findminerals')
+    if (terminal && (!room.storage || room.storage.store.energy / 1e6 < 0.65 || room.spawns.length === 0) && (room.terminal.store.energy <=80e3 ||(room.spawns.length === 0&&room.terminal.store.getFreeCapacity('energy')>0))) {
+        let storageRate = !room.storage || room.spawns.length === 0 ? 500e3 : room.storage.store.energy
+        const sendRoomNameList = _.filter(Object.keys(Memory.rooms), roomName => {
             let room2 = Game.rooms[roomName]
-            return ((room2.storage && (room.storage.store[RESOURCE_ENERGY] / room.storage.store.getCapacity() - room2.storage.store[RESOURCE_ENERGY] / room2.storage.store.getCapacity()) > 0.2) || (!room2.storage))
-                && room2.terminal && room2.terminal.my && room2.terminal.store[RESOURCE_ENERGY] <= 90000
+            return (room2.storage && (room2.storage.store.energy > storageRate + 100e3)&&room2.spawns.length >=3 )
         })
-        const targetRoomName = lodash.minBy(helpRoomNameList, roomName => {
-            return Game.rooms[roomName].storage ? Game.rooms[roomName].storage.store[RESOURCE_ENERGY] : 0
-        })
-        if (targetRoomName && targetRoomName !== Infinity) {
-            let maxsend = Game.tools.solveMaxSend(room.name, targetRoomName, RESOURCE_ENERGY, room.terminal)
+        let needSend = room.spawns.length === 0? room.terminal.store.getFreeCapacity('energy'):(90e3 - room.terminal.store.energy)
+        sendRoomNameList.forEach(roomName => {
+            if (needSend <= 0) return
+            let fromRoom = Game.rooms[roomName]
+            if(fromRoom.terminal.cooldown>0)return
+            let maxsend = Game.tools.solveMaxSend(roomName, room.name, RESOURCE_ENERGY, fromRoom.terminal)
             if (maxsend > 6000) {
-                let ans = terminal.send(RESOURCE_ENERGY, 6000, targetRoomName)
-                if (ans) {
-                    return ans
+                let ans = fromRoom.terminal.send(RESOURCE_ENERGY, maxsend, room.name)
+                if (ans === OK) {
+                    needSend -= maxsend
                 }
             }
-            // console.log(`${room.name} help ${targetRoomName} ${RESOURCE_ENERGY} 6000`)
-        }
+        })
     }
-    // console.log('findminerals')
+    if (room.spawns.length === 0) return
+
     let mineral = room.find(FIND_MINERALS)[0]
     if (mineral) {
         let type = mineral.mineralType
@@ -163,7 +184,7 @@ module.exports.work = function (room, rate) {
         const powerHave = terminal.store[RESOURCE_POWER]
         for (let roomNames in Memory.rooms) {
             let rooms = Game.rooms[roomNames]
-            if (rooms.controller.level === 8) {
+            if (rooms.controller.level === 8 && rooms.powerSpawn) {
                 let terminals = rooms.terminal
                 if (!terminals) continue
                 const powerLast = (terminals.store[RESOURCE_POWER] || 0)
@@ -183,7 +204,7 @@ module.exports.work = function (room, rate) {
     if ((terminal.store[RESOURCE_GHODIUM] || 0) < 3000) {
         for (let roomNames in Memory.rooms) {
             let rooms = Game.rooms[roomNames]
-            if (rooms.controller.level === 8) {
+            if (rooms.controller.level === 8 && rooms.nuker) {
                 let terminals = rooms.terminal
                 if (!terminals) continue
                 if ((terminals.store[RESOURCE_GHODIUM] || 0) >= 6000) {
@@ -243,8 +264,12 @@ function handlesell(roomName) {
             return act
         }
     }
-    if(roomName==='E19N41'){
+    if (roomName === 'E19N41') {
+
         if (storage && terminal) {
+            if (terminal.store['XGH2O'] < 3000) {
+                Game.tools.give('E19N41', 'XGH2O', 3000)
+            }
             let act = sellSome(room, terminal, 'XGH2O', 3000, 2)
             if (act === OK) {
                 return act
@@ -263,7 +288,7 @@ function handlesell(roomName) {
 let MarketCache = {}
 
 function sellSome(room, terminal, type, amount, minPrice) {
-    if(!(terminal.store[type]>0)){
+    if (!(terminal.store[type] > 0)) {
         return -13
     }
     let allorders
@@ -286,7 +311,7 @@ function sellSome(room, terminal, type, amount, minPrice) {
             } else if (Game.memory.dealWhiteList.has(obj.roomName) || Game.tools.isHighway(obj.roomName)) {
                 return true
             } else {
-                Game.observer.observer_queue[obj.roomName]={
+                Game.observer.observer_queue[obj.roomName] = {
                     roomName: obj.roomName,
                     callBack: (roomObj) => {
                         let roomUser = roomObj.controller && roomObj.controller.owner && roomObj.controller.owner.username
@@ -328,7 +353,7 @@ function sellSome(room, terminal, type, amount, minPrice) {
         // console.log(`room ${room.name} try order= ${JSON.stringify(order)}`)
         const energycost = Game.market.calcTransactionCost(1000, room.name, order.roomName) / 1000
         const maxsend = type === RESOURCE_ENERGY ? terminal.store[RESOURCE_ENERGY] / (1 + energycost) - 20 : terminal.store[RESOURCE_ENERGY] / energycost
-        const sell = _.min([(terminal.store[type] || 0), maxsend, amount, type in Game.reaction.produceLimit?order.amount:order.amount-1])
+        const sell = _.min([(terminal.store[type] || 0), maxsend, amount, type in Game.reaction.produceLimit ? order.amount : order.amount - 1])
         ans = Game.market.deal(order.id, sell, room.name)
         if (ans === OK) {
             order.amount -= sell

@@ -120,6 +120,11 @@ function born(spawnnow, creepname, memory) {
     )
 }
 
+
+let nowUpgrade={
+
+}
+
 function miss(room) {
     let role_num_fix = Game.config.role_num_fix
     role_num_fix[room.name] = role_num_fix[room.name] || {}
@@ -148,6 +153,30 @@ function miss(room) {
     if (!room.storage) {
         role_num_fix[room.name].upgrader = 0
     }
+    if(nowUpgrade[room.name]){
+        role_num_fix[room.name].upgrader = 1
+    }
+    if(room.controller.level===8){
+        //冲gcl决策
+        if( room.storage.store[RESOURCE_ENERGY] / room.storage.store.getCapacity() >= 0.68&& Game.cpu.bucket > 9000 && Object.keys(Memory.powerPlan).length <=2){
+            //正在升级的数量
+            const nowLength=Object.keys(nowUpgrade).length
+            const nowCpuUse=Memory.grafana.cpuavg+nowLength*0.4
+            const freeCpu=18.8-nowCpuUse
+            // console.log(`${room.name} freeCpu=${freeCpu}`)
+            if(freeCpu>0.4){
+                nowUpgrade[room.name]=true
+                //确认升级
+                role_num_fix[room.name].upgrader = 1
+            }else{
+                delete nowUpgrade[room.name]
+            }
+        }else{
+            delete nowUpgrade[room.name]
+        }
+    }
+
+
     // if (room.name == 'E29N38') {
     //     console.log('E29N38 upgrader=' + role_num_fix[room.name].upgrader)
     // }

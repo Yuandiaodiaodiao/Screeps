@@ -82,6 +82,10 @@ function work(creep) {
             creep.moveTo((Game.flags['dis' + creep.memory.missionid].pos))
             return
         }
+        if(Game.flags['reClaim']){
+            creep.memory.status='reClaim'
+            return
+        }
         if (creep.pos.roomName == creep.memory.missionid) {
             const controller = Game.rooms[creep.memory.missionid].controller
             if (controller.level === 0) {
@@ -101,7 +105,7 @@ function work(creep) {
                 }
 
             }
-            if (!controller.my) {
+            if (controller.my===false) {
 
                 const act = creep.attackController(controller)
                 if (act === ERR_NOT_IN_RANGE) {
@@ -164,6 +168,7 @@ function work(creep) {
             creep.memory.status = 'suicide'
             return
         }
+
         const structs = creep.room.find(FIND_STRUCTURES, {
             filter: o => {
                 if (o.structureType === STRUCTURE_WALL) {
@@ -219,6 +224,17 @@ function work(creep) {
 
         console.log('sign=' + strsign)
         creep.suicide()
+    }else if(creep.memory.status==='reClaim'){
+        if(creep.room.controller.level===8){
+            creep.room.controller.unclaim()
+        }else{
+            let controller=creep.room.controller
+            let act=creep.claimController(controller)
+            creep.moveTo(controller)
+            if(act===OK){
+                creep.suicide()
+            }
+        }
     }
 
 }

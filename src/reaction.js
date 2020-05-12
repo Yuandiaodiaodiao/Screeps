@@ -70,7 +70,7 @@ module.exports.reaction = reaction
 module.exports.work = function (room) {
 
     const terminal = room.terminal
-    if (!terminal || room.controller.level !== 8 || !room.memory.lab.ok) return
+    if (!terminal || room.controller.level !== 8 ||!room.memory.lab ||!room.memory.lab.ok) return
     if (!room.memory.reaction) {
         room.memory.reaction = {
             status: 'miss',

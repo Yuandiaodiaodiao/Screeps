@@ -112,6 +112,8 @@ function work(creep) {
             })
             if (nums >= (creep.memory.teamNum || 1)) {
                 creep.memory.status = 'autoIn'
+            } else {
+                creep.memory.status = 'fighting'
             }
         }
 
@@ -119,6 +121,10 @@ function work(creep) {
         let flagIn = Game.flags['autoIn' + creep.memory.missionid]
 
         let flag = Game.flags['rush' + creep.memory.missionid]
+        if (!flagIn) {
+            creep.memory.status = 'fighting'
+            return
+        }
         if (!flag) {
             creep.memory.status = 'fighting'
             return
@@ -127,7 +133,7 @@ function work(creep) {
         let pair = Game.getObjectById(creep.memory.pair)
         let roomdis = Game.map.getRoomLinearDistance(creep.room.name, flag.pos.roomName)
         if (roomdis === 1) {
-            if (!creep.pos.isNearTo(pair)&&creep.pos.roomName===pair.pos.roomName) {
+            if (!creep.pos.isNearTo(pair) && creep.pos.roomName === pair.pos.roomName) {
                 pair.moveTo(creep)
             } else {
                 creep.moveTo(flagIn)
@@ -173,7 +179,7 @@ function work(creep) {
                     maxRooms: 1,
                     maxOps: 500
                 })
-                if(!ans.incomplete){
+                if (!ans.incomplete) {
                     flag.setPosition(sources.pos)
                 }
             } else {
@@ -223,7 +229,9 @@ function work(creep) {
                 pair.rangedAttack(nearestEnemy)
                 attackEd = true
             }
-            if (typeof nearestEnemy === 'object' && nearestEnemy != null && nearestEnemy.id) {
+            let attackPart = creep.getActiveBodyparts(ATTACK) + creep.getActiveBodyparts(RANGED_ATTACK)
+            if (typeof nearestEnemy === 'object' && nearestEnemy != null && nearestEnemy.id&& attackPart>0) {
+                //主动出击
                 let ans = PathFinder.search(creep.pos, {pos: nearestEnemy.pos, range: 0}, {
                     roomCallback: Game.tools.roomc_nocreep,
                     plainCost: 1,
@@ -257,6 +265,7 @@ function work(creep) {
 
             }
             if (!creep.pos.isNearTo(flag.pos) && attackEd === false) {
+                //打沿路建筑
                 let target = creep.pos.findInRange(FIND_HOSTILE_STRUCTURES, 1)[0]
                 if (!target) target = creep.pos.findInRange(FIND_STRUCTURES, 1, {filter: o => o.structureType !== STRUCTURE_CONTAINER})[0]
                 if (target) {
@@ -268,6 +277,7 @@ function work(creep) {
                     creep.rangedAttack(target)
                 }
             } else if (attackEd === false) {
+                //打旗子建筑
                 const structures = flag.pos.lookFor(LOOK_STRUCTURES)
                 const rampart = structures.find(struct => struct.structureType === STRUCTURE_RAMPART)
                 if (rampart) {
@@ -293,6 +303,7 @@ function work(creep) {
                     }
 
                 } else {
+                    //攻击过了 随便打打
                     let target = creep.pos.findInRange(FIND_HOSTILE_STRUCTURES, 1)[0]
                     if (!target) target = creep.pos.findInRange(FIND_STRUCTURES, 1, {filter: o => o.structureType !== STRUCTURE_CONTAINER})[0]
                     if (target) {

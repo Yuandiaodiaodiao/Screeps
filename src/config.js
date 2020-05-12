@@ -110,3 +110,16 @@ module.exports.obterminal = {
     // }
 
 }
+module.exports.refreshPrice=function(){
+    for (let type of resources) {
+        try {
+            price[type]=undefined
+            solveAveragePrice(type)
+        } catch (e) {
+            console.log('config price' + e)
+        }
+    }
+    price.power.sell = price.power.minPrice
+    price.power.order = price.power.minPrice * 1.05
+
+}

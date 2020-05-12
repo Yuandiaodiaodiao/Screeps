@@ -12,6 +12,7 @@ function miss(room) {
     if (typeof (room) === 'string') {
         room = Game.rooms[room]
     }
+    if(!room.memory.missions)return
     //wall work
     if (room.controller && room.controller.level <= 7) {
         return

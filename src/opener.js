@@ -7,6 +7,8 @@ function statusmiss(creep) {
             creep.memory.status = 'fillextension'
         } else if (creep.room.controller.ticksToDowngrade < 3000) {
             creep.memory.status = 'upgrade'
+        } else if (creep.room.controller.level === 8 && creep.room.storage && creep.room.storage.store.energy < 1e6) {
+            creep.memory.status = 'fill'
         } else {
             creep.memory.status = creep.memory.role
             if (creep.memory.status === 'build') {
@@ -63,24 +65,35 @@ function work(creep) {
         creep.memory.cost = cost
         creep.memory.step = 0
         creep.memory.path = path
-        creep.memory.status = 'beforego'
+        if (creep.getActiveBodyparts(MOVE) < 25) {
+            creep.memory.status = 'go'
+        } else {
+            creep.memory.status = 'beforego'
+        }
+
     } else if (creep.memory.status === 'beforego') {
+
         creep.moveTo(creep.room.storage, {range: 1})
         let act = creep.withdraw(creep.room.storage, RESOURCE_ENERGY)
         if (act === ERR_FULL) {
             creep.memory.status = 'go'
         }
     } else if (creep.memory.status === 'go') {
-        const act = Game.tools.moveByLongPath(creep.memory.path, creep)
+        const act = Game.tools.moveByLongPath2(creep.memory.path, creep)
         if (act === OK) {
             statusmiss(creep)
-
+            delete creep.memory.lastMove
             delete creep.memory.path
             delete creep.memory.step
         }
     } else if (creep.memory.status === 'upgrade') {
+
         let target = creep.room.controller
         let act = creep.upgradeController(target)
+        if(creep.room.terminal.store.energy>1e3){
+            creep.memory.status="terminalupgrade"
+            return
+        }
         if (act === ERR_NOT_IN_RANGE || target.pos.getRangeTo(creep) >= 3) {
             creep.moveTo(target, {ignoreRoads: true, maxCost: 50, maxOps: 500, range: 2, ignoreCreeps: false})
         } else if (act === ERR_NOT_ENOUGH_ENERGY) {
@@ -88,15 +101,44 @@ function work(creep) {
         }
         if (creep.room.terminal && creep.store.energy <= creep.getActiveBodyparts('work') * 2) {
             creep.withdraw(creep.room.terminal, RESOURCE_ENERGY)
-            if (Game.time % 20 === 0) {
-                statusmiss(creep)
-                if (creep.memory.status === 'get') {
-                    creep.memory.status = 'upgrade'
-                }
+        }
+        if (Game.time % 20 === 0) {
+            statusmiss(creep)
+            if (creep.memory.status === 'get') {
+                creep.memory.status = 'upgrade'
             }
-
         }
 
+    } else if (creep.memory.status === 'terminalupgrade') {
+        let target = creep.room.controller
+        let act = creep.upgradeController(target)
+        let stayPos
+        if(creep.memory.terminalStay){
+            stayPos=Game.tools.array2pos(creep.memory.terminalStay)
+
+        }
+        if(!creep.memory.terminalStay&&creep.pos.isNearTo(target)){
+            //未初始化 但是位置差不多
+            creep.memory.terminalStay = Game.tools.pos2array(creep.pos)
+            stayPos=target.pos
+        }
+
+        if (!creep.memory.terminalStay || !creep.pos.isEqualTo(stayPos)) {
+            //正在路上
+            let pos = Game.tools.nearavailable(creep.room.terminal.pos, true)
+            creep.memory.terminalStay = Game.tools.pos2array(pos)
+            stayPos=pos
+            creep.moveTo(stayPos)
+        }
+        if (creep.room.terminal && creep.store.energy <= 50) {
+            creep.withdraw(creep.room.terminal, RESOURCE_ENERGY)
+        }
+        if (Game.time % 20 === 0) {
+            statusmiss(creep)
+            if (creep.memory.status === 'get') {
+                creep.memory.status = 'terminalupgrade'
+            }
+        }
     } else if (creep.memory.status === 'get') {
         let target = creep.pos.findClosestByRange(FIND_STRUCTURES, {filter: o => o.structureType == STRUCTURE_CONTAINER && o.store.energy > 500})
         if (!target) target = creep.room.terminal
@@ -156,9 +198,15 @@ function work(creep) {
         if (target && creep.room.controller.level >= 4) {
             let act = creep.transfer(target, RESOURCE_ENERGY)
             if (act == ERR_NOT_IN_RANGE) {
-                creep.moveTo(target)
-            } else if (act == OK) {
+                const pos = Game.tools.nearavailable(target.pos, true)
+                creep.moveTo(pos, {ignoreCreeps: false})
+            } else if (act === OK) {
                 creep.memory.status = 'get'
+            } else {
+                statusmiss(creep)
+            }
+            if (Game.time % 20 === 0) {
+                statusmiss(creep)
             }
         } else {
             creep.memory.status = 'upgrade'
@@ -215,11 +263,19 @@ function born(spawnnow, creepname, memory = {}) {
     let tRoom = Game.rooms[memory.roomName]
     if (tRoom && tRoom.controller.level >= 6 && tRoom.terminal) {
         body = {
-            'work': 22,
-            'carry': 6,
-            'move': 22
+            'work': 24,
+            'carry': 2,
+            'move': 24
+        }
+        if(tRoom.find(FIND_CONSTRUCTION_SITES).length>1){
+            body = {
+                'work': 10,
+                'carry': 15,
+                'move': 25
+            }
         }
     }
+
     let bodyparts = require('tools').generatebody(body, spawnnow)
     return spawnnow.spawnCreep(
         bodyparts,
@@ -241,9 +297,9 @@ let help = {
     // 'E11N32':{
     // 'E14N41':3
     // }
-    'W15N32': {
-        'W5N31': 3
-    }
+    // 'W15N32': {
+    //     'W5N31': 3
+    // }
 }
 
 function miss() {
@@ -264,7 +320,7 @@ function miss() {
             room.memory.missions.opener = {}
             room.memory.missions.opener[helpName] = {
                 roomName: helpName,
-                numfix: help[helpName][fromName],
+                numfix: helproom.controller.level === 8 ? Math.min(2, help[helpName][fromName]) : help[helpName][fromName],
                 cost: cost
             }
         }

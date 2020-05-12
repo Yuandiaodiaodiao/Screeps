@@ -38,9 +38,9 @@ function work() {
             }
             if (used.size === Memory.observer.length) break
         } else {
-            //可见
+            //可见 删除ob任务
             delete observer_queue[roomName]
-            if(callBack){
+            if(callBack){ //自定义的callback任务
                 try{
                     callBack(room)
                     continue
@@ -49,6 +49,7 @@ function work() {
                 }
             }
 
+            //执行默认的观察任务
             Game.memory.observerCache[roomName] = {}
             const controller = room.controller
             const spawn = room.spawns.length

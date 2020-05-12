@@ -481,7 +481,39 @@ function moveByLongPath(pathArray, creep) {
 
     return ERR_NOT_IN_RANGE
 }
+function moveByLongPath2(pathArray, creep) {
+    if (!pathArray) {
+        return ERR_NOT_IN_RANGE
+    }
+    if (creep.memory.step >= pathArray.length - 1) {
+        return OK
+    }
+    let lastMove=creep.memory.lastMove||[0,0]
+    if(lastMove[0]===creep.memory.step){
+        lastMove[1]++
+    }else{
+        lastMove=[creep.memory.step,0]
+    }
+    if(lastMove[1]>=6){
+        creep.memory.step++
+        lastMove=[creep.memory.step,0]
+    }
+    creep.memory.lastMove=lastMove
+    let pos = new RoomPosition(...pathArray[creep.memory.step])
 
+    if (creep.pos.isEqualTo(pos)) {
+        creep.memory.step++
+        pos = new RoomPosition(...pathArray[creep.memory.step])
+    }
+    if (creep.pos.isNearTo(pos)) {
+        creep.memory.step++
+        creep.move(creep.pos.getDirectionTo(pos))
+    } else {
+        creep.moveTo(pos, {plainCost: 1, swampCost: 5, reusePath: 20})
+    }
+
+    return ERR_NOT_IN_RANGE
+}
 function zipCostMatrix(cost) {
     let arr = new Uint32Array(cost._bits.buffer)
     let ans = {}
@@ -592,8 +624,16 @@ function changeCostMatrix(room, creep) {
         }
     }
 }
-
+function pos2array(pos){
+    return [pos.x,pos.y,pos.roomName]
+}
+function array2pos(array){
+    return new RoomPosition(array[0],array[1],array[2])
+}
 module.exports = {
+    'moveByLongPath2':moveByLongPath2,
+    'array2pos':array2pos,
+    'pos2array':pos2array,
     'solveMaxSend': solveMaxSend,
     'changeCostMatrix': changeCostMatrix,
     'buy': buy,

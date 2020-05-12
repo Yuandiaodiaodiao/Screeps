@@ -35,7 +35,8 @@ let whiteList = new Set([
     'fangxm',
     'czc',
     'EricGuo',
-    'qnz'
+    'qnz',
+    'TPEZ'
 ])
 let blackList=new Set(
     [

@@ -392,7 +392,12 @@ function load() {
     Game.runTime = Game.time - Memory.cpu.pushTime
     Game.defend = require('defendController')
     Game.reaction = require('reaction')
-
+    for (let roomName in Memory.rooms) {
+        let room=Game.rooms[roomName]
+        if(!room){
+            delete Memory.rooms[roomName]
+        }
+    }
 }
 
 var missionController = require('missionController')
@@ -400,16 +405,20 @@ var missionController = require('missionController')
 module.exports.loop = function () {
     if (shard()) return
 
+    
+
     load()
     try {
         require('Game.memory').work()
         if(Game.time%100e3===0){
             Game.memory.dealBlackList=new Set()
             Game.memory.dealWhiteList=new Set()
+            Game.config.refreshPrice()
         }
     } catch (e) {
         console.log('main.Game.memory error' + e)
     }
+    require("constructionVisual").work()
     // try {
     //     require('cacheController').Cache()
     // } catch (e) {

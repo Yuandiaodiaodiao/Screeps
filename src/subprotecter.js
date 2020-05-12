@@ -30,11 +30,7 @@ function work(creep) {
             creep.memory._move = undefined
         }
     } else if (creep.memory.status == 'miss') {
-        let targets = require('tools').findroomselse(Game.rooms[creep.memory.missionid], FIND_HOSTILE_CREEPS, {
-            filter: obj => {
-                return !require('whitelist').whitelist.has(obj.owner.username)
-            }
-        }).sort((a, b) => {
+        let targets = require('tools').findroomselse(Game.rooms[creep.memory.missionid], FIND_HOSTILE_CREEPS).sort((a, b) => {
             if (a.pos.roomName != b.pos.roomName) return a.pos.roomName > b.pos.roomName ? 1 : -1
             else return a.pos.x - b.pos.x
         })
@@ -170,11 +166,7 @@ let x=require('tools').findroomselse(Game.rooms['E27N38'], FIND_HOSTILE_STRUCTUR
 function miss(room) {
     if (!room.memory.missions) return
     room.memory.missions.subprotecter = {}
-    let len = require('tools').findroomselse(room, FIND_HOSTILE_CREEPS, {
-        filter: obj => {
-            return !require('whitelist').whitelist.has(obj.owner.username)
-        }
-    }).length
+    let len = require('tools').findroomselse(room, FIND_HOSTILE_CREEPS).length
     if (require('tools').findroomselse(room, FIND_HOSTILE_STRUCTURES, {
         filter: obj => {
             return obj.structureType === STRUCTURE_INVADER_CORE

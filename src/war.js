@@ -59,7 +59,8 @@ function miss(filterName) {
         if (flag) {
             const roomName = flag.pos.roomName
             try {
-                const rooms = Object.keys(Memory.rooms).sort((a, b) => Game.map.getRoomLinearDistance(a, roomName) - Game.map.getRoomLinearDistance(b, roomName))[0]
+                const rooms = _.min(Object.keys(Memory.rooms), a => (a === roomName || Game.rooms[a].spawns.length === 0) ? Infinity : Game.map.getRoomLinearDistance(a, flag.pos.roomName))
+
                 let arr = [roomName, [flag.pos.x, flag.pos.y, roomName], {destroyer: 1}, [rooms]]
                 if (flag.color === COLOR_RED) {
                     arr[2]['SEAL'] = 1
@@ -85,7 +86,8 @@ function miss(filterName) {
         if (!flagWait.memory.init) {
             flagWait.memory.init = true
             flagWait.memory.fromRoom = []
-            const rooms = Object.keys(Memory.rooms).sort((a, b) => Game.map.getRoomLinearDistance(a, flagWait.pos.roomName) - Game.map.getRoomLinearDistance(b, flagWait.pos.roomName))[0]
+            const rooms = _.min(Object.keys(Memory.rooms), a => Game.rooms[a].spawns.length === 0 ? Infinity : Game.map.getRoomLinearDistance(a, flagWait.pos.roomName))
+
             flagWait.memory.fromRoom.push(rooms)
             flagWait.memory.partType = ''
             if (flagWait.color === COLOR_RED) {
@@ -205,8 +207,8 @@ function miss(filterName) {
                         console.log(`from${fromRoomName}to${targetRoomName}failed${config.failedtimes}times`)
                     }
                     continue
-                }else{
-                    config.failedtimes=1
+                } else {
+                    config.failedtimes = 1
                 }
                 console.log(`from${fromRoomName}to${targetRoomName}use ops${ans.ops} cost${ans.cost}`)
                 const path = []

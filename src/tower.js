@@ -151,7 +151,7 @@ function work(room) {
                 if (obj.structureType === STRUCTURE_WALL) return obj.hits < (roomenergy > 0.98 ? 1e7 : 1e5)
                 else if (obj.structureType === STRUCTURE_RAMPART) {
                     if (obj.pos.getRangeTo(room.storage) <= 10) {
-                        return obj.hits < (roomenergy > 0.98 ? 1e8 : 1e6)
+                        return obj.hits < (roomenergy > 0.98 ? 1e7 : 1e6)
                     } else {
                         return obj.hits < (roomenergy > 0.98 ? 1e7 : 1e6)
                     }
