@@ -734,7 +734,12 @@ module.exports.loop = function () {
 
 
     if (Game.time % 20 === 0) {
-        Game.war.miss()
+        try{
+            Game.war.miss()
+
+        }catch (e) {
+            console.log("Game.war error "+e)
+        }
     }
 
     if (Game.market.credits > 2e6) {

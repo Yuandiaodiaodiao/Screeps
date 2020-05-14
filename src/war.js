@@ -186,7 +186,7 @@ function miss(filterName) {
                     }
                 }
             }
-            let allClaim=creeps.every(o=>o==="destroyer")
+            let allClaim = Object.keys(creeps).every(o => o === "destroyer")
             if ((!config.pathttl || Game.time - config.pathttl > 3000) && (config.failedtimes ? config.failedtimes <= 90 : true)) {
                 const ans = PathFinder.search(fromRoom.spawns[0].pos, {pos: goal, range: 2}, {
                     plainCost: 1,
@@ -194,7 +194,7 @@ function miss(filterName) {
                     roomCallback: require('tools').roomc_nocreep,
                     maxOps: 100000,
                     maxRooms: 64,
-                    maxCost: config.maxCost|| allClaim? 600:1400,
+                    maxCost: config.maxCost || allClaim ? 600 : 1400,
                 })
                 if (ans.pos <= 1 && ans.incomplete) {
                     console.log(`search failed from${fromRoomName}to${targetRoomName}use ops${ans.ops} cost${ans.cost}`)
@@ -234,9 +234,10 @@ function miss(filterName) {
         const room = Game.rooms[targetRoomName]
         if (room && !plan.keep) {
             if (room.controller.owner && !room.controller.my && room.spawns.length == 0 && room.find(FIND_HOSTILE_CREEPS).length == 0) {
-                if( plan.creep.every(o=>o==="destroyer")){
+                let ifDestroyer = Object.keys(plan.creep).every(o => o === "destroyer")
+                if (ifDestroyer) {
                     //destroyer 让他们自己处理
-                }else{
+                } else {
                     remove(targetRoomName)
                 }
             }

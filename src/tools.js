@@ -180,8 +180,13 @@ function roomc_nocreep(roomName) {
         Game.memory.roomCache[roomName] = costs
         Game.memory.roomCachettl[roomName] = Game.time
         Game.memory.roomCacheUse[roomName] = Game.time
-    } else {
-        //添加观察队列
+    } else if(ttl && Game.time - ttl < 5e3){
+        //3000tick勉强用用 但是触发刷新
+        costs = Game.memory.roomCache[roomName]
+        observer.observer_queue[roomName]={roomName:roomName}
+        Game.memory.roomCacheUse[roomName] = Game.time
+    }else{
+        //太久了就不用了 直接刷新
         observer.observer_queue[roomName]={roomName:roomName}
         Game.memory.roomCacheUse[roomName] = Game.time
         return false
