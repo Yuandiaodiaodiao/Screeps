@@ -162,6 +162,9 @@ Game.war.init(['W5N31',[22,38,'W5N31'],{SEAL:1},['E1N29'],{SEAL:{attack:25,move:
 
 Game.war.init(['W19N23',[44,8,'W20N23'],{boostAttack:1,boostHeal:1},['W15N32'],{boostHeal:{heallv6:true},boostAttack:{attacklv6:true}},['boost','keep']])  
 
+Game.war.init(['W19N23',[25,26,'W19N23'],{destroyer:1},['E1N29'],{destroyer:{claim25:true}},['keep']]) 
+
+
 # 其他  
 刷墙效率=刷墙数量Q/(刷墙时间+路程时间 * 2)  
 刷墙时间=容量carry/刷墙work数=carry * 50/work  

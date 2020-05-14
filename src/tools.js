@@ -231,6 +231,20 @@ function getRoomCostMatrix(room) {
             }
         })
     }
+    try{
+        if(isHighway(roomName)){
+            room.find(FIND_DEPOSITS).forEach(o=>{
+                for (let a = -2; a <= 2; ++a) {
+                    for (let b = -2; b <= 2; ++b) {
+                        costs.set(o.pos.x + a, o.pos.y + b, 0x0F)
+                    }
+                }
+            })
+        }
+    }catch (e) {
+        console.log("find FIND_DEPOSITS"+e)
+    }
+
     if (cantgo === 0) {
         costs = undefined
     }
