@@ -29,6 +29,7 @@ function work() {
             }
             if (flag === false) {
                 if (observers.every(o => Game.map.getRoomLinearDistance(o.pos.roomName, roomName) > 10)) {
+                    //ob不到 直接清理
                     delete observer_queue[roomName]
                     delete Game.memory.observerCache[roomName]
                     delete Game.memory.roomCache[roomName]
@@ -57,10 +58,18 @@ function work() {
                 time: Game.time
             }
             if (controller && controller.owner && controller.level > 2 && !controller.my && spawn !== 0) {
-                Game.memory.observerCache[roomName].owner = controller.owner.username
-            } else if (controller && controller.reservation && !(controller.reservation.username === 'Invader' || controller.reservation.username === 'Yuandiaodiaodiao')) {
+                let whiteList=require("prototype.Whitelist").safeEneryRoom
+                if(whiteList.has(controller.owner.username)){
+                    //在白名单里 就可以路过
+                }
+                else{
+                    Game.memory.observerCache[roomName].owner = controller.owner.username
+                }
+            } else if (controller && controller.reservation) {
+                //外矿room 直接跑路过去应该没有大问题
 
             } else if (!controller && Game.tools.isHighway(roomName)) {
+                //高速公路
                 const pb = room.powerBanks[0]
                 // const newWall = room.find(FIND_STRUCTURES, {filter: o => o.structureType === STRUCTURE_WALL && (!o.hits)})[0]
                 if (pb) {
@@ -134,8 +143,10 @@ function cache() {
     }
     for (let roomName in Game.memory.roomCache) {
         if (!Game.memory.roomCacheUse[roomName]) {
+            //打上初始化Cacheuse
             Game.memory.roomCacheUse[roomName] = Game.time
         } else if (Game.time - Game.memory.roomCacheUse[roomName] > 10000) {
+            //1wtick进行清理
             delete Game.memory.observerCache[roomName]
             delete Game.memory.roomCache[roomName]
             delete Game.memory.roomCacheUse[roomName]

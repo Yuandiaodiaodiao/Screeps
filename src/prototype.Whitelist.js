@@ -38,12 +38,18 @@ let whiteList = new Set([
     'qnz',
     'TPEZ'
 ])
+
+let safeEneryRoom=new Set([
+    "MonsieurLee"
+])
+module.exports.safeEneryRoom=safeEneryRoom
 let blackList=new Set(
     [
         'Atanner',
         'Yoner'
     ]
 )
+
 module.exports.blackList=blackList
 function getWhitelist() {
     //----return your whiteList here-------------------

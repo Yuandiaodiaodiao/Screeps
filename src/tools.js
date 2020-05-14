@@ -152,30 +152,36 @@ function roomc_nocreep(roomName) {
     const observer = require('observer')
     const room = Game.rooms[roomName]
     if (!room && Game.memory.observerCache[roomName] && Game.memory.observerCache[roomName].owner) {
+        //有主人无视野
         return false
     } else if (!Game.memory.observerCache[roomName]) {
+        //没缓存
         observer.observer_queue[roomName]={roomName:roomName}
         Game.memory.roomCacheUse[roomName] = Game.time
         return false
     } else if (!Game.memory.observerCache[roomName].time) {
+        //没有缓存时间 ==没缓存
         observer.observer_queue[roomName]={roomName:roomName}
         Game.memory.roomCacheUse[roomName] = Game.time
         return false
     } else if (Game.memory.roomCacheUse[roomName] && Game.time - Game.memory.roomCacheUse[roomName] > 500) {
+        //我为什么要这么写?
         Game.memory.roomCacheUse[roomName] = Game.time
-        return false
     }
     let costs = undefined
     const ttl = Game.memory.roomCachettl[roomName]
     if (ttl && Game.time - ttl < 500) {
+        //小于用缓存
         costs = Game.memory.roomCache[roomName]
         Game.memory.roomCacheUse[roomName] = Game.time
     } else if (room) {
+        //有视野当场观察
         costs = getRoomCostMatrix(room)
         Game.memory.roomCache[roomName] = costs
         Game.memory.roomCachettl[roomName] = Game.time
         Game.memory.roomCacheUse[roomName] = Game.time
     } else {
+        //添加观察队列
         observer.observer_queue[roomName]={roomName:roomName}
         Game.memory.roomCacheUse[roomName] = Game.time
         return false
