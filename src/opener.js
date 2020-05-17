@@ -90,7 +90,7 @@ function work(creep) {
 
         let target = creep.room.controller
         let act = creep.upgradeController(target)
-        if(creep.room.terminal.store.energy>1e3){
+        if(creep.room.terminal&& creep.room.terminal.store.energy>1e3){
             creep.memory.status="terminalupgrade"
             return
         }
@@ -300,6 +300,9 @@ let help = {
     // 'W15N32': {
     //     'W5N31': 3
     // }
+    'W19N23': {
+        'W15N32': 3
+    }
 }
 
 function miss() {

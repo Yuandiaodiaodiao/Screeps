@@ -164,7 +164,8 @@ function work(creep) {
         }
     } else if (creep.memory.status === 'destroy') {
         if (Game.flags['save']) {
-            creep.signController(creep.room.controller,'just stay here no powerbank no depo')
+            // creep.signController(creep.room.controller,'just stay here no powerbank no depo')
+            creep.signController(creep.room.controller,'rush to libexec')
             creep.memory.status = 'suicide'
             return
         }

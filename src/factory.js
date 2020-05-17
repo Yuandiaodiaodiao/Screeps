@@ -35,12 +35,12 @@ function miss(room) {
 
 
     const terminal = room.terminal
-    const mineType = room.find(FIND_MINERALS)[0].mineralType
-    const produceType=produce[mineType]
-    factory.store[mineType]=factory.store[mineType]||0
-    factory.store[produceType]=factory.store[produceType]||0
-    terminal.store[mineType]=terminal.store[mineType]||0
-    terminal.store[produceType]=terminal.store[produceType]||0
+    const mineType = (Game.terminal.roomMineralCache[room.name] || room.find(FIND_MINERALS)[0]).mineralType
+    const produceType = produce[mineType]
+    factory.store[mineType] = factory.store[mineType] || 0
+    factory.store[produceType] = factory.store[produceType] || 0
+    terminal.store[mineType] = terminal.store[mineType] || 0
+    terminal.store[produceType] = terminal.store[produceType] || 0
     if (terminal.store.getUsedCapacity(mineType) > (memory.status === 'fill' ? 40e3 : 50e3) && factory.store.getUsedCapacity(mineType) < 10e3) {
         //矿太少了 terminal里正好矿多 压缩 填进factory 并且factory里不多余
         memory.status = 'fill'
@@ -68,7 +68,7 @@ function miss(room) {
     }
     if (terminal.store[mineType] < 15e3 && factory.store[mineType] < 3e3 && factory.store[produce[mineType]] > 100) {
         memory.react = 'release'
-    } else if (factory.store[mineType] > 3e3 ||(factory.store[mineType] > 200 && terminal.store[mineType] > 40e3)) {
+    } else if (factory.store[mineType] > 3e3 || (factory.store[mineType] > 200 && terminal.store[mineType] > 40e3)) {
         memory.react = 'zip'
     } else {
         memory.react = 'no'
@@ -84,7 +84,7 @@ function doReact(room) {
     const factory = room.factory
     if (!factory) return
     if (!memory.react || memory.react === 'no') return;
-    const mineType = room.find(FIND_MINERALS)[0].mineralType
+    const mineType = (Game.terminal.roomMineralCache[room.name] || room.find(FIND_MINERALS)[0]).mineralType
     if (factory) {
         if (!factory.cooldown) {
 

@@ -274,7 +274,37 @@ function work(creep) {
         } else {
             target = undefined
         }
+        const flag = Game.flags["point" + creep.memory.missionid]
 
+        if(!target){
+            const structures = flag.pos.lookFor(LOOK_STRUCTURES)
+            const rampart = structures.find(struct => struct.structureType === STRUCTURE_RAMPART)
+            if (rampart) {
+                target=rampart
+                if (creep.getActiveBodyparts(WORK)) {
+                    creep.dismantle(rampart)
+                } else {
+                    creep.attack(rampart)
+                }
+                if (pair) {
+                    pair.rangedMassAttack()
+                }
+                creep.rangedAttack(rampart)
+            } else if (structures[0]) {
+                target=structures[0]
+                if (creep.getActiveBodyparts(WORK)) {
+                    creep.dismantle(structures[0])
+                } else {
+                    creep.attack(structures[0])
+                    if (pair) {
+                        if (structures[0].owner) {
+                            pair.rangedMassAttack()
+                        }
+                    }
+                }
+
+            }
+        }
         if (!target) {
             target = creep.pos.findInRange(FIND_HOSTILE_STRUCTURES, creep.getActiveBodyparts(RANGED_ATTACK) ? 3 : 1)[0]
             if (target) {
@@ -301,7 +331,6 @@ function work(creep) {
             }
         }
 
-        const flag = Game.flags["point" + creep.memory.missionid]
         if (flag && creep.pos.getRangeTo(flag) > 0) {
             creep.moveTo(flag, {ignoreCreeps: false, reusePath: 5})
         } else if (!flag) creep.memory.status = 'fighting'

@@ -196,11 +196,12 @@ function miss(filterName) {
                     maxRooms: 64,
                     maxCost: config.maxCost || allClaim ? 600 : 1400,
                 })
-                if (ans.pos <= 1 && ans.incomplete) {
-                    console.log(`search failed from${fromRoomName}to${targetRoomName}use ops${ans.ops} cost${ans.cost}`)
-                    from[fromRoomName] = undefined
-                    continue
-                }
+                // if (ans.pos <= 1 && ans.incomplete) {
+                //     //????为什么要移除from
+                //     console.log(`search failed from${fromRoomName}to${targetRoomName}use ops${ans.ops} cost${ans.cost}`)
+                //     from[fromRoomName] = undefined
+                //     continue
+                // }
                 if (ans.incomplete) {
                     console.log(`search failed from${fromRoomName}to${targetRoomName}use ops${ans.ops} cost${ans.cost}`)
                     config.failedtimes = (config.failedtimes || 0) + 1

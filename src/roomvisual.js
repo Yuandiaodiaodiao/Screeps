@@ -179,7 +179,7 @@ module.exports.statistics = function () {
 
                 }
                 if (room && room.terminal) {
-                    let mineral = room.find(FIND_MINERALS)[0]
+                    let mineral = Game.terminal.roomMineralCache[room.name] || room.find(FIND_MINERALS)[0]
                     if (mineral) {
                         let type = mineral.mineralType
                         roomTypeHave[type] = roomTypeHave[type] || 0
@@ -233,9 +233,9 @@ module.exports.statistics = function () {
                     }
                 }
                 if (pb) {
-                    pbProcess[pbRoom] = 1 - pb.hits / pb.hitsMax
+                    pbProcess[pbRoom+plan.power] = 1 - pb.hits / pb.hitsMax
                 } else {
-                    pbProcess[pbRoom] = 0
+                    pbProcess[pbRoom+plan.power] = 0
                 }
 
 

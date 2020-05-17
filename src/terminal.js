@@ -1,7 +1,15 @@
 let lodash = require('lodash-my')
 let avgRoom = 'E19N41'
+let t3list = []
+for (let type in REACTIONS.X) {
+    if (type.length === 4) {
+        t3list.push(REACTIONS.X[type])
+    }
+}
+let amountOf = require("command").amountOf
 
-
+let roomMineralCache = {}
+module.exports.roomMineralCache=roomMineralCache
 module.exports.fillOverT3 = function () {
     let room2 = Game.rooms[avgRoom]
     if (room2.terminal.cooldown) return
@@ -106,7 +114,7 @@ module.exports.avgT3 = function () {
 
 module.exports.work = function (room, rate) {
     let terminal = room.terminal
-    if (!terminal || !terminal.my||!terminal.isActive()) return
+    if (!terminal || !terminal.my || !terminal.isActive()) return
     // if (terminal && room.storage && room.storage.store[RESOURCE_ENERGY] / room.storage.store.getCapacity() > 0.65 && room.controller.level === 8) {
     //     const helpRoomNameList = _.filter(Object.keys(Memory.rooms), roomName => {
     //         let room2 = Game.rooms[roomName]
@@ -128,17 +136,17 @@ module.exports.work = function (room, rate) {
     //     }
     // }
     // console.log('findminerals')
-    if (terminal && (!room.storage || room.storage.store.energy / 1e6 < 0.65 || room.spawns.length === 0) && (room.terminal.store.energy <=80e3 ||(room.spawns.length === 0&&room.terminal.store.getFreeCapacity('energy')>0))) {
+    if (terminal && (!room.storage || room.storage.store.energy / 1e6 < 0.65 || room.spawns.length === 0) && (room.terminal.store.energy <= 80e3 || (room.spawns.length === 0 && room.terminal.store.getFreeCapacity('energy') > 0))) {
         let storageRate = !room.storage || room.spawns.length === 0 ? 500e3 : room.storage.store.energy
         const sendRoomNameList = _.filter(Object.keys(Memory.rooms), roomName => {
             let room2 = Game.rooms[roomName]
-            return (room2.storage && (room2.storage.store.energy > storageRate + 100e3)&&room2.spawns.length >=3 )
+            return (room2.storage && (room2.storage.store.energy > storageRate + 100e3) && room2.spawns.length >= 3)
         })
-        let needSend = room.spawns.length === 0? room.terminal.store.getFreeCapacity('energy'):(90e3 - room.terminal.store.energy)
+        let needSend = room.spawns.length === 0 ? room.terminal.store.getFreeCapacity('energy') : (90e3 - room.terminal.store.energy)
         sendRoomNameList.forEach(roomName => {
             if (needSend <= 0) return
             let fromRoom = Game.rooms[roomName]
-            if(fromRoom.terminal.cooldown>0)return
+            if (fromRoom.terminal.cooldown > 0) return
             let maxsend = Game.tools.solveMaxSend(roomName, room.name, RESOURCE_ENERGY, fromRoom.terminal)
             if (maxsend > 6000) {
                 let ans = fromRoom.terminal.send(RESOURCE_ENERGY, maxsend, room.name)
@@ -150,7 +158,10 @@ module.exports.work = function (room, rate) {
     }
     if (room.spawns.length === 0) return
 
-    let mineral = room.find(FIND_MINERALS)[0]
+    let mineral = roomMineralCache[room.name]
+    if (!mineral) {
+        roomMineralCache[room.name] = mineral = room.find(FIND_MINERALS)[0]
+    }
     if (mineral) {
         let type = mineral.mineralType
         if ((terminal.store[type] || 0) > 6000) {
@@ -232,7 +243,7 @@ function handlesell(roomName) {
     if (Game.runTime <= 2) return
     const room = Game.rooms[roomName]
     const terminal = room.terminal
-    const mineral = room.find(FIND_MINERALS)[0]
+    const mineral =  roomMineralCache[room.name] || room.find(FIND_MINERALS)[0]
     const type = mineral.mineralType
     if (terminal.cooldown > 0) return
     if (terminal && mineral && terminal.store[type] > 60e3) {
@@ -269,11 +280,27 @@ function handlesell(roomName) {
         if (storage && terminal) {
             if (terminal.store['XGH2O'] < 3000) {
                 Game.tools.give('E19N41', 'XGH2O', 3000)
+            } else {
+                let act = sellSome(room, terminal, 'XGH2O', 3000, 4)
+                if (act === OK) {
+                    return act
+                }
             }
-            let act = sellSome(room, terminal, 'XGH2O', 3000, 2)
-            if (act === OK) {
-                return act
+
+            for (let type of t3list) {
+                let amount = amountOf(type, false, false)
+                if (amount > 100e3) {
+                    if (terminal.store[type] < 3000) {
+                        Game.tools.give('E19N41', type, 3000)
+                    } else {
+                        let act = sellSome(room, terminal, type, 3000, 5)
+                        if (act === OK) {
+                            return act
+                        }
+                    }
+                }
             }
+
         }
     }
 

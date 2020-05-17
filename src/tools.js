@@ -655,7 +655,18 @@ function pos2array(pos){
 function array2pos(array){
     return new RoomPosition(array[0],array[1],array[2])
 }
+function whichRoomMineral(type){
+    Object.keys(Memory.rooms).forEach(o=>{
+        let room=Game.rooms[o]
+        let mineral=room.find(FIND_MINERALS)[0]
+        let mtype=mineral.mineralType
+        if(mtype===type){
+            console.log(`${o} ${type}`)
+        }
+    })
+}
 module.exports = {
+    'whichRoomMineral':whichRoomMineral,
     'moveByLongPath2':moveByLongPath2,
     'array2pos':array2pos,
     'pos2array':pos2array,
