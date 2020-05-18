@@ -233,9 +233,9 @@ module.exports.statistics = function () {
                     }
                 }
                 if (pb) {
-                    pbProcess[pbRoom+plan.power] = 1 - pb.hits / pb.hitsMax
+                    pbProcess[pbRoom+"_"+plan.power] = 1 - pb.hits / pb.hitsMax
                 } else {
-                    pbProcess[pbRoom+plan.power] = 0
+                    pbProcess[pbRoom+"_"+plan.power] = 0
                 }
 
 

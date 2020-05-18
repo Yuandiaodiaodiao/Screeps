@@ -287,19 +287,19 @@ function handlesell(roomName) {
                 }
             }
 
-            for (let type of t3list) {
-                let amount = amountOf(type, false, false)
-                if (amount > 100e3) {
-                    if (terminal.store[type] < 3000) {
-                        Game.tools.give('E19N41', type, 3000)
-                    } else {
-                        let act = sellSome(room, terminal, type, 3000, 5)
-                        if (act === OK) {
-                            return act
-                        }
-                    }
-                }
-            }
+            // for (let type of t3list) {
+            //     let amount = amountOf(type, false, false)
+            //     if (amount > 100e3) {
+            //         if (terminal.store[type] < 3000) {
+            //             Game.tools.give('E19N41', type, 3000)
+            //         } else {
+            //             let act = sellSome(room, terminal, type, 3000, 5)
+            //             if (act === OK) {
+            //                 return act
+            //             }
+            //         }
+            //     }
+            // }
 
         }
     }

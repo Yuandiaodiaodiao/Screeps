@@ -126,7 +126,7 @@ function work(room) {
             room.memory.tower.findHurtTimes = (room.memory.tower.findHurtTimes || 0) + 1
 
         } else {
-            room.memory.tower.lasthits=undefined
+            room.memory.tower.lasthits = undefined
             room.memory.tower.findHurtTimes = 0
             memory.firestatus = ''
             memory.testSleep = Game.time + Math.floor(Math.random() * 3) + 3
@@ -135,8 +135,11 @@ function work(room) {
 
 
     if (attackSucc) return
-
-    if ((target = room.find(FIND_MY_CREEPS, {filter: obj => obj.hits < obj.hitsMax})[0])) {
+    target = room.find(FIND_MY_CREEPS, {filter: obj => obj.hits < obj.hitsMax})[0]
+    if (!target) {
+        target = room.find(FIND_MY_POWER_CREEPS, {filter: obj => obj.hits < obj.hitsMax})[0]
+    }
+    if (target) {
         for (let tower of room.towers) {
             tower.heal(target)
         }

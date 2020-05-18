@@ -156,12 +156,12 @@ function roomc_nocreep(roomName) {
         return false
     } else if (!Game.memory.observerCache[roomName]) {
         //没缓存
-        observer.observer_queue[roomName]={roomName:roomName}
+        observer.observer_queue[roomName] = {roomName: roomName}
         Game.memory.roomCacheUse[roomName] = Game.time
         return false
     } else if (!Game.memory.observerCache[roomName].time) {
         //没有缓存时间 ==没缓存
-        observer.observer_queue[roomName]={roomName:roomName}
+        observer.observer_queue[roomName] = {roomName: roomName}
         Game.memory.roomCacheUse[roomName] = Game.time
         return false
     } else if (Game.memory.roomCacheUse[roomName] && Game.time - Game.memory.roomCacheUse[roomName] > 500) {
@@ -180,14 +180,14 @@ function roomc_nocreep(roomName) {
         Game.memory.roomCache[roomName] = costs
         Game.memory.roomCachettl[roomName] = Game.time
         Game.memory.roomCacheUse[roomName] = Game.time
-    } else if(ttl && Game.time - ttl < 5e3){
+    } else if (ttl && Game.time - ttl < 5e3) {
         //3000tick勉强用用 但是触发刷新
         costs = Game.memory.roomCache[roomName]
-        observer.observer_queue[roomName]={roomName:roomName}
+        observer.observer_queue[roomName] = {roomName: roomName}
         Game.memory.roomCacheUse[roomName] = Game.time
-    }else{
+    } else {
         //太久了就不用了 直接刷新
-        observer.observer_queue[roomName]={roomName:roomName}
+        observer.observer_queue[roomName] = {roomName: roomName}
         Game.memory.roomCacheUse[roomName] = Game.time
         return false
     }
@@ -231,9 +231,9 @@ function getRoomCostMatrix(room) {
             }
         })
     }
-    try{
-        if(isHighway(roomName)){
-            room.find(FIND_DEPOSITS).forEach(o=>{
+    try {
+        if (isHighway(roomName)) {
+            room.find(FIND_DEPOSITS).forEach(o => {
                 for (let a = -2; a <= 2; ++a) {
                     for (let b = -2; b <= 2; ++b) {
                         costs.set(o.pos.x + a, o.pos.y + b, 0x0F)
@@ -241,8 +241,8 @@ function getRoomCostMatrix(room) {
                 }
             })
         }
-    }catch (e) {
-        console.log("find FIND_DEPOSITS"+e)
+    } catch (e) {
+        console.log("find FIND_DEPOSITS" + e)
     }
 
     if (cantgo === 0) {
@@ -302,7 +302,7 @@ function solveExtension(room) {
         if (!tar) return extensionList[room.name] = []
 
         room.memory.extList = room.memory.extList || {list: undefined, ttl: Game.time}
-        if (room.memory.extList.ttl > Game.time&&getExtByOrder(room,0)) {
+        if (room.memory.extList.ttl > Game.time && getExtByOrder(room, 0)) {
             extensionList[room.name] = room.memory.extList.list
             return
         }
@@ -506,6 +506,7 @@ function moveByLongPath(pathArray, creep) {
 
     return ERR_NOT_IN_RANGE
 }
+
 function moveByLongPath2(pathArray, creep) {
     if (!pathArray) {
         return ERR_NOT_IN_RANGE
@@ -513,17 +514,17 @@ function moveByLongPath2(pathArray, creep) {
     if (creep.memory.step >= pathArray.length - 1) {
         return OK
     }
-    let lastMove=creep.memory.lastMove||[0,0]
-    if(lastMove[0]===creep.memory.step){
+    let lastMove = creep.memory.lastMove || [0, 0]
+    if (lastMove[0] === creep.memory.step) {
         lastMove[1]++
-    }else{
-        lastMove=[creep.memory.step,0]
+    } else {
+        lastMove = [creep.memory.step, 0]
     }
-    if(lastMove[1]>=6){
+    if (lastMove[1] >= 6) {
         creep.memory.step++
-        lastMove=[creep.memory.step,0]
+        lastMove = [creep.memory.step, 0]
     }
-    creep.memory.lastMove=lastMove
+    creep.memory.lastMove = lastMove
     let pos = new RoomPosition(...pathArray[creep.memory.step])
 
     if (creep.pos.isEqualTo(pos)) {
@@ -539,6 +540,7 @@ function moveByLongPath2(pathArray, creep) {
 
     return ERR_NOT_IN_RANGE
 }
+
 function zipCostMatrix(cost) {
     let arr = new Uint32Array(cost._bits.buffer)
     let ans = {}
@@ -649,27 +651,53 @@ function changeCostMatrix(room, creep) {
         }
     }
 }
-function pos2array(pos){
-    return [pos.x,pos.y,pos.roomName]
+
+function pos2array(pos) {
+    return [pos.x, pos.y, pos.roomName]
 }
-function array2pos(array){
-    return new RoomPosition(array[0],array[1],array[2])
+
+function array2pos(array) {
+    return new RoomPosition(array[0], array[1], array[2])
 }
-function whichRoomMineral(type){
-    Object.keys(Memory.rooms).forEach(o=>{
-        let room=Game.rooms[o]
-        let mineral=room.find(FIND_MINERALS)[0]
-        let mtype=mineral.mineralType
-        if(mtype===type){
+
+function whichRoomMineral(type) {
+    Object.keys(Memory.rooms).forEach(o => {
+        let room = Game.rooms[o]
+        let mineral = room.find(FIND_MINERALS)[0]
+        let mtype = mineral.mineralType
+        if (mtype === type) {
             console.log(`${o} ${type}`)
         }
     })
 }
+
+function genroom(room) {
+    if (typeof room === 'string') {
+        return Game.rooms[room]
+    }else{
+        return room
+    }
+}
+
+function spawnCreep(fromRoom, role) {
+    const room=genroom(fromRoom)
+    const spawn = _.find(room.spawns, obj => !obj.spawning)
+    if(!spawn)return false
+    const creepName = `${spawn.room.name}_${role}_${Game.time % 10000}`
+    try {
+        return require(role).born(spawn, creepName, {}, isonly)
+    } catch (e) {
+        console.log(`spawnCreep ${creepName} ${e} `)
+        return -12
+    }
+}
+
 module.exports = {
-    'whichRoomMineral':whichRoomMineral,
-    'moveByLongPath2':moveByLongPath2,
-    'array2pos':array2pos,
-    'pos2array':pos2array,
+    "spawnCreep":spawnCreep,
+    'whichRoomMineral': whichRoomMineral,
+    'moveByLongPath2': moveByLongPath2,
+    'array2pos': array2pos,
+    'pos2array': pos2array,
     'solveMaxSend': solveMaxSend,
     'changeCostMatrix': changeCostMatrix,
     'buy': buy,

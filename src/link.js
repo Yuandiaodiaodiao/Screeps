@@ -5,7 +5,7 @@ function work(room) {
         let wallIt = wallLinks.values()
         let otherLink = room.links.filter(o => (!(room.memory.wallLink.includes(o.id))))
         for (let link of otherLink) {
-            if ((!link.cooldown || link.cooldown === 0) && link.energy > 750) {
+            if (link&&(!link.cooldown || link.cooldown === 0) && link.energy > 750) {
                 let it = wallIt.next()
                 if (it.value) {
                     link.transferEnergy(it.value)
@@ -18,7 +18,7 @@ function work(room) {
         if (!centerlink) return
         if (centerlink.energy > 0) return
         for (let link of room.links) {
-            if (link.id === centerlink.id || link.cooldown !== 0 || link.energy < 750) continue
+            if (!link||link.id === centerlink.id || link.cooldown !== 0 || link.energy < 750) continue
             let ans = link.transferEnergy(centerlink)
             if (ans === OK) {
                 break
