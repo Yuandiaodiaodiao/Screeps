@@ -220,26 +220,31 @@ module.exports.statistics = function () {
                 }
             })
             let pbProcess = {}
-            for (let pbRoom in Memory.powerPlan) {
-                let pb = undefined
-                let plan = Memory.powerPlan[pbRoom]
-                if (plan && plan.pbid) {
-                    pb = Game.getObjectById(plan.pbid)
-                }
-                if (!pb) {
-                    let pbr = Game.rooms[pbRoom]
-                    if (pbr) {
-                        pb = pbr.powerBanks[0]
+            try{
+                for (let pbRoom in Memory.powerPlan) {
+                    let pb = undefined
+                    let plan = Memory.powerPlan[pbRoom]
+                    if (plan && plan.pbid) {
+                        pb = Game.getObjectById(plan.pbid)
                     }
-                }
-                if (pb) {
-                    pbProcess[pbRoom+"_"+plan.power] = 1 - pb.hits / pb.hitsMax
-                } else {
-                    pbProcess[pbRoom+"_"+plan.power] = 0
-                }
+                    if (!pb) {
+                        let pbr = Game.rooms[pbRoom]
+                        if (pbr) {
+                            pb = pbr.powerBanks[0]
+                        }
+                    }
+                    if (pb) {
+                        pbProcess[pbRoom+"_"+plan.power] = 1 - pb.hits / pb.hitsMax
+                    } else {
+                        pbProcess[pbRoom+"_"+plan.power] = 0
+                    }
 
 
+                }
+            }catch (e) {
+                console.log("power error visual "+e)
             }
+
 
             Memory.grafana.creepNum = Object.keys(Game.creeps).length
             Memory.grafana.terminalUse = terminalUse

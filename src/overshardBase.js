@@ -1,16 +1,3 @@
-module.exports.main = function () {
-    Object.values(Game.creeps).forEach(obj => {
-        try {
-            if (!obj.spawning) {
-                const type = obj.name.split('_')[1]
-                require(type).work(obj)
-            }
-        } catch (e) {
-            console.log('role=' + obj.name + 'error' + e)
-        }
-    })
-}
-
 let ans = [
     {shard: 'shard3', roomName: 'E0N30', x: 41, y: 20},
     {shard: 'shard2', roomName: 'E0N30', x: 21, y: 14},
@@ -28,47 +15,64 @@ let ans = [
     {shard: 'shard0', roomName: 'W41N10', x: 48, y: 39},
     {shard: 'shard0', roomName: 'W40S20', x: 20, y: 17},
     {shard: 'shard1', roomName: 'W20S10', x: 6, y: 31},
-    {shard: 'shard2', roomName: 'W20S10', x: 24, y: 9}
+    {shard: 'shard2', roomName: 'W20S10', x: 24, y: 9},
+    {shard: 'shard3', roomName: 'W20S12', x: 25, y: 25}
 ]
 
 class overshardCreepManager {
+    constructor() {
+        this.lastRoomCache = {}
+        this.interShardMemory = require("interShardMemoryManager")
+    }
 
     work(creep) {
-        let ret = undefined;
-        for (let path of ans) {//ans最好手动复制过来，不要这么直接用
-            if (path.shard === Game.shard.name) {
-                if (!ret) {
-                    ret = path;
-                } else {
-                    if (Game.map.getRoomLinearDistance(creep.pos.roomName, path.roomName) <
-                        Game.map.getRoomLinearDistance(creep.pos.roomName, ret.roomName)) {
-                        ret = path;
-                    }
-                }
+
+        const lastRoom = this.lastRoomCache[creep.name] || {}
+        if (lastRoom.roomName !== creep.pos.roomName) {
+            console.log(creep.pos)
+            console.log(`<a href="https://screeps.com/a/#!/room/${Game.shard.name}/${creep.pos.roomName}" title="1" >${creep.name}</a>`)
+            this.lastRoomCache[creep.name] = {"roomName": creep.room.name}
+        }
+        let step = creep.memory.step
+        if (!step) {
+            creep.memory.step = step = this.interShardMemory.mergeMaxKey(Game.shard.name, ["creeps", creep.name, step])
+        }
+        let ret = ans[step]
+
+        if (ret) {
+            let target = new RoomPosition(ret.x, ret.y, ret.roomName)
+            creep.moveTo(target, {reusePath: 25, plainCost: 1})
+            if (creep.pos.isEqualTo(target)) {
+                //要跨越shard了!
+                step+=1
+                let memory = this.interShardMemory.getThisShard(true)
+                _.set(memory, ['creeps', creep.name, 'step'], step)
             }
         }
-        if (ret)
-            creep.moveTo(new RoomPosition(ret.x, ret.y, ret.roomName))
     }
+
     born(spawnnow, creepname, memory) {
 
         let body = {
             'move': 5
         }
-        let bodyarray =Game.tools.generatebody(body, spawnnow)
-        return spawnnow.spawnCreep(
+        let bodyarray = Game.tools.generatebody(body, spawnnow)
+        let act = spawnnow.spawnCreep(
             bodyarray,
             creepname,
             {
                 memory: {
+                    step: 0,
                     missionid: memory.roomName,
+                    creepDieTime: Game.time + (body.claim > 0 ? 600 : 1500),
                 }
             }
         )
+
+        return act
     }
 }
 
-let Manager = overshardCreepManager()
-module.exports.work = Manager.work
-module.exports.born = Manager.born
-module.exports.manager = Manager
+let Manager = new overshardCreepManager()
+
+module.exports = Manager

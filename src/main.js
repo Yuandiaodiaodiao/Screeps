@@ -1,39 +1,7 @@
-Game.lodash = require('lodash-my')
 
 
-require('prototype.SpeedUp.getAllOrders')
-load()
 
-require('prototype.Creep.move')
-// require('prototype.Find.cache')
-require('prototype.Whitelist')
-require('prototype.Room.structures')
-var link = require('link')
 console.log('reload---------------------')
-require('command')
-
-function clearmem() {
-    for (let name in Memory.creeps) {
-        if (!Game.creeps[name]) {
-            delete Memory.creeps[name]
-        }
-    }
-    for (let name in Memory.powerCreeps) {
-        if (!Game.powerCreeps[name] || !Game.powerCreeps[name].ticksToLive) {
-            delete Memory.powerCreeps[name]
-        }
-    }
-}
-
-
-let lastTime = 0
-
-function timer(strs = null) {
-    let timeuse = Game.cpu.getUsed() - lastTime
-    if (true && strs) console.log(strs + "  " + timeuse.toFixed(4))
-    lastTime = Game.cpu.getUsed()
-    return timeuse
-}
 
 function isNotshard3() {
     if (Game.shard.name !== 'shard3') {
@@ -41,10 +9,18 @@ function isNotshard3() {
     }
     return false
 }
+if(!isNotshard3()){
+    Game.lodash = require('lodash-my')
+    load()
+    require('prototype.Creep.move')
+    require('prototype.Whitelist')
+    require('prototype.Room.structures')
+    require('command')
 
-Memory.cpu.pushTime = Game.time
+}
 
 function load() {
+    Game.link=require('link')
     Game.test = require('test').test
     Game.war = require('war')
     Game.config = require('config')
@@ -68,14 +44,36 @@ function load() {
     }
 }
 
-var missionController = require('missionController')
-// profiler.enable()
+function clearmem() {
+    for (let name in Memory.creeps) {
+        let memory=Memory.creeps[name]||{}
+        if (!Game.creeps[name] || (memory.creepDieTime||0)<Game.time) {
+            delete Memory.creeps[name]
+        }
+    }
+    for (let name in Memory.powerCreeps) {
+        if (!Game.powerCreeps[name] || !Game.powerCreeps[name].ticksToLive) {
+            delete Memory.powerCreeps[name]
+        }
+    }
+}
+function timer(strs = null) {
+    let timeuse = Game.cpu.getUsed() - lastTime
+    if (true && strs) console.log(strs + "  " + timeuse.toFixed(4))
+    lastTime = Game.cpu.getUsed()
+    return timeuse
+}
+
+let lastTime = 0
+Memory.cpu=Memory.cpu||{}
+Memory.cpu.pushTime = Game.time
+
 module.exports.loop = function () {
+    require("interShardMemoryManager").pertick()
     if (isNotshard3()) {
-        require("overshardBase").main()
+        require("overshardMain").main()
         return
     }
-
 
     load()
     try {
@@ -100,7 +98,7 @@ module.exports.loop = function () {
         for (let roomName in Memory.rooms) {
             try {
 
-                missionController.mission_generator(Game.rooms[roomName])
+                Game.missionController.mission_generator(Game.rooms[roomName])
             } catch (e) {
                 console.log(roomName + 'mission_generator error ' + e)
             }
@@ -138,14 +136,14 @@ module.exports.loop = function () {
             console.log('nuke.work error' + e)
         }
         try {
-            missionController.detector()
+            Game.missionController.detector()
         } catch (e) {
             console.log(`missionController.detector ${e}`)
         }
         for (let roomName in Memory.rooms) {
             let room = Game.rooms[roomName]
             try {
-                missionController.spawner(room)
+                Game.missionController.spawner(room)
             } catch (e) {
                 console.log('mission_spawner' + e)
             }
@@ -177,7 +175,7 @@ module.exports.loop = function () {
             Game.factory.doReact(room)
         }
         try {
-            missionController.spawn(room)
+            Game.missionController.spawn(room)
         } catch (e) {
             console.log('missionController.spawn' + e)
         }
@@ -193,7 +191,7 @@ module.exports.loop = function () {
         }
 
         try {
-            link.work(room)
+            Game.link.work(room)
         } catch (e) {
             console.log(roomName + 'link error ' + e)
         }
@@ -457,7 +455,7 @@ module.exports.loop = function () {
         }
 
     }
-
+    require("interShardMemoryManager").saveThisShard()
     Game.config.dofuncQueue()
 
     require('roomvisual').statistics()
@@ -471,7 +469,7 @@ module.exports.handlemission = function (roomNamein) {
         }
         let room = Game.rooms[roomName]
         if (!room) continue
-        missionController.mission_generator(room)
+        Game.missionController.mission_generator(room)
     }
     timer('mission_generator use=')
 }

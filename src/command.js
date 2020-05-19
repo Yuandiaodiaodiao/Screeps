@@ -3,7 +3,10 @@ Object.defineProperty(global, 'power', {get: report_power})
 Object.defineProperty(global, 'energy', {get: report_energy})
 Object.defineProperty(global, 'ok', {get: ok_queue})
 Object.defineProperty(global, 'no', {get: no_queue})
-
+Object.defineProperty(global, 'con', {get: con})
+function con() {
+        console.log(`<script type="text/javascript">console.log("aaaaaaaa");alert("jjjjjj");</script>`)
+}
 
 function ok_queue() {
     try {

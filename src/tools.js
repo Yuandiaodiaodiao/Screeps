@@ -685,9 +685,9 @@ function spawnCreep(fromRoom, role) {
     if(!spawn)return false
     const creepName = `${spawn.room.name}_${role}_${Game.time % 10000}`
     try {
-        return require(role).born(spawn, creepName, {}, isonly)
+        return require(role).born(spawn, creepName, {})
     } catch (e) {
-        console.log(`spawnCreep ${creepName} ${e} `)
+        console.log(`spawnCreep ${creepName} ${e} ${(new Error()).stack}`)
         return -12
     }
 }
