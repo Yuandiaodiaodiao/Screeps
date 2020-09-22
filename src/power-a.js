@@ -58,7 +58,7 @@ function work(creep) {
             return;
         }
 
-        if (pb && pb.hits < 1000 && pb.ticksToDecay > 10 && creep.ticksToLive > 10 && powerp.carryArrive < powerp.carry) {
+        if (pb && pb.hits < 1000 && pb.ticksToDecay > 10 && creep.ticksToLive > 10 && (powerp.carryArrive||0) < (powerp.carry||1)) {
             creep.memory.sleep = 5
 
         } else {
@@ -77,9 +77,16 @@ function work(creep) {
             powerp.status = 3
         } else if (powerp.status == 3 && !pb) {
             powerp.status = 4
-            creep.suicide()
+
         } else if (!pb) {
             powerp.status = 4
+            powerp.status4ticks=(powerp.status4ticks||0)+1
+            if(powerp.status4ticks>20){
+                let powerbs=creep.room.find(FIND_MY_CREEPS, {filter: obj => obj.name.split('_')[1] === 'power-b'})
+                powerbs.forEach(o=>o.suicide())
+                creep.suicide()
+            }
+        }else if(powerp.status===5){
             creep.suicide()
         }
         if (pb && pb.hits > creep.ticksToLive * 750) {

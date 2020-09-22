@@ -7,7 +7,7 @@ function statusmiss(creep) {
             creep.memory.status = 'fillextension'
         } else if (creep.room.controller.ticksToDowngrade < 3000) {
             creep.memory.status = 'upgrade'
-        } else if (creep.room.controller.level === 8 && creep.room.storage && creep.room.storage.store.energy < 1e6) {
+        } else if (creep.room.controller.level === 8 && creep.room.storage && creep.room.storage.store.energy < 1e6 &&creep.room.terminal) {
             creep.memory.status = 'fill'
         } else {
             creep.memory.status = creep.memory.role

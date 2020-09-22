@@ -54,7 +54,13 @@ function work(creep) {
 
 
         if (!creep.memory.getTarget) {
-            let linkavailable = (creep.room.memory.wallLink || []).map(o => Game.getObjectById(o)).filter(o => o.store.energy > 0)
+            let walllink
+            if(!creep.room.controller.my){
+                walllink=Game.rooms[creep.memory.missionid].memory.wallLink
+            }else{
+                walllink=creep.room.memory.wallLink
+            }
+            let linkavailable = (walllink|| []).map(o => Game.getObjectById(o)).filter(o => o.store.energy > 0)
             let link = _.min(linkavailable, o => ((o && o.pos) ? o.pos.getRangeTo(creep.pos) : 999))
             let storage = creep.room.terminal.store.energy > 20000 ? creep.room.terminal : creep.room.storage
             let target = _.min([link, storage], o => ((o && o.pos) ? o.pos.getRangeTo(creep.pos) : 999))

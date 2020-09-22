@@ -1,5 +1,23 @@
+let roomcal=require("roomNameCalculator")
+let nukerRangeCache=undefined
 module.exports.work = function (room) {
+    if(nukerRangeCache){
+        Game.map.visual.import(nukerRangeCache)
+    }else{
+        Object.keys(Memory.rooms).forEach(roomName=>{
+            const nuke = Game.rooms[roomName].nuker
+            if (nuke) {
+                let worldPos=roomcal.parseRoom(roomName)
+                worldPos.x-=10
+                worldPos.y-=10
+                let worldRoom=roomcal.stringifyRoom(worldPos)
+                // Game.map.visual.text(worldRoom,new RoomPosition(25,25,roomName),{color: '#FF0000', fontSize: 20})
 
+                Game.map.visual.rect(new RoomPosition(25,25,worldRoom),NUKE_RANGE*2*50,NUKE_RANGE*2*50, {fill: "#0FFF6464", ..._.get(Memory,["mapVisual","nukerRange"])});
+            }
+        })
+        nukerRangeCache=Game.map.visual.export()
+    }
 
     if (Memory.lastViewed === room.name && Game.time - Memory.lastViewedTime < 10) {
         room.visual.text('tick ' + Game.time % 100, 36, 21, {color: 'red', font: 0.5})

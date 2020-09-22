@@ -740,6 +740,61 @@ function isSide(creep) {
     return (creep.pos.x === 0 || creep.pos.x === 49 || creep.pos.y === 0 || creep.pos.y === 49)
 }
 
+module.exports.jumpInAndOut = jumpInAndOut
+
+function jumpInAndOut(creep, targetRoom, safeRoom, posTo, posSafe) {
+
+    if (creep.pos.roomName === targetRoom) {
+        if (Game.time % (Math.ceil(Math.random() * 5)) === 0) {
+            if (creep.room.towers.length === 0) {
+                Game.war.moveAwayFromSide(creep)
+            }
+        }
+    }
+    if (Game.time % 20 === 0) {
+        Game.memory.roomCachettl[creep.pos.roomName] = 0
+    }
+    if (creep.hits / creep.hitsMax < 0.95) {
+
+        if (creep.pos.roomName === posSafe.roomName) {
+            Game.war.moveAwayFromSide(creep)
+        } else if (creep.pos.roomName === targetRoom) {
+            const exitDir = Game.map.findExit(creep.room, safeRoom)
+            const exit = creep.pos.findClosestByRange(exitDir)
+            creep.moveTo(exit, {ignoreCreeps: false})
+        }
+    } else {
+        creep.moveTo(posTo,{ignoreCreeps:false})
+    }
+    creep.heal(creep)
+    let target = Game.war.getEnemy(creep)[0]
+    if (target&&target.pos.getRangeTo(creep)<=3) {
+        if (creep.pos.isNearTo(target)) {
+            creep.rangedMassAttack()
+        } else {
+            creep.rangedAttack(target)
+        }
+    } else {
+        target = creep.pos.findClosestByRange(FIND_HOSTILE_STRUCTURES, {filter: obj => obj.hits && obj.structureType !== STRUCTURE_RAMPART && (!obj.pos.lookFor(LOOK_STRUCTURES).some(obj => obj.structureType === STRUCTURE_RAMPART)) })
+        if (!target) target = creep.pos.findClosestByRange(FIND_HOSTILE_CONSTRUCTION_SITES)
+        if (!target) target = creep.pos.findClosestByRange(FIND_STRUCTURES, {filter: obj => obj.hits && obj.structureType != STRUCTURE_CONTROLLER})
+        if (target) {
+            if (!target.ticksToLive && creep.pos.getRangeTo(target) <= 1 && !target.progressTotal && (target.structureType ? target.structureType != STRUCTURE_ROAD && target.structureType != STRUCTURE_CONTAINER : true)) {
+                creep.rangedMassAttack()
+                creep.dismantle(target)
+            } else {
+                let act = null
+                if (target.ticksToLive && target.pos.getRangeTo(creep.pos) <= 1) {
+                    act = creep.rangedMassAttack()
+                } else {
+                    let act = creep.rangedAttack(target)
+                }
+            }
+        }
+    }
+
+}
+
 /*
 *
 25boost heal 540

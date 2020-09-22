@@ -36,7 +36,8 @@ let whiteList = new Set([
     'czc',
     'EricGuo',
     'qnz',
-    'TPEZ'
+    'TPEZ',
+    'slyly'
 ])
 
 let safeEneryRoom=new Set([

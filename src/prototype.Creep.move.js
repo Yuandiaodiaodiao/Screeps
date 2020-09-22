@@ -16,6 +16,7 @@ module.exports.loop=function(){
 
 }
 
+
 ps:
 1.如果想进行非对穿寻路
 creep.moveTo(target,{ignoreCreeps:false})

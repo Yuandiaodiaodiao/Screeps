@@ -35,7 +35,7 @@ function work(creep) {
             creep.heal(creep)
             return
         }
-        if (powerp.status === 4) {
+        if (powerp.status === 5) {
             creep.suicide()
         }
         if (!target) return

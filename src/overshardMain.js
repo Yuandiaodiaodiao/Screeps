@@ -1,4 +1,5 @@
 module.exports.main = function () {
+
     Object.values(Game.creeps).forEach(obj => {
         try {
             if (!obj.spawning) {
@@ -11,4 +12,6 @@ module.exports.main = function () {
     })
 
     require("interShardMemoryManager").saveThisShard()
+    RawMemory.set(JSON.stringify(Memory));
+
 }

@@ -64,7 +64,7 @@ function mission_spawner(room) {
 module.exports.spawner = mission_spawner
 
 function do_spawn(room) {
-    const spawn = _.find(room.spawns, obj => !obj.spawning)
+    const spawn = _.find(room.spawns, obj => !obj.spawning &&obj.isActive())
     if (!spawn) return
     const miss = SpawnList[room.name] || []
     while (miss.length > 0) {
@@ -394,7 +394,7 @@ module.exports.mission_generator=function (room) {
     {
         const storage = room.storage
         if (storage) {
-            const container = room.storage.pos.findInRange(FIND_STRUCTURES, 6, {filter: obj => obj.structureType === STRUCTURE_CONTAINER}).sort(
+            const container = room.controller.pos.findInRange(FIND_STRUCTURES, 6, {filter: obj => obj.structureType === STRUCTURE_CONTAINER}).sort(
                 (a, b) => {
                     return a.pos.getRangeTo(room.controller.pos) - b.pos.getRangeTo(room.controller.pos)
                 }

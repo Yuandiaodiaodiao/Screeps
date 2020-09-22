@@ -71,11 +71,13 @@ function solveAveragePrice(type, dayLen = 2) {
     if(!history.slice)return
     try{
         history = history.slice(history.length - dayLen)
-        let max = _.max(history, o => o.avgPrice + o.stddevPrice)
-        let min = _.min(history, o => o.avgPrice - o.stddevPrice)
+        let max = _.sum(history, o => o.avgPrice + o.stddevPrice)/dayLen
+        let min = _.sum(history, o => o.avgPrice - o.stddevPrice)/dayLen
+        let avg=_.sum(history,o=>o.avgPrice)/dayLen
         price[type] = {
-            maxPrice: max.avgPrice + max.stddevPrice,
-            minPrice: min.avgPrice - min.stddevPrice
+            avgPrice:avg,
+            maxPrice: max,
+            minPrice: min
         }
     }catch (e) {
         console.log(type+'solveAveragePrice error'+e+JSON.stringify(history))
@@ -94,8 +96,8 @@ for (let type of resources) {
     }
 
 }
-price.power.sell = price.power.minPrice
-price.power.order = price.power.minPrice * 1.05
+price.power.sell = price.power.avgPrice
+price.power.order = price.power.avgPrice * 1.05
 
 module.exports.price = price
 // for (let type in price) {

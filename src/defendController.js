@@ -1,10 +1,10 @@
-let defendRoom = ['W5N31']
+let defendRoom = ['W21S12']
 let wallNum = Memory.wallNum
 let wallCache = {}
 Memory.defend = Memory.defend || {}
 Memory.defend.wallLock = Memory.defend.wallLock || {}
 let defendNumLimit = {
-    'W5N31': 1
+    'W21S12': 1
 }
 let wallWorkLength={}
 module.exports.wallWorkLength=wallWorkLength

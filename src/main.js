@@ -1,6 +1,3 @@
-
-
-
 console.log('reload---------------------')
 
 function isNotshard3() {
@@ -9,7 +6,8 @@ function isNotshard3() {
     }
     return false
 }
-if(!isNotshard3()){
+
+if (!isNotshard3()) {
     Game.lodash = require('lodash-my')
     load()
     require('prototype.Creep.move')
@@ -20,7 +18,7 @@ if(!isNotshard3()){
 }
 
 function load() {
-    Game.link=require('link')
+    Game.link = require('link')
     Game.test = require('test').test
     Game.war = require('war')
     Game.config = require('config')
@@ -36,6 +34,7 @@ function load() {
     Game.defend = require('defendController')
     Game.reaction = require('reaction')
     Game.tower = require("tower")
+    // Object.defineProperty(global, 'game', {get: Game})
     for (let roomName in Memory.rooms) {
         let room = Game.rooms[roomName]
         if (!room) {
@@ -46,10 +45,17 @@ function load() {
 
 function clearmem() {
     for (let name in Memory.creeps) {
-        let memory=Memory.creeps[name]||{}
-        if (!Game.creeps[name] || (memory.creepDieTime||0)<Game.time) {
+        let memory = Memory.creeps[name] || {}
+        let creep = Game.creeps[name]
+        if (!memory.creepDieTime) {
+            if (!creep) {
+                delete Memory.creeps[name]
+            }
+        } else if (!creep && memory.creepDieTime < Game.time) {
             delete Memory.creeps[name]
         }
+
+
     }
     for (let name in Memory.powerCreeps) {
         if (!Game.powerCreeps[name] || !Game.powerCreeps[name].ticksToLive) {
@@ -57,6 +63,7 @@ function clearmem() {
         }
     }
 }
+
 function timer(strs = null) {
     let timeuse = Game.cpu.getUsed() - lastTime
     if (true && strs) console.log(strs + "  " + timeuse.toFixed(4))
@@ -65,10 +72,13 @@ function timer(strs = null) {
 }
 
 let lastTime = 0
-Memory.cpu=Memory.cpu||{}
+Memory.cpu = Memory.cpu || {}
 Memory.cpu.pushTime = Game.time
 
 module.exports.loop = function () {
+    if (Game.time % 20 === 0) {
+        clearmem()
+    }
     require("interShardMemoryManager").pertick()
     if (isNotshard3()) {
         require("overshardMain").main()
@@ -89,10 +99,7 @@ module.exports.loop = function () {
     require("constructionVisual").work()
 
     require('prototype.Creep.move').clear()
-    if (Game.time % 20 == 0) {
-        clearmem()
-    }
-    if (Game.time % 1000 == 0) {
+    if(Game.time%1000===0){
         require('observer').find()
         // Game.memory.roomCache = {}
         for (let roomName in Memory.rooms) {
@@ -103,6 +110,21 @@ module.exports.loop = function () {
                 console.log(roomName + 'mission_generator error ' + e)
             }
         }
+    }
+    if (Game.time % 300 === 0) {
+        if(Game.rooms["W21S12"].spawns.length===0){
+            Game.tools.spawnCreep("E1N29", "overshardBase", {
+                body: {
+                    'work': 10,
+                    'carry': 14,
+                    'move': 25,
+                    'heal':1
+                }
+            })
+        }
+
+
+
 
     }
 
@@ -406,14 +428,7 @@ module.exports.loop = function () {
         }
     }
 
-    if (Game.market.credits > 2e6) {
-        let tokens = Game.market.getAllOrders({type: ORDER_SELL, resourceType: SUBSCRIPTION_TOKEN})
-        for (let x of tokens) {
-            if (x.price <= Game.market.credits) {
-                Game.market.deal(x.id, 1)
-            }
-        }
-    }
+    require("buyOrder").work()
 
     if ((Game.time - 20) % 10 === 0 && Memory.giveRoom) {
         Game.tools.give(Memory.giveRoom, 'energy', 2000000)

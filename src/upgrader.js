@@ -10,8 +10,9 @@ function work(creep) {
             container = _.min(target.pos.findInRange(FIND_STRUCTURES, 3, {
                 filter: obj => obj.structureType === STRUCTURE_CONTAINER
             }), o => o.pos.getRangeTo(target.pos))
-            if (container) memory.container = container.id
-            else {
+            if (container) {
+                memory.container = container.id
+            } else {
                 console.log('no container upgrade' + creep.name)
             }
         }
@@ -21,10 +22,15 @@ function work(creep) {
             workPos = new RoomPosition(...memory.workPos)
         } else {
             workPos = _.min(Game.tools.allnearavailable(container.pos, true), o => o.getRangeTo(container.pos))
-            memory.workPos = [workPos.x, workPos.y, workPos.roomName]
-            if (!(memory.workPos[0] && memory.workPos[1] && memory.workPos[2])) {
+            if(!workPos){
                 memory.workPos = undefined
+            }else{
+                memory.workPos = [workPos.x, workPos.y, workPos.roomName]
+                if (!(memory.workPos[0] && memory.workPos[1] && memory.workPos[2])) {
+                    memory.workPos = undefined
+                }
             }
+
         }
         if (!workPos) return
         if (!creep.pos.isEqualTo(workPos)) {
@@ -47,7 +53,6 @@ function work(creep) {
             upgradertime[creep.pos.roomName] = Game.time
         }
         const action = creep.upgradeController(target)
-
         if (action === ERR_NOT_IN_RANGE) {
             memory.status = 'going'
         } else if (action === ERR_NOT_ENOUGH_RESOURCES) {
@@ -121,11 +126,11 @@ function born(spawnnow, creepname, memory) {
 }
 
 
-let nowUpgrade={
 
-}
 
 function miss(room) {
+    Memory.nowUpgrade=Memory.nowUpgrade||{}
+    let nowUpgrade = Memory.nowUpgrade
     let role_num_fix = Game.config.role_num_fix
     role_num_fix[room.name] = role_num_fix[room.name] || {}
     if (room.storage && room.controller.level >= 4 && room.controller.level <= 7) {
@@ -153,25 +158,25 @@ function miss(room) {
     if (!room.storage) {
         role_num_fix[room.name].upgrader = 0
     }
-    if(nowUpgrade[room.name]){
+    if (nowUpgrade[room.name]) {
         role_num_fix[room.name].upgrader = 1
     }
-    if(room.controller.level===8){
+    if (room.controller.level === 8) {
         //冲gcl决策
-        if( room.storage.store[RESOURCE_ENERGY] / room.storage.store.getCapacity() >= 0.68&& Game.cpu.bucket > 9000 && Object.keys(Memory.powerPlan).length <=2){
+        if (room.storage.store[RESOURCE_ENERGY] / room.storage.store.getCapacity() >= 0.7 && Game.cpu.bucket > 9000 && Object.keys(Memory.powerPlan).length <= 2) {
             //正在升级的数量
-            const nowLength=Object.keys(nowUpgrade).length
-            const nowCpuUse=Memory.grafana.cpuavg+nowLength*0.4
-            const freeCpu=18.8-nowCpuUse
+            const nowLength = Object.keys(nowUpgrade).length
+            const nowCpuUse = Memory.grafana.cpuavg + nowLength * 0.4
+            const freeCpu = 17 - nowCpuUse
             // console.log(`${room.name} freeCpu=${freeCpu}`)
-            if(freeCpu>0.4){
-                nowUpgrade[room.name]=true
+            if (freeCpu > 0.4) {
+                nowUpgrade[room.name] = true
                 //确认升级
                 role_num_fix[room.name].upgrader = 1
-            }else{
+            } else {
                 delete nowUpgrade[room.name]
             }
-        }else{
+        } else {
             delete nowUpgrade[room.name]
         }
     }

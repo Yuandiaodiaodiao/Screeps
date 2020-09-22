@@ -16,12 +16,20 @@ function canHeal(creep) {
 function work(room) {
     room.memory.tower = room.memory.tower || {}
     let memory = room.memory.tower
-    let target = room.find(FIND_HOSTILE_CREEPS)[0]
+    let targets=room.find(FIND_HOSTILE_CREEPS)
+    let target = targets[0]
     enemy[room.name] = !!target;
     let attackSucc
     if (target && target.owner.username !== 'Invader') {
         Memory.grafana.enemy = Memory.grafana.enemy || {}
         Memory.grafana.enemy[room.name + target.owner.username] = Game.time
+    }
+    if (target && targets.every((item) => {
+        return item.owner.username === "Invader"
+    }) && targets.every((item) => {
+        return item.pos.x <= 1 || item.pos.x >= 48 || item.pos.y <= 1 || item.pos.y >= 48
+    })) {
+        target = undefined
     }
     if (target) {
         if (room.towers.length === 0) return;
@@ -38,7 +46,6 @@ function work(room) {
             }
         }
     }
-    let targets
     if (room.memory.tower.status === 'miss') {
 
         if (target) {
@@ -81,7 +88,7 @@ function work(room) {
                 attackTimes[target.id] = undefined
             }
         } else {
-            console.log('sleep time=' + memory.singleSleep)
+            console.log('sleep time=' + memory.singleSleep + room.name)
         }
 
     } else if (room.memory.tower.firestatus === 'test') {

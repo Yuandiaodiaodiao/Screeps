@@ -355,6 +355,7 @@ function nearavailable(pos, withCreep = false) {
     if (Game.rooms[pos.roomName]) {
         for (let a = -1; a <= 1; ++a) {
             for (let b = -1; b <= 1; ++b) {
+                if(pos.x + a<=0 ||pos.x + a>=49 ||pos.y + b<=0 || pos.y + b>=49)continue
                 let newpos = new RoomPosition(pos.x + a, pos.y + b, pos.roomName)
                 if (walkable(newpos, withCreep)) {
                     return newpos
@@ -620,6 +621,7 @@ function removeSite(roomName, build = false) {
 }
 
 function buy(type, price, amount, room) {
+
     return Game.market.createOrder(ORDER_BUY, type, price, amount, room)
 }
 
@@ -660,12 +662,14 @@ function array2pos(array) {
     return new RoomPosition(array[0], array[1], array[2])
 }
 
-function whichRoomMineral(type) {
+function whichRoomMineral(type, showAll = false) {
     Object.keys(Memory.rooms).forEach(o => {
         let room = Game.rooms[o]
         let mineral = room.find(FIND_MINERALS)[0]
         let mtype = mineral.mineralType
-        if (mtype === type) {
+        if (showAll) {
+            console.log(`${o} ${mtype}`)
+        } else if (mtype === type) {
             console.log(`${o} ${type}`)
         }
     })
@@ -674,26 +678,31 @@ function whichRoomMineral(type) {
 function genroom(room) {
     if (typeof room === 'string') {
         return Game.rooms[room]
-    }else{
+    } else {
         return room
     }
 }
 
-function spawnCreep(fromRoom, role) {
-    const room=genroom(fromRoom)
+function spawnCreep(fromRoom, role,memory={}) {
+    const room = genroom(fromRoom)
     const spawn = _.find(room.spawns, obj => !obj.spawning)
-    if(!spawn)return false
+    if (!spawn) return false
     const creepName = `${spawn.room.name}_${role}_${Game.time % 10000}`
     try {
-        return require(role).born(spawn, creepName, {})
+        return require(role).born(spawn, creepName, memory)
     } catch (e) {
         console.log(`spawnCreep ${creepName} ${e} ${(new Error()).stack}`)
         return -12
     }
 }
+function roomWorldPositionCal(roomName){
+    const parsed = /^[WE]([0-9]+)[NS]([0-9]+)$/.exec(roomName);
+    const x = parsed[1] % 10
+    const y = parsed[2] % 10
+}
 
 module.exports = {
-    "spawnCreep":spawnCreep,
+    "spawnCreep": spawnCreep,
     'whichRoomMineral': whichRoomMineral,
     'moveByLongPath2': moveByLongPath2,
     'array2pos': array2pos,
@@ -731,5 +740,5 @@ module.exports = {
     'isHighway': isHighway,
     'allnearavailable': allnearavailable,
     'walkable': walkable,
-    'getExtByOrder': getExtByOrder
+    'getExtByOrder': getExtByOrder,
 };

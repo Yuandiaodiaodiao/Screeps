@@ -115,7 +115,8 @@ module.exports.avgT3 = function () {
 module.exports.work = function (room, rate) {
     let terminal = room.terminal
     if (!terminal || !terminal.my || !terminal.isActive()) return
-    // if (terminal && room.storage && room.storage.store[RESOURCE_ENERGY] / room.storage.store.getCapacity() > 0.65 && room.controller.level === 8) {
+    // return
+    // if (tyerminal && room.storage && room.storage.store[RESOURCE_ENERGY] / room.storage.store.getCapacity() > 0.65 && room.controller.level === 8) {
     //     const helpRoomNameList = _.filter(Object.keys(Memory.rooms), roomName => {
     //         let room2 = Game.rooms[roomName]
     //         return ((room2.storage && (room.storage.store[RESOURCE_ENERGY] / room.storage.store.getCapacity() - room2.storage.store[RESOURCE_ENERGY] / room2.storage.store.getCapacity()) > 0.2) || (!room2.storage))
@@ -136,7 +137,7 @@ module.exports.work = function (room, rate) {
     //     }
     // }
     // console.log('findminerals')
-    if (terminal && (!room.storage || room.storage.store.energy / 1e6 < 0.65 || room.spawns.length === 0) && (room.terminal.store.energy <= 80e3 || (room.spawns.length === 0 && room.terminal.store.getFreeCapacity('energy') > 0))) {
+    if (terminal && (!room.storage || room.storage.store.energy / 1e6 < 0.65 || room.spawns.length === 0) && (room.terminal.store.energy <= 80e3 || (room.spawns.length === 0 && room.terminal.store.getFreeCapacity('energy') < 0))) {
         let storageRate = !room.storage || room.spawns.length === 0 ? 500e3 : room.storage.store.energy
         const sendRoomNameList = _.filter(Object.keys(Memory.rooms), roomName => {
             let room2 = Game.rooms[roomName]
@@ -191,7 +192,7 @@ module.exports.work = function (room, rate) {
 
     }
 
-    if ((terminal.store[RESOURCE_POWER] || 0) > 8000) {
+    if ((terminal.store[RESOURCE_POWER] || 0) > 50e3) {
         const powerHave = terminal.store[RESOURCE_POWER]
         for (let roomNames in Memory.rooms) {
             let rooms = Game.rooms[roomNames]

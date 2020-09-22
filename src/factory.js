@@ -82,7 +82,7 @@ module.exports.doReact = doReact
 function doReact(room) {
     const memory = room.memory.factory
     const factory = room.factory
-    if (!factory) return
+    if (!factory || !memory) return
     if (!memory.react || memory.react === 'no') return;
     const mineType = (Game.terminal.roomMineralCache[room.name] || room.find(FIND_MINERALS)[0]).mineralType
     if (factory) {

@@ -34,6 +34,9 @@ function work(creep) {
     } else if (creep.memory.status == 'get') {
         // console.log('poerpstatus=' + powerp.status)
         let pb = creep.room.powerBanks[0]
+        if(pb){
+            creep.moveTo(pb,{range:3,ignoreCreeps:false})
+        }
         if (!pb && powerp.status < 4) {
             powerp.status = 4
         }
