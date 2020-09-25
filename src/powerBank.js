@@ -49,7 +49,7 @@ function miss() {
             if (roomc && roomc.powerBank) {
                 powerRoomGrafana[roomn + '_' + roomc.power] = Game.time
             }
-            if (roomc && Game.time - roomc.startTime <= 1000 && !Memory.powerPlan[roomn] && roomc.powerBank && Memory.grafana.cpuavg + 0.6 * Object.keys(Memory.powerPlan).length < 18.5 && Game.cpu.bucket >= 9000 + 200 * Object.keys(Memory.powerPlan).length && roomc.power >= (Object.keys(Memory.powerPlan).length * 250 + 4500) && Game.rooms[roomName].storage.store[RESOURCE_ENERGY] > 300e3) {
+            if (roomc && Game.time - roomc.startTime <= 1000 && !Memory.powerPlan[roomn] && roomc.powerBank && Memory.grafana.cpuavg + 0.6 * Object.keys(Memory.powerPlan).length-(Object.keys(Memory.nowUpgrade).length*0.4) < 18.5 && Game.cpu.bucket >= 9000 + 200 * Object.keys(Memory.powerPlan).length && roomc.power >= (Object.keys(Memory.powerPlan).length * 250 + 4500) && Game.rooms[roomName].storage.store[RESOURCE_ENERGY] > 300e3) {
                 const targetpos = new RoomPosition(roomc.pos[0], roomc.pos[1], roomn)
                 const ans = PathFinder.search(Game.rooms[roomName].spawns[0].pos, {pos: targetpos, range: 3}, {
                     plainCost: 1, swampCost: 5, roomCallback: Game.tools.roomc_nocreep, maxOps: 10000

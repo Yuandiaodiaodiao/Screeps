@@ -167,7 +167,7 @@ function miss(room) {
             //正在升级的数量
             const nowLength = Object.keys(nowUpgrade).length
             const nowCpuUse = Memory.grafana.cpuavg + nowLength * 0.4
-            const freeCpu = 17 - nowCpuUse
+            const freeCpu = 18 - nowCpuUse-Object.keys(Memory.powerPlan).length*0.6
             // console.log(`${room.name} freeCpu=${freeCpu}`)
             if (freeCpu > 0.4) {
                 nowUpgrade[room.name] = true

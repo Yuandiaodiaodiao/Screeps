@@ -28,7 +28,7 @@ function work(room) {
         return item.owner.username === "Invader"
     }) && targets.every((item) => {
         return item.pos.x <= 1 || item.pos.x >= 48 || item.pos.y <= 1 || item.pos.y >= 48
-    })) {
+    }) && targets.length>3) {
         target = undefined
     }
     if (target) {
