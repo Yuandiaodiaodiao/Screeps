@@ -1,9 +1,8 @@
 function born(spawnnow, creepname, memory) {
-
     let bodyparts = require('tools').generatebody({
         'move': 12,
         'ranged_attack': 10,
-        'heal': 2
+        'heal': 2,
     }, spawnnow)
     if (memory.body) {
         bodyparts = require('tools').generatebody(memory.body, spawnnow)

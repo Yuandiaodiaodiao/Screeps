@@ -79,7 +79,7 @@ function miss() {
                     power: roomc.power,
                     pbid: roomc.pbid,
                     position: position,
-                    carry: Math.ceil((roomc.power + 500) / 1250),
+                    carry: Math.ceil((roomc.power) / 1250),
                     timelock: 0,
                 }
                 solveplan(roomn)
