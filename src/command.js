@@ -4,6 +4,12 @@ Object.defineProperty(global, 'energy', {get: report_energy})
 Object.defineProperty(global, 'ok', {get: ok_queue})
 Object.defineProperty(global, 'no', {get: no_queue})
 Object.defineProperty(global, 'con', {get: con})
+Object.defineProperty(global, 'help', {get: help})
+function help(){
+    console.log(`require("overshardMissionMamager").registMission`)
+    console.log(`require("overshardMissionMamager").work(true)`)
+    console.log(`JSON.stringify(require("interShardMemoryManager").getThisShard())`)
+}
 function con() {
         console.log(`<script type="text/javascript">console.log("aaaaaaaa");alert("jjjjjj");</script>`)
 }

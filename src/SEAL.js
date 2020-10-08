@@ -26,7 +26,24 @@ function born(spawnnow, creepname, memory) {
 
 
 function work(creep) {
+    if(creep.memory.statusx && !creep.memory.status){
+        //是别人伪装的我
+        if(creep.memory.missionid==="E29N37"){
+            creep.memory.missionid="W29N37"
+        }
+        if(creep.room.name!==creep.memory.missionid){
+            const exitDir = Game.map.findExit(creep.room.name,creep.memory.missionid)
+            const exit = creep.pos.findClosestByRange(exitDir);
+            console.log(exit,creep.memory.missionid)
+            creep.moveTo(exit)
+            return
+        }
 
+        const goal=Game.tools.leaveDoor(creep.pos)
+        creep.memory.goal=Game.tools.pos2array(goal)
+        creep.memory.status="fighting"
+
+    }
     if (creep.memory.status == 'going') {
         let config = null
         try {
@@ -286,9 +303,7 @@ function work(creep) {
                 } else {
                     creep.attack(rampart)
                 }
-                if (pair) {
-                    pair.rangedMassAttack()
-                }
+
                 creep.rangedAttack(rampart)
             } else if (structures[0]) {
                 target=structures[0]
@@ -296,11 +311,7 @@ function work(creep) {
                     creep.dismantle(structures[0])
                 } else {
                     creep.attack(structures[0])
-                    if (pair) {
-                        if (structures[0].owner) {
-                            pair.rangedMassAttack()
-                        }
-                    }
+
                 }
 
             }

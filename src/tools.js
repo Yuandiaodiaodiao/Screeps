@@ -355,7 +355,7 @@ function nearavailable(pos, withCreep = false) {
     if (Game.rooms[pos.roomName]) {
         for (let a = -1; a <= 1; ++a) {
             for (let b = -1; b <= 1; ++b) {
-                if(pos.x + a<=0 ||pos.x + a>=49 ||pos.y + b<=0 || pos.y + b>=49)continue
+                if (pos.x + a <= 0 || pos.x + a >= 49 || pos.y + b <= 0 || pos.y + b >= 49) continue
                 let newpos = new RoomPosition(pos.x + a, pos.y + b, pos.roomName)
                 if (walkable(newpos, withCreep)) {
                     return newpos
@@ -683,11 +683,13 @@ function genroom(room) {
     }
 }
 
-function spawnCreep(fromRoom, role,memory={}) {
+const shardNumber = Game.shard.name.replace("shard", "")
+
+function spawnCreep(fromRoom, role, memory = {}) {
     const room = genroom(fromRoom)
     const spawn = _.find(room.spawns, obj => !obj.spawning)
     if (!spawn) return false
-    const creepName = `${spawn.room.name}_${role}_${Game.time % 10000}`
+    const creepName = `${spawn.room.name}_${role}_${Game.time % 10000}_${shardNumber}`
     try {
         return require(role).born(spawn, creepName, memory)
     } catch (e) {
@@ -695,12 +697,30 @@ function spawnCreep(fromRoom, role,memory={}) {
         return -12
     }
 }
-function roomWorldPositionCal(roomName){
+
+function roomWorldPositionCal(roomName) {
     const parsed = /^[WE]([0-9]+)[NS]([0-9]+)$/.exec(roomName);
     const x = parsed[1] % 10
     const y = parsed[2] % 10
 }
-
+function middleOfTwo(pos1,pos2){
+    let x=Math.round((pos1.x+pos2.x)/2)
+    let y=Math.round((pos1.y+pos2.y)/2)
+    for (let a = -1; a <= 1; ++a) {
+        for (let b = -1; b <= 1; ++b) {
+            if (x + a <= 0 || x + a >= 49 || y + b <= 0 || y + b >= 49) continue
+            let newpos = new RoomPosition(x + a, y + b, pos1.roomName)
+            if (newpos.isNearTo(pos1) && newpos.isNearTo(pos2)&& walkable(newpos, false)) {
+                return newpos
+            }
+        }
+    }
+}
+function leaveDoor(pos){
+    pos.x=Math.max(Math.min(pos.x,48),1)
+    pos.y=Math.max(Math.min(pos.y,48),1)
+    return pos
+}
 module.exports = {
     "spawnCreep": spawnCreep,
     'whichRoomMineral': whichRoomMineral,
@@ -741,4 +761,6 @@ module.exports = {
     'allnearavailable': allnearavailable,
     'walkable': walkable,
     'getExtByOrder': getExtByOrder,
+    middleOfTwo,
+    leaveDoor
 };

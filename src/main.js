@@ -1,5 +1,4 @@
 console.log('reload---------------------')
-
 function isNotshard3() {
     if (Game.shard.name !== 'shard3') {
         return true
@@ -413,7 +412,7 @@ module.exports.loop = function () {
                 }
             }
         } catch (e) {
-            console.log('role=' + obj.name + 'error' + e)
+            console.log('role=' + obj.name ,e.stack,e)
         }
     })
     Memory.cpu.creepCpu = timer()
@@ -444,6 +443,12 @@ module.exports.loop = function () {
     //     }
     //
     // }
+    try{
+        require("overshardMissionMamager").work()
+        require("overshardMain").execTick()
+    }catch (e) {
+        console.log(e)
+    }
     for (let rooms in Game.rooms) {
         let room = Game.rooms[rooms]
         try {
@@ -471,6 +476,7 @@ module.exports.loop = function () {
 
     }
     require("interShardMemoryManager").saveThisShard()
+    require("interShardMemoryManager").clear()
     Game.config.dofuncQueue()
 
     require('roomvisual').statistics()

@@ -46,14 +46,15 @@ function work(creep) {
             memory.sleep = target.ticksToRegeneration || 0
             memory.status = 'sleep'
         }
-    } else if (memory.status == 'linking') {
+    } else if (memory.status === 'linking') {
         const link = Game.getObjectById(memory.link)
         const target = Game.getObjectById(memory.missionid)
         if (target.energy > 0) {
             if (creep.carryCapacity - creep.carry.energy > 0) {
                 const act = creep.harvest(target)
-                if (act == ERR_NOT_IN_RANGE) {
-                    creep.moveTo(target, {range: 1})
+                if (act === ERR_NOT_IN_RANGE) {
+
+                    creep.moveTo(Game.tools.middleOfTwo(target.pos, link.pos))
                 }
             }
 
@@ -101,27 +102,25 @@ function work(creep) {
             creep.room.createConstructionSite(creep.pos, STRUCTURE_CONTAINER)
 
         }
-    } else if (memory.status == 'going') {
+    } else if (memory.status === 'going') {
         if (memory.link) {
             const link = Game.getObjectById(memory.link)
             const mine = Game.getObjectById(memory.missionid)
-            if (creep.pos.getRangeTo(mine) > 1) {
-                creep.moveTo(mine, {reusePath: 50, range: 1})
-            } else if (creep.pos.getRangeTo(link) > 1) {
-                creep.move(creep.pos.getDirectionTo(link))
+            if (creep.pos.getRangeTo(mine) > 1 || creep.pos.getRangeTo(link) > 1) {
+                creep.moveTo(Game.tools.middleOfTwo(mine.pos, link.pos))
             } else {
                 memory.status = 'linking'
             }
         } else if (memory.container) {
             const container = Game.getObjectById(memory.container)
             creep.moveTo(container, {reusePath: 50, range: 0})
-            if (creep.pos.getRangeTo(container) == 0) {
+            if (creep.pos.isEqualTo(container)) {
                 memory.status = 'mining'
             }
         } else {
             const mine = Game.getObjectById(memory.missionid)
-            creep.moveTo(mine, {reusePath: 50,range:1})
-            if (creep.pos.getRangeTo(mine) <= 1) {
+            creep.moveTo(mine, {reusePath: 50, range: 1})
+            if (creep.pos.isNearTo(mine)) {
                 memory.status = 'dropping'
             }
         }

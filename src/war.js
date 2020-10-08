@@ -565,7 +565,7 @@ function genbody(body) {
     }
     return body
 }
-
+module.exports.genbody=genbody
 var lodash = require('lodash-my')
 module.exports.getEnemy = getEnemy
 

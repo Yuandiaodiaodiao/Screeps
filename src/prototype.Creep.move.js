@@ -22,7 +22,7 @@ ps:
 creep.moveTo(target,{ignoreCreeps:false})
 
  */
-var config = {
+const config = {
     changemove: true,//实现对穿
     changemoveTo: true,//优化moveTo寻路默认使用ignoreCreep=true
     roomCallbackWithoutCreep: require('tools').roomc_nocreep,//moveTo默认使用的忽视creep的callback函数
@@ -30,9 +30,15 @@ var config = {
     changeFindClostestByPath: true,  //修改findClosestByPath 使得默认按照对穿路径寻找最短
     reusePath: 10 //增大默认寻路缓存
 }
+const structureCanWalk=struct => {
+    return !(struct.structureType !== STRUCTURE_CONTAINER && struct.structureType !== STRUCTURE_ROAD &&
+        (struct.structureType !== STRUCTURE_RAMPART ||
+            !struct.my))
 
-var moveCache = new Set()
-var lastMove = {}
+}
+
+const moveCache = new Set()
+const lastMove = {}
 module.exports.moveCache = moveCache
 module.exports.lastMove = lastMove
 if (config.changemove) {
@@ -85,6 +91,12 @@ if (config.changemoveTo) {
             if (ops.ignoreRoads) {
                 ops.plainCost = 1
                 ops.swampCost = 5
+            }
+            if (firstArg instanceof Structure) {
+                //移动的 是target
+                if(ops.range===undefined && !structureCanWalk(firstArg)){
+                    ops.range=1
+                }
             }
             if (ops.ignoreCreeps === undefined || ops.ignoreCreeps === true) {
                 ops.ignoreCreeps = true

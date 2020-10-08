@@ -17,18 +17,26 @@ class Manager {
         this.writed = this.writed || writeData
         return this.memory
     }
-
-    saveThisShard() {
-        if (this.memory && this.writed) {
+    clear(writed=false){
+        if ( (this.memory && this.writed) ||writed) {
+            if(!this.memory && writed){
+                this.memory = JSON.parse(InterShardMemory.getLocal() || "{}");
+            }
             let creeps=this.memory.creeps
             if(creeps){
                 for(let name in creeps){
                     let value=creeps[name]
-                    if(value&&value.creepDieTime&&value.creepDieTime<Game.time){
+                    if(value&&((value.creepDieTime&&value.creepDieTime<Game.time)||!value.creepDieTime)){
                         creeps[name]=undefined
                     }
+
                 }
             }
+            InterShardMemory.setLocal(JSON.stringify(this.memory));
+        }
+    }
+    saveThisShard() {
+        if (this.memory && this.writed ) {
             InterShardMemory.setLocal(JSON.stringify(this.memory));
         }
     }
@@ -50,6 +58,7 @@ class Manager {
             ans.push("shard" + (shardNum - 1))
 
         }
+        // console.log(ans)
         return ans
     }
 
@@ -60,7 +69,7 @@ class Manager {
         for (let shard of otherShard) {
             let memory = this.get(shard)
             let num = _.get(memory, keys) || -1
-            console.log(shard + " step " + num)
+            // console.log(shard + " step " + num)
             maxNum = Math.max(maxNum, num)
         }
         return maxNum

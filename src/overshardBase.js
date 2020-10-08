@@ -1,24 +1,8 @@
-let ans = [
-    {shard: 'shard3', roomName: 'E0N30', x: 41, y: 20},
-    {shard: 'shard2', roomName: 'E0N30', x: 21, y: 14},
-    {shard: 'shard1', roomName: 'W0N30', x: 44, y: 13},
-    {shard: 'shard0', roomName: 'W0N59', x: 7, y: 1},
-    {shard: 'shard0', roomName: 'W10N60', x: 14, y: 37},
-    {shard: 'shard1', roomName: 'W10N30', x: 5, y: 40},
-    {shard: 'shard0', roomName: 'W19N50', x: 1, y: 39},
-    {shard: 'shard0', roomName: 'W20N39', x: 6, y: 1},
-    {shard: 'shard0', roomName: 'W30N40', x: 29, y: 42},
-    {shard: 'shard1', roomName: 'W20N20', x: 43, y: 18},
-    {shard: 'shard0', roomName: 'W29N30', x: 1, y: 46},
-    {shard: 'shard0', roomName: 'W30N10', x: 37, y: 30},
-    {shard: 'shard1', roomName: 'W20N10', x: 41, y: 19},
-    {shard: 'shard0', roomName: 'W41N10', x: 48, y: 39},
-    {shard: 'shard0', roomName: 'W40S20', x: 20, y: 17},
-    {shard: 'shard1', roomName: 'W20S10', x: 6, y: 31},
-    {shard: 'shard2', roomName: 'W20S10', x: 24, y: 9},
-    {shard: 'shard3', roomName: 'W20S12', x: 25, y: 25}
-]
-
+const interShardManager = require("interShardMemoryManager")
+const overshardPath = require("overshardPath")
+const stepCache = {}
+const roomChangeCache = {}
+const roomReach={}
 class overshardCreepManager {
     constructor() {
         this.lastRoomCache = {}
@@ -62,8 +46,53 @@ class overshardCreepManager {
         }
     }
 
+    syncStep(creep) {
+        if (creep.memory.synctick > 0 && creep.memory.statusx === 'go') {
+
+            creep.memory.step = Math.max(creep.memory.step, this.interShardMemory.mergeMaxKey(Game.shard.name, ["creeps", creep.name, "step"]))
+            if (creep.memory.synctick-- < 0) {
+                creep.memory.synctick = undefined
+            }
+            //跑路状态时需要从其他shard同步最新的step数量
+        }
+    }
+
+    initMemory(creep) {
+        //当跨越到下一个shard的时候 有可能出现失忆症 需要到其他shard同步memory
+        const originShard = creep.name.split("_")[3]
+        const originMemory = interShardManager.get(`shard${originShard}`)
+        const creepMemory = _.get(originMemory, ['creeps', creep.name])
+        if (creepMemory) {
+            creep.memory = creepMemory
+            creep.memory.synctick = 5
+            this.syncStep(creep)
+            this[creep.memory.statusx](creep)
+        } else {
+            console.log("syncfalse", creep.name)
+        }
+    }
+
+    init(creep) {
+        //出生的第1tick
+        const memory = this.interShardMemory.getThisShard(true)
+        creep.memory.statusx = "go"
+        _.set(memory, ['creeps', creep.name], _.clone(creep.memory))
+        //进行shard转移
+
+        this[creep.memory.statusx](creep)
+
+    }
+    beOther(creep){
+            require(creep.memory.role).work(creep)
+    }
     work(creep) {
 
+        if (creep.name in Memory.creeps && Object.keys(Memory.creeps[creep.name]).length>=2) {
+                this[creep.memory.statusx](creep)
+        } else {
+            this.initMemory(creep)
+        }
+        return
         if (creep.memory.status === 'jump') {
             try {
                 this.jump(creep)
@@ -87,8 +116,6 @@ class overshardCreepManager {
                 }
             }
 
-        } else if (creep.memory.missionid) {
-            return require("opener").work(creep)
         } else {
             this.go(creep)
         }
@@ -96,63 +123,76 @@ class overshardCreepManager {
     }
 
     go(creep) {
+        this.syncStep(creep)
+
         const lastRoom = this.lastRoomCache[creep.name] || {}
         if (lastRoom.roomName !== creep.pos.roomName) {
-            console.log(creep.pos)
-
-            console.log(`<a href="https://screeps.com/a/#!/room/${Game.shard.name}/${creep.pos.roomName}" title="1" >${creep.name}</a>`)
+            if(roomChangeCache[creep.name]){
+                creep.memory.step+=1
+                roomChangeCache[creep.name]=undefined
+            }
+            //专治反复横跳
+            const reachTimes=_.get(roomReach,[creep.name,creep.pos.roomName],0)+1
+            _.set(roomReach,[creep.name,creep.pos.roomName], reachTimes)
+            if(reachTimes>=3){
+                roomReach[creep.name]={}
+                creep.memory.step+=1
+            }
+            console.log(`<a href="https://screeps.com/a/#!/room/${Game.shard.name}/${creep.pos.roomName}" title=${Game.shard.name + creep.pos.roomName} >${creep.name}</a>`)
             this.lastRoomCache[creep.name] = {"roomName": creep.room.name}
         }
         let step = creep.memory.step
-        if (step < 0 || step === undefined) {
-            creep.memory.step = step = this.interShardMemory.mergeMaxKey(Game.shard.name, ["creeps", creep.name, "step"])
-            if (step < 0) {
-                return
-            }
-        }
-        let ret = ans[step]
-        // 防止万一
-        for (let index in ans) {
-            if (index < step - 1) continue
-            let path = ans[index]
-            if (path.shard === Game.shard.name) {
-                if (!ret) {
-                    ret = path;
-                } else {
-                    if (Game.map.getRoomLinearDistance(creep.pos.roomName, path.roomName) <
-                        Game.map.getRoomLinearDistance(creep.pos.roomName, ret.roomName)) {
-                        ret = path;
-                        step = Number(index)
-                    }
-                }
-            }
-        }
-        if(creep.hits<creep.hitsMax){
-            console.log("被打了!",creep.pos)
+        const memoryPath = creep.memory.path
+        const path = overshardPath[memoryPath[0]][memoryPath[1]].path
+        const ret = path[step]
+
+        if (creep.hits < creep.hitsMax) {
             creep.heal(creep)
         }
         if (ret) {
             let target = new RoomPosition(ret.x, ret.y, ret.roomName)
-            creep.moveTo(target, {reusePath: 25, plainCost: 1})
-            if (creep.pos.getRangeTo(target) === 1) {
-                step += 1
-                if (ans[step] && ans[step].shard !== Game.shard.name) {
+            let flag2=false
+            if (creep.pos.isEqualTo(target)) {
+                console.log("to another isEqualTo")
+                if(step>=path.length-1){
+                    creep.memory.step++
+                }
+            } else if (creep.pos.isNearTo(target) && creep.fatigue === 0) {
+                if (Game.shard.name !== ret.shard) {
+                    console.log("sharderror!!", `<a href="https://screeps.com/a/#!/room/${Game.shard.name}/${creep.pos.roomName}" title=${Game.shard.name + creep.pos.roomName} >${creep.name}</a>`)
+                }
+                //临近位置 下1tick走进去
+
+                if (path[step + 1] && path[step + 1].shard !== Game.shard.name) {
                     console.log("to another shard")
                     //要跨越shard了!
-                    creep.memory = undefined
+                    flag2=true
                 } else {
                     console.log("to another room")
-                    creep.memory.step = step
+                    roomChangeCache[creep.name]=true
                 }
-                let memory = this.interShardMemory.getThisShard(true)
-                _.set(memory, ['creeps', creep.name, 'step'], step)
+                const memory = this.interShardMemory.getThisShard(true)
+                _.set(memory, ['creeps', creep.name, 'step'], step + 1)
                 _.set(memory, ['creeps', creep.name, 'creepDieTime'], Game.time + creep.ticksToLive * 2)
             }
-        } else if (!ret && step > 0) {
+            if (creep.room.find(FIND_CREEPS).some(c => !c.my)) {
+                const pathCache = _.get(creep.memory, ["_move", "path"]) || ""
+                if (pathCache.length > 5) creep.memory._move = undefined
+                if (creep.hits < creep.hitsMax) {
+                    console.log("被打了!", creep.pos, Game.shard.name)
+                }
+                creep.moveTo(target, {reusePath: 5, plainCost: 1, ignoreCreeps: false})
+            } else {
+                creep.moveTo(target, {reusePath: 50, plainCost: 1})
+            }
+
+            if(flag2){
+                creep.memory = undefined
+            }
+        } else if (ret===undefined) {
             //到了
 
-            creep.memory.status = "jump"
-
+            creep.memory.statusx = "beOther"
         }
     }
 
@@ -171,9 +211,12 @@ class overshardCreepManager {
             creepname,
             {
                 memory: {
+                    path: memory.path,
+                    statusx: "init",
                     step: 0,
                     missionid: memory.roomName,
                     creepDieTime: Game.time + (body.claim > 0 ? 600 : 1500),
+                    role:memory.role
                 }
             }
         )
